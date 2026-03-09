@@ -1,0 +1,36 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Board slide animations */
+@keyframes boardSlideInRight {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes boardSlideInLeft {
+  from { opacity: 0; transform: translateX(-32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.board-slide-right { animation: boardSlideInRight 0.2s ease-out; }
+.board-slide-left  { animation: boardSlideInLeft  0.2s ease-out; }
+
+/* react-rnd resize handle visibility */
+.react-resizable-handle {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.react-rnd-container:hover .react-resizable-handle {
+  opacity: 1;
+}
