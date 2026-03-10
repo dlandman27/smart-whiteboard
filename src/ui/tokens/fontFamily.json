@@ -1,0 +1,5 @@
+{
+  "base":    ["system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"],
+  "display": ["ui-serif", "Georgia", "Cambria", "serif"],
+  "mono":    ["ui-monospace", "SFMono-Regular", "Menlo", "Monaco", "monospace"]
+}

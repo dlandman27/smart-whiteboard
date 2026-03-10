@@ -1,7 +1,9 @@
 export interface WidgetLayout {
   id: string
-  databaseId: string
-  databaseTitle: string
+  type?: 'database' | 'calendar'  // defaults to 'database' for backward compat
+  databaseId?: string             // notion database widgets
+  calendarId?: string             // google calendar widgets
+  databaseTitle: string           // display title for both types
   x: number
   y: number
   width: number

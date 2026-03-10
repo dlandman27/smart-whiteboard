@@ -1,0 +1,50 @@
+import { Text } from '../ui/web'
+import { useWhiteboardStore } from '../store/whiteboard'
+import { Widget } from './Widget'
+import { DatabaseWidget } from './widgets/DatabaseWidget'
+import { CalendarWidget } from './widgets/CalendarWidget'
+
+interface Props {
+  slideDir: 'left' | 'right'
+  activeTool: string
+}
+
+export function WidgetCanvas({ slideDir, activeTool }: Props) {
+  const { boards, activeBoardId } = useWhiteboardStore()
+
+  const activeIndex = boards.findIndex((b) => b.id === activeBoardId)
+  const widgets     = boards[activeIndex]?.widgets ?? []
+
+  return (
+    <div
+      key={activeBoardId}
+      className={`absolute inset-0 ${slideDir === 'right' ? 'board-slide-right' : 'board-slide-left'}`}
+    >
+      {widgets.length === 0 && activeTool === 'pointer' && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+          <Text variant="body" color="muted">This board is empty</Text>
+          <Text variant="body" size="medium" color="muted" className="mt-1">
+            Draw freely, or click <Text as="span" variant="label" color="muted">Add Widget</Text> to pin content
+          </Text>
+        </div>
+      )}
+
+      {widgets.map((widget) => (
+        <Widget
+          key={widget.id}
+          id={widget.id}
+          title={widget.databaseTitle}
+          x={widget.x}
+          y={widget.y}
+          width={widget.width}
+          height={widget.height}
+        >
+          {widget.type === 'calendar'
+            ? <CalendarWidget calendarId={widget.calendarId ?? 'primary'} />
+            : <DatabaseWidget databaseId={widget.databaseId ?? ''} />
+          }
+        </Widget>
+      ))}
+    </div>
+  )
+}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Rnd } from 'react-rnd'
 import { X } from 'lucide-react'
+import { IconButton, Text } from '../ui/web'
 import { useWhiteboardStore } from '../store/whiteboard'
 
 const GRID_SIZE = 28 // matches the dot pattern spacing
@@ -60,15 +61,14 @@ export function Widget({ id, title, x, y, width, height, children }: Props) {
       >
         {/* Title bar / drag handle */}
         <div className={`widget-drag-handle flex items-center gap-2 px-3 py-2.5 cursor-grab active:cursor-grabbing select-none flex-shrink-0 border-b transition-colors ${ctrlHeld ? 'bg-blue-50 border-blue-200' : 'bg-stone-50 border-stone-200'}`}>
-          <span className="flex-1 text-sm font-semibold text-stone-700 truncate">{title}</span>
-          <button
+          <Text as="span" variant="title" size="small" className="flex-1 truncate">{title}</Text>
+          <IconButton
+            icon={X}
+            size="sm"
             onMouseDown={(e) => e.stopPropagation()}
             onClick={() => removeWidget(id)}
-            className="p-1 rounded hover:bg-stone-200 text-stone-400 hover:text-stone-600 transition-colors"
             title="Remove widget"
-          >
-            <X size={14} />
-          </button>
+          />
         </div>
 
         {/* Widget content */}

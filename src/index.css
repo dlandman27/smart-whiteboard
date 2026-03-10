@@ -10,7 +10,7 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; /* mirrors fontFamily.base token */
 }
 
 /* Board slide animations */
@@ -24,6 +24,17 @@ body {
 }
 .board-slide-right { animation: boardSlideInRight 0.2s ease-out; }
 .board-slide-left  { animation: boardSlideInLeft  0.2s ease-out; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+.slide-up { animation: slideUp 0.18s ease-out; }
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 /* react-rnd resize handle visibility */
 .react-resizable-handle {

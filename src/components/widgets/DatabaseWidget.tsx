@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Plus, RefreshCw, Minus, Check } from 'lucide-react'
+import { Icon, IconButton, Text } from '../../ui/web'
 import { useNotionPages, useUpdatePage, useCreatePage, useArchivePage } from '../../hooks/useNotion'
 
 // Property types we know how to display/edit
@@ -151,14 +152,14 @@ export function DatabaseWidget({ databaseId }: Props) {
           onClick={() => toggleCheckbox(page.id, propName, prop.checkbox)}
           className="flex items-center justify-center w-5 h-5 rounded border border-stone-300 hover:border-stone-400 transition-colors flex-shrink-0"
         >
-          {prop.checkbox && <Check size={11} className="text-green-500" />}
+          {prop.checkbox && <Icon icon={Check} size={11} className="text-green-500" />}
         </button>
       )
     }
 
     if (prop.type === 'status') {
       const val = prop.status
-      return val ? <Badge name={val.name} color={val.color} /> : <span className="text-stone-300 text-xs">—</span>
+      return val ? <Badge name={val.name} color={val.color} /> : <Text as="span" variant="caption" color="disabled">—</Text>
     }
 
     if (prop.type === 'select' && !isEditing) {
@@ -168,19 +169,19 @@ export function DatabaseWidget({ databaseId }: Props) {
           <Badge name={val.name} color={val.color} />
         </button>
       ) : (
-        <span onClick={() => setEditingCell({ pageId: page.id, propName, value: '' })} className="text-stone-300 text-xs cursor-text">—</span>
+        <Text as="span" variant="caption" color="disabled" className="cursor-text" onClick={() => setEditingCell({ pageId: page.id, propName, value: '' })}>—</Text>
       )
     }
 
     if (prop.type === 'multi_select') {
-      if (!prop.multi_select.length) return <span className="text-stone-300 text-xs">—</span>
+      if (!prop.multi_select.length) return <Text as="span" variant="caption" color="disabled">—</Text>
       return (
         <div className="flex flex-wrap gap-1">
           {prop.multi_select.slice(0, 2).map((s: any) => (
             <Badge key={s.id} name={s.name} color={s.color} />
           ))}
           {prop.multi_select.length > 2 && (
-            <span className="text-stone-400 text-xs">+{prop.multi_select.length - 2}</span>
+            <Text as="span" variant="caption" color="muted">+{prop.multi_select.length - 2}</Text>
           )}
         </div>
       )
@@ -206,13 +207,15 @@ export function DatabaseWidget({ databaseId }: Props) {
     }
 
     return (
-      <span
+      <Text
+        as="span"
+        variant="caption"
+        className="text-stone-600 hover:text-stone-900 cursor-text block truncate"
         onClick={() => setEditingCell({ pageId: page.id, propName, value: displayVal })}
-        className="text-xs text-stone-600 hover:text-stone-900 cursor-text block truncate"
         title={displayVal || undefined}
       >
-        {displayVal || <span className="text-stone-300">—</span>}
-      </span>
+        {displayVal || <Text as="span" variant="caption" color="disabled">—</Text>}
+      </Text>
     )
   }
 
@@ -220,18 +223,18 @@ export function DatabaseWidget({ databaseId }: Props) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full text-stone-400 text-xs">
-        Loading…
+      <div className="flex items-center justify-center h-full">
+        <Text variant="caption" color="muted">Loading…</Text>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2 text-red-500 text-xs p-4 text-center">
-        <p>Failed to load entries</p>
-        <p className="text-red-400">{(error as Error).message}</p>
-        <button onClick={() => refetch()} className="underline hover:text-red-600 mt-1">Retry</button>
+      <div className="flex flex-col items-center justify-center h-full gap-2 p-4">
+        <Text variant="label" className="text-red-500">Failed to load entries</Text>
+        <Text variant="caption" className="text-red-400">{(error as Error).message}</Text>
+        <button onClick={() => refetch()} className="underline text-xs text-red-500 hover:text-red-600 mt-1">Retry</button>
       </div>
     )
   }
@@ -240,20 +243,20 @@ export function DatabaseWidget({ databaseId }: Props) {
     <div className="flex flex-col h-full text-sm select-none bg-white">
       {/* Toolbar */}
       <div className="flex items-center justify-between px-3 py-1.5 border-b border-stone-100 flex-shrink-0">
-        <span className="text-xs text-stone-400">{pages.length} {pages.length === 1 ? 'item' : 'items'}</span>
+        <Text as="span" variant="caption" color="muted">{pages.length} {pages.length === 1 ? 'item' : 'items'}</Text>
         <div className="flex items-center gap-1.5">
-          <button
+          <IconButton
+            icon={RefreshCw}
+            size="sm"
             onClick={() => refetch()}
             title="Refresh"
-            className={`p-1 rounded hover:bg-stone-100 text-stone-300 hover:text-stone-500 transition-colors ${isFetching ? 'animate-spin text-blue-400' : ''}`}
-          >
-            <RefreshCw size={12} />
-          </button>
+            className={isFetching ? 'animate-spin text-blue-400' : ''}
+          />
           <button
             onClick={() => setIsAdding(true)}
             className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-600 transition-colors"
           >
-            <Plus size={11} /> New
+            <Icon icon={Plus} size={11} /> New
           </button>
         </div>
       </div>
@@ -293,14 +296,14 @@ export function DatabaseWidget({ databaseId }: Props) {
                   {renderCell(page, propName)}
                 </div>
               ))}
-              <button
+              <IconButton
+                icon={Minus}
+                size="sm"
                 onClick={() => handleDelete(page.id)}
                 disabled={deletingId === page.id}
                 title="Remove"
-                className="w-5 flex-shrink-0 p-0.5 rounded text-transparent group-hover:text-stone-300 hover:!text-red-400 hover:bg-stone-100 transition-all"
-              >
-                <Minus size={12} />
-              </button>
+                className="flex-shrink-0 text-transparent group-hover:text-stone-300 hover:!text-red-400"
+              />
             </div>
           ))
         )}
