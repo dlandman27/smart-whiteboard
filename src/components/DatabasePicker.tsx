@@ -160,10 +160,9 @@ export function DatabasePicker({ onClose }: Props) {
 
   function handleAdd(option: WidgetOption) {
     const offset = widgets.length * 24
-    if (option.kind === 'clock') {
-      addWidget({ type: 'clock', databaseTitle: 'Clock', x: 60 + offset, y: 60 + offset, width: 320, height: 200 })
-    } else if (option.kind === 'weather') {
-      addWidget({ type: 'weather', databaseTitle: 'Weather', x: 60 + offset, y: 60 + offset, width: 300, height: 220 })
+    if (option.kind === 'static') {
+      const { type, label, defaultSize } = option.def
+      addWidget({ type, databaseTitle: label, x: 60 + offset, y: 60 + offset, ...defaultSize })
     } else if (option.kind === 'notion') {
       addWidget({ type: 'database', databaseId: option.db.id, databaseTitle: dbTitle(option.db), x: 60 + offset, y: 60 + offset, width: 500, height: 380 })
     } else if (option.kind === 'calendar') {
@@ -172,13 +171,12 @@ export function DatabasePicker({ onClose }: Props) {
     onClose()
   }
 
-  const clockOptions    = filtered.filter((o): o is Extract<WidgetOption, { kind: 'clock' }>    => o.kind === 'clock')
-  const weatherOptions  = filtered.filter((o): o is Extract<WidgetOption, { kind: 'weather' }> => o.kind === 'weather')
+  const staticOptions   = filtered.filter((o): o is Extract<WidgetOption, { kind: 'static' }>   => o.kind === 'static')
   const notionOptions   = filtered.filter((o): o is Extract<WidgetOption, { kind: 'notion' }>   => o.kind === 'notion')
   const calendarOptions = filtered.filter((o): o is Extract<WidgetOption, { kind: 'calendar' }> => o.kind === 'calendar')
 
   const isLoading  = notionLoading || calLoading
-  const hasResults = clockOptions.length + weatherOptions.length + notionOptions.length + calendarOptions.length > 0
+  const hasResults = staticOptions.length + notionOptions.length + calendarOptions.length > 0
 
   return (
     <>
@@ -214,31 +212,17 @@ export function DatabasePicker({ onClose }: Props) {
           )}
 
           {/* Utilities section */}
-          {(clockOptions.length > 0 || weatherOptions.length > 0) && (
+          {staticOptions.length > 0 && (
             <>
               <SectionLabel label="Utilities" />
-              {clockOptions.map((o, i) => {
-                const alreadyAdded = widgets.some((w) => w.type === 'clock')
+              {staticOptions.map((o) => {
+                const alreadyAdded = widgets.some((w) => w.type === o.def.type)
                 return (
                   <WidgetRow
-                    key={i}
-                    icon={<Icon icon={Clock} size={14} className="text-stone-500" />}
-                    iconBg="bg-stone-100"
-                    label="Clock"
-                    badge={alreadyAdded ? 'On board' : undefined}
-                    disabled={alreadyAdded}
-                    onClick={() => handleAdd(o)}
-                  />
-                )
-              })}
-              {weatherOptions.map((o, i) => {
-                const alreadyAdded = widgets.some((w) => w.type === 'weather')
-                return (
-                  <WidgetRow
-                    key={i}
-                    icon={<Icon icon={Sun} size={14} className="text-amber-500" />}
-                    iconBg="bg-amber-50"
-                    label="Weather"
+                    key={o.def.type}
+                    icon={<Icon icon={o.def.Icon} size={14} className={o.def.iconClass} />}
+                    iconBg={o.def.iconBg}
+                    label={o.def.label}
                     badge={alreadyAdded ? 'On board' : undefined}
                     disabled={alreadyAdded}
                     onClick={() => handleAdd(o)}
