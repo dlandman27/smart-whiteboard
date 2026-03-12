@@ -18,9 +18,10 @@ interface WhiteboardStore {
   renameBoard: (id: string, name: string) => void
 
   // Widget management (always on the active board)
-  addWidget: (widget: Omit<WidgetLayout, 'id'>) => void
-  updateLayout: (id: string, updates: Partial<Pick<WidgetLayout, 'x' | 'y' | 'width' | 'height'>>) => void
-  removeWidget: (id: string) => void
+  addWidget:      (widget: Omit<WidgetLayout, 'id'>) => void
+  updateLayout:   (id: string, updates: Partial<Pick<WidgetLayout, 'x' | 'y' | 'width' | 'height'>>) => void
+  updateSettings: (id: string, settings: Record<string, unknown>) => void
+  removeWidget:   (id: string) => void
 }
 
 const DEFAULT_ID = 'default'
@@ -60,6 +61,15 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           boards: s.boards.map((b) =>
             b.id === s.activeBoardId
               ? { ...b, widgets: b.widgets.map((w) => (w.id === id ? { ...w, ...updates } : w)) }
+              : b
+          ),
+        })),
+
+      updateSettings: (id, settings) =>
+        set((s) => ({
+          boards: s.boards.map((b) =>
+            b.id === s.activeBoardId
+              ? { ...b, widgets: b.widgets.map((w) => w.id === id ? { ...w, settings: { ...w.settings, ...settings } } : w) }
               : b
           ),
         })),

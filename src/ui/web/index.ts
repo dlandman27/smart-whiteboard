@@ -23,4 +23,11 @@ export { Icon } from './Icon'
 export { IconButton } from './IconButton'
 export type { IconButtonVariant, IconButtonSize } from './IconButton'
 
+export { SegmentedControl } from './SegmentedControl'
+export type { SegmentedOption } from './SegmentedControl'
+
+export { Toggle } from './Toggle'
+
+export { SettingsSection } from './SettingsSection'
+
 export { cn } from './utils/cn'

@@ -3,6 +3,7 @@ import { useWhiteboardStore } from '../store/whiteboard'
 import { Widget } from './Widget'
 import { DatabaseWidget } from './widgets/DatabaseWidget'
 import { CalendarWidget } from './widgets/CalendarWidget'
+import { getStaticWidgetDef } from './widgets/registry'
 
 interface Props {
   slideDir: 'left' | 'right'
@@ -29,22 +30,32 @@ export function WidgetCanvas({ slideDir, activeTool }: Props) {
         </div>
       )}
 
-      {widgets.map((widget) => (
-        <Widget
-          key={widget.id}
-          id={widget.id}
-          title={widget.databaseTitle}
-          x={widget.x}
-          y={widget.y}
-          width={widget.width}
-          height={widget.height}
-        >
-          {widget.type === 'calendar'
-            ? <CalendarWidget calendarId={widget.calendarId ?? 'primary'} />
-            : <DatabaseWidget databaseId={widget.databaseId ?? ''} />
-          }
-        </Widget>
-      ))}
+      {widgets.map((widget) => {
+        const def          = getStaticWidgetDef(widget.type ?? '')
+        const Comp         = def?.component
+        const SettingsComp = def?.settingsComponent
+
+        const content = Comp
+          ? <Comp widgetId={widget.id} />
+          : widget.type === 'calendar'
+          ? <CalendarWidget calendarId={widget.calendarId ?? 'primary'} />
+          : <DatabaseWidget databaseId={widget.databaseId ?? ''} />
+
+        return (
+          <Widget
+            key={widget.id}
+            id={widget.id}
+            x={widget.x}
+            y={widget.y}
+            width={widget.width}
+            height={widget.height}
+            settingsContent={SettingsComp ? <SettingsComp widgetId={widget.id} /> : undefined}
+          refSize={def?.defaultSize}
+          >
+            {content}
+          </Widget>
+        )
+      })}
     </div>
   )
 }
