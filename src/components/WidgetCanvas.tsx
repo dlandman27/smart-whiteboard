@@ -50,7 +50,7 @@ export function WidgetCanvas({ slideDir, activeTool }: Props) {
             width={widget.width}
             height={widget.height}
             settingsContent={SettingsComp ? <SettingsComp widgetId={widget.id} /> : undefined}
-          refSize={def?.defaultSize}
+          refSize={def?.scalable !== false ? def?.defaultSize : undefined}
           >
             {content}
           </Widget>

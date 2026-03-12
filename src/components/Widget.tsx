@@ -3,11 +3,12 @@ import { Rnd } from 'react-rnd'
 import { GripHorizontal, Settings, X } from 'lucide-react'
 import { useWhiteboardStore } from '../store/whiteboard'
 
-const GRID_SIZE     = 28
-const LONG_PRESS_MS = 500
-const PANEL_WIDTH   = 272
-const GAP           = 10
-const CLOSE_MS      = 130
+const GRID_SIZE       = 28
+const LONG_PRESS_MS   = 400
+const LONG_PRESS_MOVE = 8   // px — cancel long press if pointer moves this far
+const PANEL_WIDTH     = 272
+const GAP             = 10
+const CLOSE_MS        = 130
 
 interface DragStripProps {
   active:      boolean
@@ -20,7 +21,7 @@ function WidgetDragStrip({ active, hasSettings, onRemove, onSettings }: DragStri
   return (
     <div
       className={`widget-drag-handle relative z-10 flex items-center justify-between px-2 cursor-grab active:cursor-grabbing select-none transition-all duration-150 overflow-hidden ${
-        active ? 'h-7 bg-white/80 backdrop-blur-sm border-b border-stone-100' : 'h-3 bg-transparent'
+        active ? 'h-9 bg-white/80 backdrop-blur-sm border-b border-stone-100' : 'h-5 bg-transparent'
       }`}
     >
       <button
@@ -68,16 +69,19 @@ interface Props {
 
 export function Widget({ id, x, y, width, height, children, settingsContent, refSize }: Props) {
   const { updateLayout, removeWidget } = useWhiteboardStore()
-  const [ctrlHeld,     setCtrlHeld]     = useState(false)
-  const [active,       setActive]       = useState(false)
-  const [dragging,     setDragging]     = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
-  const [isClosing,    setIsClosing]    = useState(false)
+  const [ctrlHeld,      setCtrlHeld]      = useState(false)
+  const [active,        setActive]        = useState(false)
+  const [dragging,      setDragging]      = useState(false)
+  const [longPressDrag, setLongPressDrag] = useState(false)
+  const [showSettings,  setShowSettings]  = useState(false)
+  const [isClosing,     setIsClosing]     = useState(false)
   // Live position tracked during drag so panel side swaps in real time
-  const [pos, setPos]                   = useState({ x, y })
-  const closeTimer                      = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressTimer                  = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const panelRef                        = useRef<HTMLDivElement>(null)
+  const [pos, setPos]                     = useState({ x, y })
+  const closeTimer                        = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressTimer                    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const longPressDragRef                  = useRef<HTMLDivElement>(null)
+  const longPressOrigin                   = useRef({ x: 0, y: 0 })
+  const panelRef                          = useRef<HTMLDivElement>(null)
 
   // Keep pos in sync when store updates (e.g. on drop)
   useEffect(() => { setPos({ x, y }) }, [x, y])
@@ -123,8 +127,21 @@ export function Widget({ id, x, y, width, height, children, settingsContent, ref
     else openSettings()
   }
 
-  function startLongPress() {
-    longPressTimer.current = setTimeout(() => setActive(true), LONG_PRESS_MS)
+  function startLongPress(e: React.PointerEvent) {
+    longPressOrigin.current = { x: e.clientX, y: e.clientY }
+    longPressTimer.current = setTimeout(() => {
+      setActive(true)
+      setLongPressDrag(true)
+      // Hand off the already-in-progress pointer to the full-widget drag handle
+      requestAnimationFrame(() => {
+        if (longPressDragRef.current) {
+          const { x: cx, y: cy } = longPressOrigin.current
+          longPressDragRef.current.dispatchEvent(
+            new MouseEvent('mousedown', { bubbles: true, cancelable: true, clientX: cx, clientY: cy, button: 0, buttons: 1 })
+          )
+        }
+      })
+    }, LONG_PRESS_MS)
   }
 
   function cancelLongPress() {
@@ -132,6 +149,13 @@ export function Widget({ id, x, y, width, height, children, settingsContent, ref
       clearTimeout(longPressTimer.current)
       longPressTimer.current = null
     }
+  }
+
+  function onPointerMoveWhileWaiting(e: React.PointerEvent) {
+    if (!longPressTimer.current) return
+    const dx = e.clientX - longPressOrigin.current.x
+    const dy = e.clientY - longPressOrigin.current.y
+    if (dx * dx + dy * dy > LONG_PRESS_MOVE * LONG_PRESS_MOVE) cancelLongPress()
   }
 
   const snapGrid: [number, number] = ctrlHeld ? [GRID_SIZE, GRID_SIZE] : [1, 1]
@@ -160,6 +184,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, ref
       onDrag={(_, d) => setPos({ x: d.x, y: d.y })}
       onDragStop={(_, d) => {
         setDragging(false)
+        setLongPressDrag(false)
         setPos({ x: d.x, y: d.y })
         updateLayout(id, { x: d.x, y: d.y })
       }}
@@ -175,7 +200,8 @@ export function Widget({ id, x, y, width, height, children, settingsContent, ref
       style={{ zIndex: dragging ? 30 : showSettings ? 25 : isActive ? 20 : 10 }}
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => { if (!showSettings) setActive(false) }}
-      onPointerDown={(e: React.PointerEvent) => { if (e.pointerType !== 'mouse') startLongPress() }}
+      onPointerDown={(e: React.PointerEvent) => { startLongPress(e) }}
+      onPointerMove={(e: React.PointerEvent) => onPointerMoveWhileWaiting(e)}
       onPointerUp={cancelLongPress}
       onPointerCancel={cancelLongPress}
     >
@@ -202,6 +228,15 @@ export function Widget({ id, x, y, width, height, children, settingsContent, ref
           onRemove={() => removeWidget(id)}
           onSettings={toggleSettings}
         />
+
+        {/* Full-widget drag overlay — activated by long press */}
+        {longPressDrag && (
+          <div
+            ref={longPressDragRef}
+            className="widget-drag-handle absolute inset-0 z-20 cursor-grabbing"
+            style={{ touchAction: 'none' }}
+          />
+        )}
       </div>
 
       {/* Bridge stem */}
