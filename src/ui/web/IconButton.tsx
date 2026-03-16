@@ -6,9 +6,9 @@ export type IconButtonVariant = 'default' | 'active' | 'ghost'
 export type IconButtonSize    = 'sm' | 'md' | 'lg'
 
 const variantClass: Record<IconButtonVariant, string> = {
-  default: 'text-stone-400 hover:text-stone-700 hover:bg-stone-100',
-  active:  'bg-stone-900 text-white',
-  ghost:   'text-stone-400 hover:text-stone-600',
+  default: 'wt-ibtn',
+  active:  'wt-ibtn-active',
+  ghost:   'wt-ibtn-ghost',
 }
 
 const sizeClass: Record<IconButtonSize, { button: string; icon: number }> = {

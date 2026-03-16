@@ -63,7 +63,7 @@ export function BoardNav({ onSlide }: Props) {
             if (e.key === 'Enter') commitRename()
             if (e.key === 'Escape') setIsRenaming(false)
           }}
-          className="w-28 bg-stone-100 text-stone-800 text-xs text-center rounded-md px-2 py-1 outline-none border border-stone-300"
+          className="wt-input w-28 text-xs text-center rounded-md px-2 py-1"
         />
       ) : isNaming ? (
         <div className="flex items-center gap-1">
@@ -76,15 +76,15 @@ export function BoardNav({ onSlide }: Props) {
               if (e.key === 'Enter') handleAddBoard()
               if (e.key === 'Escape') { setIsNaming(false); setNewBoardName('') }
             }}
-            className="w-28 bg-stone-100 text-stone-800 text-xs text-center rounded-md px-2 py-1 outline-none border border-stone-300 placeholder-stone-400"
+            className="wt-input w-28 text-xs text-center rounded-md px-2 py-1"
           />
-          <IconButton icon={Check} size="sm" onClick={handleAddBoard} className="text-green-500 hover:text-green-600 hover:bg-stone-100" />
+          <IconButton icon={Check} size="sm" onClick={handleAddBoard} className="text-green-500 hover:text-green-600" />
           <IconButton icon={XIcon} size="sm" onClick={() => { setIsNaming(false); setNewBoardName('') }} />
         </div>
       ) : (
         <button
           onDoubleClick={startRename}
-          className="px-2 py-1.5 rounded-md text-stone-700 text-xs font-medium hover:bg-stone-100 transition-colors min-w-[5rem] text-center"
+          className="wt-nav-btn px-2 py-1.5 rounded-md text-xs font-medium transition-colors min-w-[5rem] text-center"
           title="Double-click to rename"
         >
           {activeBoard?.name ?? 'Board'}

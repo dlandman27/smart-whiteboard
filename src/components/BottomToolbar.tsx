@@ -10,10 +10,11 @@ import { Pill } from './Pill'
 type Tool = 'pointer' | 'marker' | 'eraser'
 
 interface Props {
-  onToolChange: (tool: Tool) => void
+  onToolChange:   (tool: Tool) => void
+  onOpenSettings: () => void
 }
 
-export function BottomToolbar({ onToolChange }: Props) {
+export function BottomToolbar({ onToolChange, onOpenSettings }: Props) {
   const { activeBoardId } = useWhiteboardStore()
 
   const [activeTool, setActiveTool]   = useState<Tool>('pointer')
@@ -81,7 +82,7 @@ export function BottomToolbar({ onToolChange }: Props) {
             ))}
           </div>
 
-          <div className="w-px h-5 bg-stone-200 mx-2" />
+          <div className="w-px h-5 mx-2" style={{ backgroundColor: 'var(--wt-border)' }} />
 
           <div className="flex items-center gap-2">
             {STROKE_WIDTHS.map(({ value, dot }) => (
@@ -117,18 +118,18 @@ export function BottomToolbar({ onToolChange }: Props) {
           title="Eraser"
         />
 
-        <div className="w-px h-6 bg-stone-200 mx-1.5" />
+        <div className="w-px h-6 mx-1.5" style={{ backgroundColor: 'var(--wt-border)' }} />
 
         <button
-          onClick={() => setShowPicker(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-stone-700 hover:bg-stone-100 active:bg-stone-200 transition-colors"
+          onClick={() => { selectTool('pointer'); setShowPicker(true) }}
+          className="wt-nav-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
         >
           <Icon icon={Plus} size={14} />
           Add Widget
         </button>
       </Pill>
 
-      {showPicker && <DatabasePicker onClose={() => setShowPicker(false)} />}
+      {showPicker && <DatabasePicker onClose={() => setShowPicker(false)} onOpenSettings={() => { setShowPicker(false); onOpenSettings() }} />}
     </>
   )
 }

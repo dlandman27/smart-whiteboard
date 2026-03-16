@@ -7,24 +7,30 @@ import { BottomToolbar } from './BottomToolbar'
 import { WidgetCanvas } from './WidgetCanvas'
 
 export function Whiteboard() {
-  const [slideDir, setSlideDir]     = useState<'left' | 'right'>('right')
-  const [background, setBackground] = useState<Background>(DEFAULT_BACKGROUND)
-  const [activeTool, setActiveTool] = useState('pointer')
+  const [slideDir,     setSlideDir]     = useState<'left' | 'right'>('right')
+  const [background,   setBackground]   = useState<Background>(DEFAULT_BACKGROUND)
+  const [activeTool,   setActiveTool]   = useState('pointer')
+  const [showSettings, setShowSettings] = useState(false)
 
   return (
     <WhiteboardBackground bg={background.bg} dot={background.dot}>
 
-      {/* Widget canvas */}
       <WidgetCanvas slideDir={slideDir} activeTool={activeTool} />
 
-      {/* ── Top left: logo + settings ──────────────────────────────── */}
-      <LogoSettings background={background} onBackgroundChange={setBackground} />
+      <LogoSettings
+        background={background}
+        onBackgroundChange={setBackground}
+        showSettings={showSettings}
+        onToggleSettings={() => setShowSettings((v) => !v)}
+        onCloseSettings={() => setShowSettings(false)}
+      />
 
-      {/* ── Top right: board navigation ────────────────────────────── */}
       <BoardNav onSlide={setSlideDir} />
 
-      {/* ── Bottom: tools + drawing canvas + widget picker ─────────── */}
-      <BottomToolbar onToolChange={setActiveTool} />
+      <BottomToolbar
+        onToolChange={setActiveTool}
+        onOpenSettings={() => setShowSettings(true)}
+      />
 
     </WhiteboardBackground>
   )

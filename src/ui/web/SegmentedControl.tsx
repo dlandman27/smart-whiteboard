@@ -14,7 +14,7 @@ interface Props<T extends string> {
 
 export function SegmentedControl<T extends string>({ value, options, onChange, className }: Props<T>) {
   return (
-    <div className={cn('flex bg-stone-100 rounded-lg p-0.5 gap-0.5', className)}>
+    <div className={cn('wt-seg-track flex rounded-lg p-0.5 gap-0.5', className)}>
       {options.map((opt) => (
         <button
           key={opt.value}
@@ -22,9 +22,7 @@ export function SegmentedControl<T extends string>({ value, options, onChange, c
           onClick={() => onChange(opt.value)}
           className={cn(
             'flex-1 py-1.5 text-xs font-medium rounded-md transition-all',
-            value === opt.value
-              ? 'bg-white text-stone-800 shadow-sm'
-              : 'text-stone-500 hover:text-stone-700',
+            value === opt.value ? 'wt-seg-active' : 'wt-seg-btn',
           )}
         >
           {opt.label}

@@ -9,7 +9,7 @@ interface Props {
 
 export function Pill({ className, style, children }: Props) {
   return (
-    <div className={cn('bg-white border border-stone-200 shadow-lg rounded-2xl', className)} style={style}>
+    <div className={cn('wt-pill border rounded-2xl', className)} style={style}>
       {children}
     </div>
   )

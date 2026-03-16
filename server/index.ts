@@ -82,9 +82,8 @@ app.delete('/api/pages/:id', async (req, res) => {
   }
 })
 
-// ── Google Calendar ───────────────────────────────────────────────────────────
+// ── Token storage ─────────────────────────────────────────────────────────────
 
-const GOOGLE_CONFIGURED = !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
 const TOKEN_PATH = path.join(process.cwd(), 'tokens.json')
 
 function loadTokens(): Record<string, string> | null {
@@ -96,48 +95,52 @@ function saveTokens(tokens: Record<string, string>) {
   fs.writeFileSync(TOKEN_PATH, JSON.stringify({ ...existing, ...tokens }))
 }
 
-let oauth2Client: ReturnType<typeof google.auth.OAuth2.prototype.constructor> | null = null
+// ── Google Calendar ───────────────────────────────────────────────────────────
+// Credentials come from the Settings panel in the app, not from .env.
 
-if (GOOGLE_CONFIGURED) {
-  oauth2Client = new google.auth.OAuth2(
-    process.env.GOOGLE_CLIENT_ID,
-    process.env.GOOGLE_CLIENT_SECRET,
-    'http://localhost:3001/api/gcal/callback'
-  )
-  const saved = loadTokens()
-  if (saved) oauth2Client.setCredentials(saved)
+let pendingGCalAuth: { clientId: string; clientSecret: string; redirectUri: string } | null = null
 
-  oauth2Client.on('tokens', (tokens: any) => {
-    saveTokens(tokens)
-    oauth2Client!.setCredentials({ ...loadTokens(), ...tokens })
-  })
+function getGCalClient() {
+  const tokens = loadTokens()
+  const clientId     = tokens?.gcal_client_id
+  const clientSecret = tokens?.gcal_client_secret
+  const redirectUri  = tokens?.gcal_redirect_uri ?? 'http://localhost:3001/api/gcal/callback'
+  if (!clientId || !clientSecret) return null
+
+  const client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+  client.setCredentials({ access_token: tokens?.access_token, refresh_token: tokens?.refresh_token })
+  client.on('tokens', (newTokens: any) => saveTokens(newTokens))
+  return client
 }
 
-// Status — is Google Calendar configured and authenticated?
 app.get('/api/gcal/status', (_req, res) => {
-  if (!GOOGLE_CONFIGURED) return res.json({ configured: false, connected: false })
   const tokens = loadTokens()
-  res.json({ configured: true, connected: !!(tokens?.refresh_token || tokens?.access_token) })
+  res.json({ connected: !!(tokens?.refresh_token || tokens?.access_token) })
 })
 
-// Start OAuth flow — open this in a popup/new tab
-app.get('/api/gcal/auth', (_req, res) => {
-  if (!oauth2Client) return res.status(400).send('Google credentials not set in .env')
-  const url = (oauth2Client as any).generateAuthUrl({
+app.post('/api/gcal/start-auth', (req, res) => {
+  const { clientId, clientSecret, redirectUri } = req.body as Record<string, string>
+  if (!clientId || !clientSecret || !redirectUri) {
+    return res.status(400).json({ error: 'clientId, clientSecret, and redirectUri are required' })
+  }
+  pendingGCalAuth = { clientId, clientSecret, redirectUri }
+  const client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+  const url = (client as any).generateAuthUrl({
     access_type: 'offline',
     scope: ['https://www.googleapis.com/auth/calendar.readonly'],
     prompt: 'consent',
   })
-  res.redirect(url)
+  res.json({ url })
 })
 
-// OAuth callback — Google redirects here after consent
 app.get('/api/gcal/callback', async (req, res) => {
-  if (!oauth2Client) return res.status(400).send('Not configured')
+  if (!pendingGCalAuth) return res.status(400).send('No pending Google Calendar auth — initiate via Settings')
+  const { clientId, clientSecret, redirectUri } = pendingGCalAuth
   try {
-    const { tokens } = await (oauth2Client as any).getToken(req.query.code as string)
-    saveTokens(tokens)
-    oauth2Client.setCredentials(tokens)
+    const client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
+    const { tokens } = await (client as any).getToken(req.query.code as string)
+    saveTokens({ ...tokens, gcal_client_id: clientId, gcal_client_secret: clientSecret, gcal_redirect_uri: redirectUri })
+    pendingGCalAuth = null
     res.send(`
       <html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;
         height:100vh;margin:0;background:#f0fdf4;color:#166534">
@@ -154,33 +157,161 @@ app.get('/api/gcal/callback', async (req, res) => {
   }
 })
 
-// List all calendars the user has access to
 app.get('/api/gcal/calendars', async (_req, res) => {
-  if (!oauth2Client) return res.status(400).json({ error: 'Not configured' })
+  const client = getGCalClient()
+  if (!client) return res.status(401).json({ error: 'Not authenticated' })
   try {
-    const cal = google.calendar({ version: 'v3', auth: oauth2Client as any })
-    const response = await cal.calendarList.list({ minAccessRole: 'reader' })
+    const cal = google.calendar({ version: 'v3', auth: client as any })
+    res.json((await cal.calendarList.list({ minAccessRole: 'reader' })).data)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.get('/api/gcal/events', async (req, res) => {
+  const client = getGCalClient()
+  if (!client) return res.status(401).json({ error: 'Not authenticated' })
+  try {
+    const cal = google.calendar({ version: 'v3', auth: client as any })
+    const { timeMin, timeMax, calendarId = 'primary' } = req.query as Record<string, string>
+    const response = await cal.events.list({ calendarId, timeMin, timeMax, singleEvents: true, orderBy: 'startTime', maxResults: 100 })
     res.json(response.data)
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
 })
 
-// Fetch events within a time range
-app.get('/api/gcal/events', async (req, res) => {
-  if (!oauth2Client) return res.status(400).json({ error: 'Not configured' })
+// ── Spotify ───────────────────────────────────────────────────────────────────
+// Credentials come from the widget's preferences (stored in the browser),
+// not from .env — no server-side config required.
+
+const SPOTIFY_SCOPES = 'user-read-currently-playing user-read-playback-state'
+
+// Holds credentials for the duration of the OAuth handshake only
+let pendingSpotifyAuth: { clientId: string; clientSecret: string; redirectUri: string } | null = null
+
+async function getSpotifyAccessToken(): Promise<string | null> {
+  const tokens       = loadTokens()
+  const accessToken  = tokens?.spotify_access_token
+  const refreshToken = tokens?.spotify_refresh_token
+  const clientId     = tokens?.spotify_client_id
+  const clientSecret = tokens?.spotify_client_secret
+  const expiresAt    = Number(tokens?.spotify_expires_at ?? 0)
+
+  if (!accessToken || !refreshToken || !clientId || !clientSecret) return null
+  if (Date.now() < expiresAt - 60_000) return accessToken
+
+  // Refresh
+  const resp = await fetch('https://accounts.spotify.com/api/token', {
+    method:  'POST',
+    headers: {
+      'Content-Type':  'application/x-www-form-urlencoded',
+      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+    },
+    body: new URLSearchParams({ grant_type: 'refresh_token', refresh_token: refreshToken }),
+  })
+  const data = await resp.json() as any
+  if (!data.access_token) return null
+
+  saveTokens({
+    spotify_access_token: data.access_token,
+    spotify_expires_at:   String(Date.now() + data.expires_in * 1000),
+    ...(data.refresh_token ? { spotify_refresh_token: data.refresh_token } : {}),
+  })
+  return data.access_token
+}
+
+// Status — does the server have valid Spotify tokens?
+app.get('/api/spotify/status', (_req, res) => {
+  const tokens = loadTokens()
+  res.json({ connected: !!(tokens?.spotify_refresh_token || tokens?.spotify_access_token) })
+})
+
+// Start auth — widget POSTs its credentials, we store them and return the auth URL
+app.post('/api/spotify/start-auth', (req, res) => {
+  const { clientId, clientSecret, redirectUri } = req.body as Record<string, string>
+  if (!clientId || !clientSecret || !redirectUri) {
+    return res.status(400).json({ error: 'clientId, clientSecret, and redirectUri are required' })
+  }
+  pendingSpotifyAuth = { clientId, clientSecret, redirectUri }
+  const params = new URLSearchParams({
+    response_type: 'code',
+    client_id:     clientId,
+    scope:         SPOTIFY_SCOPES,
+    redirect_uri:  redirectUri,
+  })
+  res.json({ url: `https://accounts.spotify.com/authorize?${params}` })
+})
+
+// OAuth callback — Spotify redirects here with the code
+app.get('/api/spotify/callback', async (req, res) => {
+  if (!pendingSpotifyAuth) return res.status(400).send('No pending Spotify auth — initiate via the widget')
+  const { clientId, clientSecret, redirectUri } = pendingSpotifyAuth
   try {
-    const cal = google.calendar({ version: 'v3', auth: oauth2Client as any })
-    const { timeMin, timeMax, calendarId = 'primary' } = req.query as Record<string, string>
-    const response = await cal.events.list({
-      calendarId,
-      timeMin,
-      timeMax,
-      singleEvents: true,
-      orderBy: 'startTime',
-      maxResults: 100,
+    const resp = await fetch('https://accounts.spotify.com/api/token', {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+      },
+      body: new URLSearchParams({
+        grant_type:   'authorization_code',
+        code:         req.query.code as string,
+        redirect_uri: redirectUri,
+      }),
     })
-    res.json(response.data)
+    const data = await resp.json() as any
+    if (!data.access_token) return res.status(400).send('Token exchange failed: ' + JSON.stringify(data))
+
+    saveTokens({
+      spotify_client_id:     clientId,
+      spotify_client_secret: clientSecret,
+      spotify_access_token:  data.access_token,
+      spotify_refresh_token: data.refresh_token,
+      spotify_expires_at:    String(Date.now() + data.expires_in * 1000),
+    })
+    pendingSpotifyAuth = null
+    res.send(`
+      <html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;
+        height:100vh;margin:0;background:#f0fdf4;color:#166534">
+        <div style="text-align:center">
+          <div style="font-size:48px">✓</div>
+          <h2>Spotify connected!</h2>
+          <p style="color:#555">You can close this window.</p>
+          <script>setTimeout(() => window.close(), 1500)</script>
+        </div>
+      </body></html>
+    `)
+  } catch (error: any) {
+    res.status(500).send('Auth failed: ' + error.message)
+  }
+})
+
+// Now playing
+app.get('/api/spotify/now-playing', async (_req, res) => {
+  try {
+    const accessToken = await getSpotifyAccessToken()
+    if (!accessToken) return res.status(401).json({ error: 'Not authenticated' })
+
+    const resp = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    })
+    if (resp.status === 204) return res.json(null)
+    if (!resp.ok) return res.status(resp.status).json({ error: 'Spotify API error' })
+
+    const data = await resp.json() as any
+    if (!data?.item) return res.json(null)
+
+    res.json({
+      isPlaying:   data.is_playing,
+      title:       data.item.name,
+      artist:      data.item.artists?.map((a: any) => a.name).join(', ') ?? '',
+      album:       data.item.album?.name ?? '',
+      albumArt:    data.item.album?.images?.[0]?.url ?? null,
+      progressMs:  data.progress_ms ?? 0,
+      durationMs:  data.item.duration_ms ?? 0,
+      externalUrl: data.item.external_urls?.spotify ?? '',
+    })
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
@@ -193,10 +324,12 @@ app.listen(PORT, () => {
   console.log(`\n🗂  Smart Whiteboard server running on http://localhost:${PORT}`)
   if (!process.env.NOTION_API_KEY)  console.warn('⚠️  NOTION_API_KEY not set')
   else                              console.log('✅  Notion API key loaded')
-  if (!GOOGLE_CONFIGURED)           console.warn('⚠️  GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set — Google Calendar disabled')
-  else {
-    const tokens = loadTokens()
-    if (tokens?.refresh_token || tokens?.access_token) console.log('✅  Google Calendar authenticated')
-    else console.warn('   Google Calendar configured but not authenticated — visit http://localhost:3001/api/gcal/auth')
-  }
+  const gcalTokens = loadTokens()
+  if (gcalTokens?.refresh_token || gcalTokens?.access_token) console.log('✅  Google Calendar authenticated')
+  else console.log('   Google Calendar: connect via Settings panel')
+  const spotifyTokens = loadTokens()
+  if (spotifyTokens?.spotify_refresh_token || spotifyTokens?.spotify_access_token)
+    console.log('✅  Spotify authenticated')
+  else
+    console.log('   Spotify: connect via the widget settings panel')
 })

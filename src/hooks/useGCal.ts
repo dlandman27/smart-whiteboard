@@ -10,7 +10,6 @@ async function apiFetch<T>(path: string): Promise<T> {
 }
 
 export interface GCalStatus {
-  configured: boolean
   connected: boolean
 }
 
@@ -41,6 +40,17 @@ export function useGCalStatus() {
     retry: false,
     refetchInterval: 5_000,
   })
+}
+
+export async function startGCalAuth(clientId: string, clientSecret: string, redirectUri: string): Promise<string> {
+  const res = await fetch('/api/gcal/start-auth', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ clientId, clientSecret, redirectUri }),
+  })
+  if (!res.ok) throw new Error('Failed to start auth')
+  const { url } = await res.json()
+  return url
 }
 
 export function useGCalCalendars() {

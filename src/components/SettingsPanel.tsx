@@ -1,8 +1,8 @@
-import { X, ExternalLink } from 'lucide-react'
-import { IconButton, Text } from '../ui/web'
+import { X } from 'lucide-react'
+import { IconButton } from '../ui/web'
 import { BACKGROUNDS, type Background } from '../constants/backgrounds'
 import { useNotionHealth } from '../hooks/useNotion'
-import { useGCalStatus } from '../hooks/useGCal'
+import { ThemePicker } from './ThemePicker'
 
 interface Props {
   onClose:            () => void
@@ -12,23 +12,37 @@ interface Props {
 
 export function SettingsPanel({ onClose, background, onBackgroundChange }: Props) {
   const notion = useNotionHealth()
-  const gcal   = useGCalStatus()
 
   return (
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
-      <div className="fixed top-16 left-4 z-40 w-72 bg-white border border-stone-200 rounded-2xl shadow-2xl overflow-hidden"
-        style={{ animation: 'slideDown 0.18s ease-out' }}
+      <div
+        className="fixed top-16 left-4 z-40 w-72 rounded-2xl overflow-hidden"
+        style={{
+          animation:       'slideDown 0.18s ease-out',
+          backgroundColor: 'var(--wt-settings-bg)',
+          border:          '1px solid var(--wt-settings-border)',
+          boxShadow:       'var(--wt-shadow-lg)',
+          backdropFilter:  'var(--wt-backdrop)',
+          maxHeight:       'calc(100vh - 80px)',
+          overflowY:       'auto',
+        }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100">
-          <Text variant="title" size="small">Settings</Text>
+        <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}>
+          <span className="text-sm font-semibold" style={{ color: 'var(--wt-text)' }}>Appearance</span>
           <IconButton icon={X} size="sm" onClick={onClose} />
         </div>
 
+        {/* Theme */}
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--wt-settings-label)' }}>Theme</p>
+          <ThemePicker />
+        </div>
+
         {/* Background */}
-        <div className="px-4 py-3 border-b border-stone-100">
-          <Text variant="label" color="muted" className="uppercase tracking-wide mb-2">Background</Text>
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}>
+          <p className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--wt-settings-label)' }}>Background</p>
           <div className="flex gap-2 flex-wrap">
             {BACKGROUNDS.map((b) => (
               <button
@@ -37,49 +51,25 @@ export function SettingsPanel({ onClose, background, onBackgroundChange }: Props
                 title={b.label}
                 className="w-8 h-8 rounded-lg border-2 transition-all hover:scale-110"
                 style={{
-                  background: b.bg,
-                  borderColor: background.bg === b.bg ? '#1e1e1e' : 'transparent',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+                  background:  b.bg,
+                  borderColor: background.bg === b.bg ? 'var(--wt-text)' : 'transparent',
+                  boxShadow:   '0 1px 3px rgba(0,0,0,0.15)',
                 }}
               />
             ))}
           </div>
         </div>
 
-        {/* Integrations */}
+        {/* Notion status */}
         <div className="px-4 py-3">
-          <Text variant="label" color="muted" className="uppercase tracking-wide mb-2">Integrations</Text>
-          <div className="space-y-2">
-            {/* Notion */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full ${notion.data?.configured && notion.data?.ok ? 'bg-green-500' : 'bg-stone-300'}`} />
-                <Text as="span" variant="body" size="medium" className="text-stone-600">Notion</Text>
-              </div>
-              <Text as="span" variant="caption" color="muted">
-                {notion.data?.configured ? 'Connected' : 'Not configured'}
-              </Text>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: notion.data?.configured ? '#22c55e' : 'var(--wt-border-active)' }} />
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--wt-settings-label)' }}>Notion</p>
             </div>
-
-            {/* Google Calendar */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className={`w-1.5 h-1.5 rounded-full ${gcal.data?.connected ? 'bg-green-500' : 'bg-stone-300'}`} />
-                <Text as="span" variant="body" size="medium" className="text-stone-600">Google Calendar</Text>
-              </div>
-              {gcal.data?.configured && !gcal.data?.connected ? (
-                <button
-                  onClick={() => window.open('http://localhost:3001/api/gcal/auth', '_blank', 'width=500,height=600')}
-                  className="flex items-center gap-1 text-xs text-blue-500 hover:text-blue-600"
-                >
-                  Connect <ExternalLink size={11} />
-                </button>
-              ) : (
-                <Text as="span" variant="caption" color="muted">
-                  {gcal.data?.connected ? 'Connected' : 'Not configured'}
-                </Text>
-              )}
-            </div>
+            <span className="text-xs" style={{ color: 'var(--wt-text-muted)' }}>
+              {notion.data?.configured ? 'Connected' : 'Set NOTION_API_KEY in .env'}
+            </span>
           </div>
         </div>
       </div>

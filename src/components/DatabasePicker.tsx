@@ -1,9 +1,12 @@
-import { useMemo, useState } from 'react'
-import { Database, X, AlertCircle, Calendar, ExternalLink, Search } from 'lucide-react'
-import { STATIC_WIDGETS } from './widgets/registry'
-import { Icon, IconButton, Text } from '../ui/web'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Database, X, Calendar, Music, Search, ChevronLeft, ExternalLink } from 'lucide-react'
+import { getAllWidgetDefs } from './widgets/registry'
+import { Icon, IconButton } from '../ui/web'
 import { useNotionDatabases, useNotionHealth } from '../hooks/useNotion'
-import { useGCalStatus, useGCalCalendars } from '../hooks/useGCal'
+import { useGCalStatus, useGCalCalendars, startGCalAuth } from '../hooks/useGCal'
+import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
+import { useGCalCredentials } from '../store/gcal'
+import { useSpotifyCredentials } from '../store/spotify'
 import { useWhiteboardStore } from '../store/whiteboard'
 
 interface Props {
@@ -14,111 +17,181 @@ function dbTitle(db: any): string {
   return db.title?.map((t: any) => t.plain_text).join('') || 'Untitled'
 }
 
-// ── Widget option types ───────────────────────────────────────────────────────
+// ── List item types ───────────────────────────────────────────────────────────
 
-import type { StaticWidgetDef } from './widgets/registry'
+type ListItem =
+  | { kind: 'header'; id: string; label: string }
+  | { kind: 'widget'; id: string; icon: React.ReactNode; iconBg: string; iconColor?: string; name: string; source: string; added: boolean; onAdd: () => void }
+  | { kind: 'action'; id: string; icon: React.ReactNode; iconBg: string; name: string; source: string; label: string; onClick: () => void }
 
-type WidgetOption =
-  | { kind: 'static'; def: StaticWidgetDef }
-  | { kind: 'notion'; db: any }
-  | { kind: 'calendar'; cal: { id: string; summary: string; backgroundColor?: string } }
+type SetupView = 'gcal' | 'spotify'
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Credential field ──────────────────────────────────────────────────────────
 
-function SearchBar({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function Field({ label, type = 'text', value, onChange, placeholder }: {
+  label: string; type?: 'text' | 'password'
+  value: string; onChange: (v: string) => void; placeholder?: string
+}) {
   return (
-    <div className="relative">
-      <Icon icon={Search} size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 pointer-events-none" />
+    <div className="space-y-1.5">
+      <label className="text-xs font-medium" style={{ color: 'var(--wt-settings-label)' }}>{label}</label>
       <input
-        autoFocus
-        type="text"
-        placeholder="Search widgets…"
+        type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full pl-8 pr-3 py-2 text-sm text-stone-700 placeholder-stone-300 bg-stone-50 border border-stone-200 rounded-lg outline-none focus:border-stone-400 transition-colors"
+        placeholder={placeholder}
+        className="wt-input w-full px-3 py-2.5 text-sm rounded-xl"
       />
     </div>
   )
 }
 
-function SectionLabel({ label }: { label: string }) {
+// ── Setup views ───────────────────────────────────────────────────────────────
+
+function GCalSetup({ onBack }: { onBack: () => void }) {
+  const creds  = useGCalCredentials()
+  const status = useGCalStatus()
+  const ready  = !!(creds.clientId && creds.clientSecret)
+
+  async function connect() {
+    const url = await startGCalAuth(creds.clientId, creds.clientSecret, creds.redirectUri)
+    window.open(url, '_blank', 'width=500,height=600')
+  }
+
   return (
-    <p className="px-1 pt-3 pb-1 text-xs font-semibold text-stone-400 uppercase tracking-wide first:pt-1">
-      {label}
-    </p>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}>
+        <button onClick={onBack} className="wt-action-btn" style={{ width: 28, height: 28, borderRadius: 8 }}>
+          <ChevronLeft size={16} />
+        </button>
+        <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
+          <Icon icon={Calendar} size={15} className="text-blue-500" />
+        </div>
+        <span className="text-sm font-semibold" style={{ color: 'var(--wt-text)' }}>Google Calendar</span>
+        {status.data?.connected && (
+          <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">Connected</span>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto settings-scroll px-4 py-4 space-y-3">
+        <p className="text-xs" style={{ color: 'var(--wt-text-muted)' }}>
+          Create an OAuth 2.0 credential in{' '}
+          <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--wt-accent)' }}>
+            Google Cloud Console
+          </a>{' '}
+          and add <code className="px-1 rounded text-xs" style={{ backgroundColor: 'var(--wt-surface)' }}>
+            {creds.redirectUri}
+          </code>{' '}
+          as an authorized redirect URI.
+        </p>
+
+        <Field label="Client ID" value={creds.clientId} onChange={(v) => creds.set({ clientId: v })} placeholder="From Google Cloud Console" />
+        <Field label="Client Secret" type="password" value={creds.clientSecret} onChange={(v) => creds.set({ clientSecret: v })} />
+        <Field label="Redirect URI" value={creds.redirectUri} onChange={(v) => creds.set({ redirectUri: v })} />
+
+        <button
+          onClick={connect}
+          disabled={!ready}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-opacity disabled:opacity-40"
+          style={{ backgroundColor: 'var(--wt-accent)', color: 'var(--wt-accent-text)' }}
+        >
+          <ExternalLink size={14} />
+          {status.data?.connected ? 'Reconnect Google Calendar' : 'Connect Google Calendar'}
+        </button>
+      </div>
+    </div>
   )
 }
 
-function WidgetRow({
-  icon,
-  iconBg,
-  iconColor,
-  label,
-  badge,
-  disabled,
-  onClick,
-}: {
-  icon: React.ReactNode
-  iconBg: string
-  iconColor?: string
-  label: string
-  badge?: string
-  disabled?: boolean
-  onClick: () => void
+function SpotifySetup({ onBack }: { onBack: () => void }) {
+  const creds  = useSpotifyCredentials()
+  const status = useSpotifyStatus()
+  const ready  = !!(creds.clientId && creds.clientSecret)
+
+  async function connect() {
+    const url = await startSpotifyAuth(creds.clientId, creds.clientSecret, creds.redirectUri)
+    window.open(url, '_blank', 'width=500,height=700')
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}>
+        <button onClick={onBack} className="wt-action-btn" style={{ width: 28, height: 28, borderRadius: 8 }}>
+          <ChevronLeft size={16} />
+        </button>
+        <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
+          <Icon icon={Music} size={15} className="text-green-500" />
+        </div>
+        <span className="text-sm font-semibold" style={{ color: 'var(--wt-text)' }}>Spotify</span>
+        {status.data?.connected && (
+          <span className="ml-auto text-xs px-2 py-0.5 rounded-full bg-green-500/10 text-green-600">Connected</span>
+        )}
+      </div>
+
+      <div className="flex-1 overflow-y-auto settings-scroll px-4 py-4 space-y-3">
+        <p className="text-xs" style={{ color: 'var(--wt-text-muted)' }}>
+          Create a Spotify app at{' '}
+          <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--wt-accent)' }}>
+            developer.spotify.com
+          </a>{' '}
+          and add your redirect URI to the allowed list.
+        </p>
+
+        <Field label="Client ID" value={creds.clientId} onChange={(v) => creds.set({ clientId: v })} placeholder="ef32f0586e5340e2929a7c77c3521afa" />
+        <Field label="Client Secret" type="password" value={creds.clientSecret} onChange={(v) => creds.set({ clientSecret: v })} />
+        <Field label="Redirect URI" value={creds.redirectUri} onChange={(v) => creds.set({ redirectUri: v })} placeholder="https://xxxx.ngrok-free.app/api/spotify/callback" />
+
+        <button
+          onClick={connect}
+          disabled={!ready}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-opacity disabled:opacity-40 bg-green-500 text-white hover:bg-green-600"
+        >
+          <ExternalLink size={14} />
+          {status.data?.connected ? 'Reconnect Spotify' : 'Connect Spotify'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Row ───────────────────────────────────────────────────────────────────────
+
+function Row({ item, selected, onMouseEnter }: {
+  item: Extract<ListItem, { kind: 'widget' | 'action' }>
+  selected: boolean
+  onMouseEnter: () => void
 }) {
   return (
     <button
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed text-left transition-colors"
+      onMouseEnter={onMouseEnter}
+      onClick={item.kind === 'widget' ? item.onAdd : item.onClick}
+      disabled={item.kind === 'widget' && item.added}
+      className="w-full flex items-center gap-3 px-3 py-2.5 text-left disabled:opacity-40"
+      style={{ backgroundColor: selected ? 'var(--wt-surface-hover)' : 'transparent', borderRadius: 10 }}
     >
       <div
-        className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${iconBg}`}
-        style={iconColor ? { background: iconColor } : undefined}
+        className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${item.iconColor ? '' : item.iconBg}`}
+        style={item.iconColor ? { background: item.iconColor } : undefined}
       >
-        {icon}
+        {item.icon}
       </div>
-      <Text as="span" variant="body" size="medium" className="flex-1 truncate">{label}</Text>
-      {badge && <Text as="span" variant="caption" color="muted" className="flex-shrink-0">{badge}</Text>}
+      <div className="flex-1 min-w-0 flex items-baseline gap-2">
+        <span className="text-sm font-medium truncate" style={{ color: 'var(--wt-text)' }}>{item.name}</span>
+        <span className="text-xs flex-shrink-0" style={{ color: 'var(--wt-text-muted)' }}>{item.source}</span>
+      </div>
+      <span className="text-xs flex-shrink-0 transition-opacity" style={{ color: 'var(--wt-text-muted)', opacity: selected ? 1 : 0 }}>
+        {item.kind === 'widget' ? (item.added ? 'On board' : 'Add') : item.label}
+      </span>
     </button>
   )
 }
 
-function NotionSetupNotice() {
+function SectionHeader({ label }: { label: string }) {
   return (
-    <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs">
-      <Icon icon={AlertCircle} size={14} className="flex-shrink-0 mt-0.5" />
-      <Text as="span" variant="caption">NOTION_API_KEY is not set. Copy .env.example to .env and restart the server.</Text>
-    </div>
-  )
-}
-
-function GCalSetupNotice() {
-  return (
-    <div className="p-3 bg-stone-50 border border-stone-200 rounded-lg text-xs text-stone-600 space-y-2">
-      <Text variant="label">Google Calendar setup required</Text>
-      <ol className="list-decimal list-inside space-y-1 text-stone-500">
-        <li>Enable the Google Calendar API in Google Cloud Console</li>
-        <li>Create an OAuth 2.0 Web Client credential</li>
-        <li>Add redirect URI: <code className="bg-stone-100 px-1 rounded">http://localhost:3001/api/gcal/callback</code></li>
-        <li>Add <code className="bg-stone-100 px-1 rounded">GOOGLE_CLIENT_ID</code> and <code className="bg-stone-100 px-1 rounded">GOOGLE_CLIENT_SECRET</code> to .env</li>
-      </ol>
-    </div>
-  )
-}
-
-function GCalConnectPrompt() {
-  return (
-    <div className="p-4 flex flex-col items-center gap-3 bg-stone-50 rounded-xl border border-stone-200">
-      <Icon icon={Calendar} size={28} className="text-stone-400" />
-      <Text variant="body" align="center" className="text-stone-600">Connect your Google account to add calendar widgets</Text>
-      <button
-        onClick={() => window.open('http://localhost:3001/api/gcal/auth', '_blank', 'width=500,height=600')}
-        className="flex items-center gap-1.5 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-xs font-medium rounded-lg transition-colors"
-      >
-        <Icon icon={ExternalLink} size={13} /> Connect Google Calendar
-      </button>
-      <Text variant="caption" color="muted" align="center">A popup will open for Google sign-in.</Text>
+    <div className="px-3 pt-3 pb-1">
+      <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--wt-settings-label)' }}>
+        {label}
+      </span>
     </div>
   )
 }
@@ -126,167 +199,249 @@ function GCalConnectPrompt() {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export function DatabasePicker({ onClose }: Props) {
-  const [query, setQuery] = useState('')
+  const [query,      setQuery]   = useState('')
+  const [selectedIdx, setSelected] = useState(0)
+  const [setup,      setSetup]   = useState<SetupView | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const listRef  = useRef<HTMLDivElement>(null)
 
-  const health  = useNotionHealth()
-  const { data: notionData, isLoading: notionLoading } = useNotionDatabases()
-  const gcalStatus = useGCalStatus()
-  const { data: calData, isLoading: calLoading } = useGCalCalendars()
+  const health        = useNotionHealth()
+  const gcalStatus    = useGCalStatus()
+  const spotifyStatus = useSpotifyStatus()
+  const gcalCreds     = useGCalCredentials()
+  const spotifyCreds  = useSpotifyCredentials()
+
+  const { data: notionData } = useNotionDatabases()
+  const { data: calData }    = useGCalCalendars()
 
   const { boards, activeBoardId, addWidget } = useWhiteboardStore()
   const widgets = boards.find((b) => b.id === activeBoardId)?.widgets ?? []
 
-  const notionConfigured = health.data?.configured
-  const gcalConfigured   = gcalStatus.data?.configured
-  const gcalConnected    = gcalStatus.data?.connected
+  const gcalConfigured    = !!(gcalCreds.clientId && gcalCreds.clientSecret)
+  const spotifyConfigured = !!(spotifyCreds.clientId && spotifyCreds.clientSecret)
+  const gcalConnected     = gcalStatus.data?.connected
+  const spotifyConnected  = spotifyStatus.data?.connected
 
-  // Build flat list of all available widget options
-  const allOptions = useMemo<WidgetOption[]>(() => {
-    const opts: WidgetOption[] = STATIC_WIDGETS.map((def) => ({ kind: 'static' as const, def }))
-    notionData?.results?.forEach((db: any) => opts.push({ kind: 'notion', db }))
-    calData?.items?.forEach((cal: any) => opts.push({ kind: 'calendar', cal }))
-    return opts
-  }, [notionData, calData])
+  function addOff() { return widgets.length * 24 }
 
-  const q = query.trim().toLowerCase()
-  const filtered = q
-    ? allOptions.filter((o) => {
-        if (o.kind === 'static')   return o.def.keywords.some((kw) => kw.includes(q) || q.includes(kw))
-        if (o.kind === 'notion')   return dbTitle(o.db).toLowerCase().includes(q) || 'notion'.includes(q)
-        if (o.kind === 'calendar') return o.cal.summary.toLowerCase().includes(q) || 'calendar'.includes(q)
-        return false
-      })
-    : allOptions
+  // ── Build flat list ──────────────────────────────────────────────────────────
 
-  function handleAdd(option: WidgetOption) {
-    const offset = widgets.length * 24
-    if (option.kind === 'static') {
-      const { type, label, defaultSize } = option.def
-      addWidget({ type, databaseTitle: label, x: 60 + offset, y: 60 + offset, ...defaultSize })
-    } else if (option.kind === 'notion') {
-      addWidget({ type: 'database', databaseId: option.db.id, databaseTitle: dbTitle(option.db), x: 60 + offset, y: 60 + offset, width: 500, height: 380 })
-    } else if (option.kind === 'calendar') {
-      addWidget({ type: 'calendar', calendarId: option.cal.id, databaseTitle: option.cal.summary, x: 60 + offset, y: 60 + offset, width: 380, height: 460 })
+  const items = useMemo<ListItem[]>(() => {
+    const q = query.trim().toLowerCase()
+    const matches = (keywords: string[], name: string) =>
+      !q || name.toLowerCase().includes(q) || keywords.some((kw) => kw.includes(q) || q.includes(kw))
+
+    const list: ListItem[] = []
+
+    // Utilities
+    const utilDefs = getAllWidgetDefs().filter((d) => matches(d.keywords, d.label))
+    if (utilDefs.length > 0) {
+      if (!q) list.push({ kind: 'header', id: 'h-util', label: 'Utilities' })
+      for (const def of utilDefs) {
+        const added = widgets.some((w) => w.type === def.type)
+        list.push({
+          kind: 'widget', id: `util-${def.type}`,
+          icon: <Icon icon={def.Icon} size={15} className={def.iconClass} />,
+          iconBg: def.iconBg, name: def.label, source: 'Built-in', added,
+          onAdd: () => { addWidget({ type: def.type, databaseTitle: def.label, x: 60 + addOff(), y: 60 + addOff(), ...def.defaultSize }); onClose() },
+        })
+      }
     }
-    onClose()
-  }
 
-  const staticOptions   = filtered.filter((o): o is Extract<WidgetOption, { kind: 'static' }>   => o.kind === 'static')
-  const notionOptions   = filtered.filter((o): o is Extract<WidgetOption, { kind: 'notion' }>   => o.kind === 'notion')
-  const calendarOptions = filtered.filter((o): o is Extract<WidgetOption, { kind: 'calendar' }> => o.kind === 'calendar')
+    // Notion
+    const notionResults: any[] = notionData?.results ?? []
+    const notionFiltered = notionResults.filter((db) => matches(['notion', 'database'], dbTitle(db)))
+    if (health.data?.configured && notionFiltered.length > 0) {
+      if (!q) list.push({ kind: 'header', id: 'h-notion', label: 'Notion' })
+      for (const db of notionFiltered) {
+        const added = widgets.some((w) => w.databaseId === db.id)
+        list.push({
+          kind: 'widget', id: `notion-${db.id}`,
+          icon: <Icon icon={Database} size={15} className="text-blue-500" />,
+          iconBg: 'bg-blue-500/10', name: dbTitle(db), source: 'Notion', added,
+          onAdd: () => { addWidget({ type: 'database', databaseId: db.id, databaseTitle: dbTitle(db), x: 60 + addOff(), y: 60 + addOff(), width: 500, height: 380 }); onClose() },
+        })
+      }
+    }
 
-  const isLoading  = notionLoading || calLoading
-  const hasResults = staticOptions.length + notionOptions.length + calendarOptions.length > 0
+    // Google Calendar
+    if (!q || 'google calendar'.includes(q) || ['calendar','google','gcal'].some((k) => k.includes(q) || q.includes(k))) {
+      const calResults: any[] = calData?.items ?? []
+      const calFiltered = calResults.filter((c) => matches(['calendar', 'google'], c.summary))
+      list.push({ kind: 'header', id: 'h-gcal', label: 'Google Calendar' })
+
+      if (!gcalConfigured || !gcalConnected) {
+        list.push({
+          kind: 'action', id: 'gcal-setup',
+          icon: <Icon icon={Calendar} size={15} className="text-blue-500" />,
+          iconBg: 'bg-blue-500/10', name: 'Google Calendar',
+          source: !gcalConfigured ? 'Not configured' : 'Not connected',
+          label: 'Set up →',
+          onClick: () => setSetup('gcal'),
+        })
+      } else {
+        for (const cal of calFiltered) {
+          const added = widgets.some((w) => w.calendarId === cal.id)
+          list.push({
+            kind: 'widget', id: `cal-${cal.id}`,
+            icon: <Icon icon={Calendar} size={15} className="text-white" />,
+            iconBg: '', iconColor: cal.backgroundColor ?? '#4285f4',
+            name: cal.summary, source: 'Google Calendar', added,
+            onAdd: () => { addWidget({ type: 'calendar', calendarId: cal.id, databaseTitle: cal.summary, x: 60 + addOff(), y: 60 + addOff(), width: 380, height: 460 }); onClose() },
+          })
+        }
+        // Always show a manage option
+        list.push({ kind: 'action', id: 'gcal-manage', icon: <Icon icon={Calendar} size={15} className="text-blue-500" />, iconBg: 'bg-blue-500/10', name: 'Manage connection', source: 'Google Calendar', label: 'Settings →', onClick: () => setSetup('gcal') })
+      }
+    }
+
+    // Spotify
+    if (!q || ['spotify','music','playing','song','track'].some((k) => k.includes(q) || q.includes(k))) {
+      list.push({ kind: 'header', id: 'h-spotify', label: 'Spotify' })
+      if (!spotifyConfigured || !spotifyConnected) {
+        list.push({
+          kind: 'action', id: 'spotify-setup',
+          icon: <Icon icon={Music} size={15} className="text-green-500" />,
+          iconBg: 'bg-green-500/10', name: 'Spotify',
+          source: !spotifyConfigured ? 'Not configured' : 'Not connected',
+          label: 'Set up →',
+          onClick: () => setSetup('spotify'),
+        })
+      } else {
+        const added = widgets.some((w) => w.type === 'spotify-now-playing')
+        list.push({
+          kind: 'widget', id: 'spotify-npl',
+          icon: <Icon icon={Music} size={15} className="text-green-500" />,
+          iconBg: 'bg-green-500/10', name: 'Now Playing', source: 'Spotify', added,
+          onAdd: () => { addWidget({ type: 'spotify-now-playing', databaseTitle: 'Now Playing', x: 60 + addOff(), y: 60 + addOff(), width: 320, height: 180 }); onClose() },
+        })
+        list.push({ kind: 'action', id: 'spotify-manage', icon: <Icon icon={Music} size={15} className="text-green-500" />, iconBg: 'bg-green-500/10', name: 'Manage connection', source: 'Spotify', label: 'Settings →', onClick: () => setSetup('spotify') })
+      }
+    }
+
+    return list
+  }, [query, notionData, calData, gcalConnected, spotifyConnected, gcalConfigured, spotifyConfigured, widgets])
+
+  const selectableItems = items.filter((i): i is Extract<ListItem, { kind: 'widget' | 'action' }> => i.kind !== 'header')
+
+  useEffect(() => { setSelected(0) }, [query, setup])
+  useEffect(() => {
+    if (selectedIdx >= selectableItems.length) setSelected(Math.max(0, selectableItems.length - 1))
+  }, [selectableItems.length])
+
+  useEffect(() => {
+    if (setup) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSelected((i) => Math.min(i + 1, selectableItems.length - 1)) }
+      if (e.key === 'ArrowUp')   { e.preventDefault(); setSelected((i) => Math.max(i - 1, 0)) }
+      if (e.key === 'Enter') {
+        e.preventDefault()
+        const item = selectableItems[selectedIdx]
+        if (!item) return
+        if (item.kind === 'widget' && !item.added) item.onAdd()
+        if (item.kind === 'action') item.onClick()
+      }
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectableItems, selectedIdx, setup, onClose])
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (setup && e.key === 'Escape') setSetup(null)
+      if (!setup && e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [setup, onClose])
+
+  useEffect(() => {
+    const el = listRef.current?.querySelector(`[data-idx="${selectedIdx}"]`) as HTMLElement | null
+    el?.scrollIntoView({ block: 'nearest' })
+  }, [selectedIdx])
+
+  const selectedItem = selectableItems[selectedIdx]
 
   return (
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
 
       <div
-        className="fixed bottom-20 left-1/2 z-40 slide-up bg-white border border-stone-200 rounded-2xl shadow-2xl w-96 max-h-[560px] flex flex-col"
-        style={{ transform: 'translateX(-50%)' }}
+        className="fixed bottom-20 left-1/2 z-40 flex flex-col rounded-2xl overflow-hidden"
+        style={{
+          transform:       'translateX(-50%)',
+          width:           580,
+          height:          560,
+          backgroundColor: 'var(--wt-settings-bg)',
+          border:          '1px solid var(--wt-settings-border)',
+          boxShadow:       'var(--wt-shadow-lg)',
+          backdropFilter:  'var(--wt-backdrop)',
+          animation:       'slideUp 0.15s ease-out',
+        }}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-stone-100">
-          <Text variant="title" size="small">Add Widget</Text>
-          <IconButton icon={X} onClick={onClose} />
-        </div>
-
-        {/* Search */}
-        <div className="px-3 pt-3 pb-2">
-          <SearchBar value={query} onChange={setQuery} />
-        </div>
-
-        {/* Results */}
-        <div className="flex-1 overflow-y-auto px-2 pb-3">
-
-          {/* Setup notices (only shown when not searching) */}
-          {!q && !notionConfigured && (
-            <div className="mb-2"><NotionSetupNotice /></div>
-          )}
-          {!q && gcalConfigured && !gcalConnected && (
-            <div className="mb-2"><GCalConnectPrompt /></div>
-          )}
-          {!q && !gcalConfigured && (
-            <div className="mb-2"><GCalSetupNotice /></div>
-          )}
-
-          {/* Utilities section */}
-          {staticOptions.length > 0 && (
-            <>
-              <SectionLabel label="Utilities" />
-              {staticOptions.map((o) => {
-                const alreadyAdded = widgets.some((w) => w.type === o.def.type)
-                return (
-                  <WidgetRow
-                    key={o.def.type}
-                    icon={<Icon icon={o.def.Icon} size={14} className={o.def.iconClass} />}
-                    iconBg={o.def.iconBg}
-                    label={o.def.label}
-                    badge={alreadyAdded ? 'On board' : undefined}
-                    disabled={alreadyAdded}
-                    onClick={() => handleAdd(o)}
-                  />
-                )
-              })}
-            </>
-          )}
-
-          {/* Notion section */}
-          {notionOptions.length > 0 && (
-            <>
-              <SectionLabel label="Notion" />
-              {notionOptions.map((o) => {
-                const added = widgets.some((w) => w.databaseId === o.db.id)
-                return (
-                  <WidgetRow
-                    key={o.db.id}
-                    icon={<Icon icon={Database} size={14} className="text-blue-500" />}
-                    iconBg="bg-stone-100"
-                    label={dbTitle(o.db)}
-                    badge={added ? 'On board' : undefined}
-                    disabled={added}
-                    onClick={() => handleAdd(o)}
-                  />
-                )
-              })}
-            </>
-          )}
-
-          {/* Google Calendar section */}
-          {calendarOptions.length > 0 && (
-            <>
-              <SectionLabel label="Google Calendar" />
-              {calendarOptions.map((o) => {
-                const added = widgets.some((w) => w.calendarId === o.cal.id)
-                return (
-                  <WidgetRow
-                    key={o.cal.id}
-                    icon={<Icon icon={Calendar} size={14} className="text-white" />}
-                    iconBg=""
-                    iconColor={o.cal.backgroundColor ?? '#4285f4'}
-                    label={o.cal.summary}
-                    badge={added ? 'On board' : undefined}
-                    disabled={added}
-                    onClick={() => handleAdd(o)}
-                  />
-                )
-              })}
-            </>
-          )}
-
-          {/* Loading */}
-          {isLoading && !hasResults && (
-            <Text color="muted" align="center" className="py-8">Loading…</Text>
-          )}
-
-          {/* No results */}
-          {q && !hasResults && !isLoading && (
-            <div className="py-8 text-center">
-              <Text color="muted">No widgets match &ldquo;{query}&rdquo;</Text>
+        {setup ? (
+          // ── Setup view ───────────────────────────────────────────────────────
+          setup === 'gcal'
+            ? <GCalSetup    onBack={() => setSetup(null)} />
+            : <SpotifySetup onBack={() => setSetup(null)} />
+        ) : (
+          // ── List view ────────────────────────────────────────────────────────
+          <>
+            {/* Search */}
+            <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}>
+              <Icon icon={Search} size={15} style={{ color: 'var(--wt-text-muted)', flexShrink: 0 }} />
+              <input
+                ref={inputRef}
+                autoFocus
+                type="text"
+                placeholder="Search widgets and integrations…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 bg-transparent outline-none text-sm"
+                style={{ color: 'var(--wt-text)' }}
+              />
+              <IconButton icon={X} onClick={onClose} />
             </div>
-          )}
-        </div>
+
+            {/* List */}
+            <div ref={listRef} className="flex-1 overflow-y-auto settings-scroll px-2 py-1">
+              {items.length === 0 && (
+                <p className="py-10 text-sm text-center" style={{ color: 'var(--wt-text-muted)' }}>
+                  No results for &ldquo;{query}&rdquo;
+                </p>
+              )}
+              {items.map((item) => {
+                if (item.kind === 'header') return <SectionHeader key={item.id} label={item.label} />
+                const idx = selectableItems.findIndex((s) => s.id === item.id)
+                return (
+                  <div key={item.id} data-idx={idx}>
+                    <Row item={item} selected={idx === selectedIdx} onMouseEnter={() => setSelected(idx)} />
+                  </div>
+                )
+              })}
+              <div className="h-1" />
+            </div>
+
+            {/* Bottom bar */}
+            <div className="flex items-center justify-between px-4 py-2 flex-shrink-0 text-xs" style={{ borderTop: '1px solid var(--wt-settings-divider)', color: 'var(--wt-text-muted)' }}>
+              <div className="flex items-center gap-3">
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: 'var(--wt-surface)', border: '1px solid var(--wt-border)' }}>↑↓</kbd>
+                  Navigate
+                </span>
+                <span className="flex items-center gap-1">
+                  <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: 'var(--wt-surface)', border: '1px solid var(--wt-border)' }}>↵</kbd>
+                  {selectedItem?.kind === 'widget' ? 'Add Widget' : selectedItem?.kind === 'action' ? selectedItem.label : 'Select'}
+                </span>
+              </div>
+              <span className="flex items-center gap-1">
+                <kbd className="px-1.5 py-0.5 rounded text-[10px] font-mono" style={{ backgroundColor: 'var(--wt-surface)', border: '1px solid var(--wt-border)' }}>Esc</kbd>
+                Close
+              </span>
+            </div>
+          </>
+        )}
       </div>
     </>
   )

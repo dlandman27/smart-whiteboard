@@ -4,27 +4,27 @@ import { ClockSettings } from './ClockSettings'
 import { WeatherWidget } from './WeatherWidget'
 import { NoteWidget } from './NoteWidget'
 import { NoteSettings } from './NoteSettings'
+import type { PluginPreference } from '@whiteboard/sdk'
 
-export interface WidgetProps {
-  widgetId: string
-}
+export type { WidgetProps } from '@whiteboard/sdk'
 
 export interface StaticWidgetDef {
   type:               string
   label:              string
   Icon:               LucideIcon
-  iconBg:             string   // Tailwind bg class for picker icon container
-  iconClass:          string   // Tailwind text class for picker icon
+  iconBg:             string
+  iconClass:          string
   keywords:           string[]
   defaultSize:        { width: number; height: number }
-  scalable?:          boolean  // default true — set false for widgets that reflow instead of scale
-  component:          React.ComponentType<WidgetProps>
-  settingsComponent?: React.ComponentType<WidgetProps>
+  scalable?:          boolean
+  preferences?:       PluginPreference[]
+  component:          React.ComponentType<{ widgetId: string }>
+  settingsComponent?: React.ComponentType<{ widgetId: string }>
 }
 
-// ── Register new static widgets here — nowhere else needed ────────────────────
+// ── Built-in widgets (hardcoded, always available) ────────────────────────────
 
-export const STATIC_WIDGETS: StaticWidgetDef[] = [
+const BUILTIN_WIDGETS: StaticWidgetDef[] = [
   {
     type:               'clock',
     label:              'Clock',
@@ -60,6 +60,19 @@ export const STATIC_WIDGETS: StaticWidgetDef[] = [
   },
 ]
 
+// ── Plugin registry ───────────────────────────────────────────────────────────
+
+let PLUGIN_WIDGETS: StaticWidgetDef[] = []
+
+export function registerPluginWidgets(defs: StaticWidgetDef[]): void {
+  PLUGIN_WIDGETS = defs
+}
+
+export function getAllWidgetDefs(): StaticWidgetDef[] {
+  return [...BUILTIN_WIDGETS, ...PLUGIN_WIDGETS]
+}
+
 export function getStaticWidgetDef(type: string): StaticWidgetDef | undefined {
-  return STATIC_WIDGETS.find((d) => d.type === type)
+  return BUILTIN_WIDGETS.find((d) => d.type === type)
+    ?? PLUGIN_WIDGETS.find((d) => d.type === type)
 }

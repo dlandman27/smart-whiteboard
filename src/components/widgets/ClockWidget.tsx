@@ -37,7 +37,9 @@ function AnalogFace({ date }: { date: Date }) {
 
   return (
     <svg viewBox="0 0 100 100" className="w-36 h-36">
-      <circle cx="50" cy="50" r="47" fill="white" stroke="#e7e5e4" strokeWidth="1.5" />
+      <circle cx="50" cy="50" r="47"
+        style={{ fill: 'var(--wt-clock-face)', stroke: 'var(--wt-clock-stroke)' }}
+        strokeWidth="1.5" />
 
       {/* Tick marks */}
       {Array.from({ length: 60 }, (_, i) => {
@@ -49,7 +51,7 @@ function AnalogFace({ date }: { date: Date }) {
             key={i}
             x1={50 + r1 * Math.cos(angle)} y1={50 + r1 * Math.sin(angle)}
             x2={50 + 46 * Math.cos(angle)} y2={50 + 46 * Math.sin(angle)}
-            stroke={isHour ? '#a8a29e' : '#d6d3d1'}
+            style={{ stroke: isHour ? 'var(--wt-clock-tick-major)' : 'var(--wt-clock-tick-minor)' }}
             strokeWidth={isHour ? 1.5 : 0.75}
             strokeLinecap="round"
           />
@@ -58,18 +60,18 @@ function AnalogFace({ date }: { date: Date }) {
 
       {/* Hour hand */}
       <line x1="50" y1="50" x2={hourPt.x} y2={hourPt.y}
-        stroke="#1c1917" strokeWidth="3.5" strokeLinecap="round" />
+        style={{ stroke: 'var(--wt-clock-hands)' }} strokeWidth="3.5" strokeLinecap="round" />
 
       {/* Minute hand */}
       <line x1="50" y1="50" x2={minutePt.x} y2={minutePt.y}
-        stroke="#1c1917" strokeWidth="2.5" strokeLinecap="round" />
+        style={{ stroke: 'var(--wt-clock-hands)' }} strokeWidth="2.5" strokeLinecap="round" />
 
       {/* Second hand */}
       <line x1="50" y1="50" x2={secondPt.x} y2={secondPt.y}
-        stroke="#ef4444" strokeWidth="1" strokeLinecap="round" />
+        style={{ stroke: 'var(--wt-clock-second)' }} strokeWidth="1" strokeLinecap="round" />
 
-      <circle cx="50" cy="50" r="3"   fill="#1c1917" />
-      <circle cx="50" cy="50" r="1.5" fill="#ef4444" />
+      <circle cx="50" cy="50" r="3"   style={{ fill: 'var(--wt-clock-center)' }} />
+      <circle cx="50" cy="50" r="1.5" style={{ fill: 'var(--wt-clock-second)' }} />
     </svg>
   )
 }
@@ -95,15 +97,15 @@ function DigitalFace({ date, settings }: { date: Date; settings: ClockWidgetSett
 
   return (
     <div className="flex items-baseline justify-center gap-2">
-      <span className={`text-7xl tracking-tight text-stone-800 tabular-nums leading-none ${fCls}`}>
+      <span className={`text-7xl tracking-tight tabular-nums leading-none ${fCls}`} style={{ color: 'var(--wt-text)' }}>
         {pad(h)}:{pad(m)}
       </span>
       <div className="flex flex-col items-start gap-0.5 pb-0.5">
         {showSeconds && (
-          <span className={`text-2xl text-stone-400 tabular-nums leading-none ${fCls}`}>{pad(s)}</span>
+          <span className={`text-2xl tabular-nums leading-none ${fCls}`} style={{ color: 'var(--wt-text-muted)' }}>{pad(s)}</span>
         )}
         {!use24h && (
-          <span className="text-xs font-medium text-stone-400 leading-none">{ampm}</span>
+          <span className="text-xs font-medium leading-none" style={{ color: 'var(--wt-text-muted)' }}>{ampm}</span>
         )}
       </div>
     </div>
@@ -116,8 +118,8 @@ function DateDisplay({ date }: { date: Date }) {
 
   return (
     <div className="text-center space-y-0.5">
-      <p className="text-stone-500 text-sm font-medium">{dayName}</p>
-      <p className="text-stone-400 text-xs">{dateStr}</p>
+      <p className="text-sm font-medium" style={{ color: 'var(--wt-text-muted)' }}>{dayName}</p>
+      <p className="text-xs" style={{ color: 'var(--wt-text-muted)', opacity: 0.7 }}>{dateStr}</p>
     </div>
   )
 }

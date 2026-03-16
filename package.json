@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "start:kiosk": "concurrently \"npm run server\" \"npm run client\" \"node scripts/kiosk.js\"",
     "client": "vite",
     "server": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
