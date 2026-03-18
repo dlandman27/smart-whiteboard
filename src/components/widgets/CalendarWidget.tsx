@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
-import { IconButton } from '../../ui/web'
+import { IconButton, Text, Button, SegmentedControl } from '../../ui/web'
+import { FlexCol, FlexRow, Box, Grid, Center, ScrollArea } from '../../ui/layouts'
 import { useGCalEvents, type GCalEvent } from '../../hooks/useGCal'
 
 // Google Calendar event color map
@@ -33,7 +34,7 @@ function dayRange(d: Date) {
 
 function weekRange(d: Date) {
   const day = d.getDay()
-  const diff = day === 0 ? -6 : 1 - day          // Monday-first offset
+  const diff = day === 0 ? -6 : 1 - day
   const s = new Date(d); s.setDate(d.getDate() + diff); s.setHours(0, 0, 0, 0)
   const e = new Date(s);  e.setDate(s.getDate() + 6);   e.setHours(23, 59, 59, 999)
   return { timeMin: s.toISOString(), timeMax: e.toISOString(), start: s }
@@ -60,21 +61,21 @@ function addMonths(d: Date, n: number) {
 
 function EventRow({ event }: { event: GCalEvent }) {
   const isAllDay = !event.start.dateTime
-  const color = eventColor(event)
-  const start = isAllDay ? null : formatTime(event.start.dateTime!)
-  const end   = isAllDay ? null : formatTime(event.end.dateTime!)
+  const color    = eventColor(event)
+  const start    = isAllDay ? null : formatTime(event.start.dateTime!)
+  const end      = isAllDay ? null : formatTime(event.end.dateTime!)
   return (
-    <div className="flex items-start gap-2 py-1.5 px-3 hover:bg-stone-50 group">
-      <div className="w-0.5 rounded-full self-stretch flex-shrink-0 mt-0.5" style={{ background: color, minHeight: 16 }} />
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-medium text-stone-700 truncate leading-snug">
+    <FlexRow align="start" gap="sm" className="py-1.5 px-3 wt-row-btn">
+      <Box className="w-0.5 rounded-full self-stretch flex-shrink-0 mt-0.5" style={{ background: color, minHeight: 16 }} />
+      <Box flex1 className="min-w-0">
+        <Text variant="label" size="small" className="truncate" style={{ lineHeight: '1.3' }}>
           {event.summary || '(No title)'}
-        </p>
-        <p className="text-xs text-stone-400 leading-snug">
+        </Text>
+        <Text variant="caption" size="small" color="muted" style={{ lineHeight: '1.3' }}>
           {isAllDay ? 'All day' : `${start} – ${end}`}
-        </p>
-      </div>
-    </div>
+        </Text>
+      </Box>
+    </FlexRow>
   )
 }
 
@@ -82,23 +83,29 @@ function DayView({ events }: { events: GCalEvent[] }) {
   const allDay = events.filter(e => !e.start.dateTime)
   const timed  = events.filter(e => !!e.start.dateTime)
   if (events.length === 0) {
-    return <div className="flex items-center justify-center h-full text-stone-300 text-xs">No events</div>
+    return (
+      <Center fullHeight>
+        <Text variant="caption" size="large" color="muted" style={{ opacity: 0.5 }}>No events</Text>
+      </Center>
+    )
   }
   return (
-    <div className="flex flex-col overflow-y-auto">
+    <FlexCol overflow="y-auto">
       {allDay.map(e => <EventRow key={e.id} event={e} />)}
-      {allDay.length > 0 && timed.length > 0 && <div className="border-b border-stone-100 mx-3 my-1" />}
+      {allDay.length > 0 && timed.length > 0 && (
+        <Box className="mx-3 my-1" style={{ borderBottom: '1px solid var(--wt-border)' }} />
+      )}
       {timed.map(e => <EventRow key={e.id} event={e} />)}
-    </div>
+    </FlexCol>
   )
 }
 
 function WeekView({ events, weekStart }: { events: GCalEvent[]; weekStart: Date }) {
-  const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  const days  = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const today = new Date()
 
   return (
-    <div className="flex flex-col overflow-y-auto divide-y divide-stone-100">
+    <FlexCol overflow="y-auto" className="divide-y divide-[var(--wt-border)]">
       {days.map(day => {
         const s = new Date(day); s.setHours(0, 0, 0, 0)
         const e = new Date(day); e.setHours(23, 59, 59, 999)
@@ -108,45 +115,53 @@ function WeekView({ events, weekStart }: { events: GCalEvent[]; weekStart: Date 
         })
         const isToday = day.toDateString() === today.toDateString()
         return (
-          <div key={day.toISOString()} className={`flex gap-2 px-3 py-2 ${isToday ? 'bg-blue-50/60' : ''}`}>
-            <div className="w-9 flex-shrink-0 text-right pt-0.5">
-              <p className={`text-xs font-bold ${isToday ? 'text-blue-600' : 'text-stone-400'}`}>
+          <FlexRow
+            key={day.toISOString()}
+            gap="sm"
+            className="px-3 py-2"
+            style={isToday ? { background: 'var(--wt-surface)' } : undefined}
+          >
+            <Box className="w-9 flex-shrink-0 text-right pt-0.5">
+              <Text variant="label" size="small" color={isToday ? 'accent' : 'muted'} align="right" style={{ fontWeight: '700' }}>
                 {day.toLocaleDateString('en-US', { weekday: 'short' })}
-              </p>
-              <p className={`text-sm font-semibold leading-none ${isToday ? 'text-blue-600' : 'text-stone-500'}`}>
+              </Text>
+              <Text variant="body" size="small" color={isToday ? 'accent' : 'muted'} align="right" style={{ fontWeight: '600', lineHeight: '1' }}>
                 {day.getDate()}
-              </p>
-            </div>
-            <div className="flex-1 min-w-0 flex flex-col gap-0.5 pt-0.5">
+              </Text>
+            </Box>
+            <FlexCol flex1 className="min-w-0 gap-0.5 pt-0.5">
               {dayEvents.length === 0 ? (
-                <p className="text-xs text-stone-300">—</p>
+                <Text variant="caption" size="small" color="muted" style={{ opacity: 0.4 }}>—</Text>
               ) : (
                 dayEvents.map(ev => (
-                  <div key={ev.id} className="flex items-center gap-1.5 text-xs">
+                  <FlexRow key={ev.id} align="center" className="gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: eventColor(ev) }} />
-                    <span className="text-stone-600 truncate flex-1">{ev.summary || '(No title)'}</span>
+                    <Text as="span" variant="caption" size="large" className="truncate flex-1">
+                      {ev.summary || '(No title)'}
+                    </Text>
                     {ev.start.dateTime && (
-                      <span className="text-stone-400 flex-shrink-0 text-xs">{formatTime(ev.start.dateTime)}</span>
+                      <Text as="span" variant="caption" size="small" color="muted" className="flex-shrink-0">
+                        {formatTime(ev.start.dateTime)}
+                      </Text>
                     )}
-                  </div>
+                  </FlexRow>
                 ))
               )}
-            </div>
-          </div>
+            </FlexCol>
+          </FlexRow>
         )
       })}
-    </div>
+    </FlexCol>
   )
 }
 
 function MonthView({ events, date }: { events: GCalEvent[]; date: Date }) {
-  const year = date.getFullYear()
-  const month = date.getMonth()
-  const firstDay = new Date(year, month, 1)
+  const year        = date.getFullYear()
+  const month       = date.getMonth()
+  const firstDay    = new Date(year, month, 1)
   const daysInMonth = new Date(year, month + 1, 0).getDate()
-  const today = new Date()
+  const today       = new Date()
 
-  // Monday-first offset
   const offset = (firstDay.getDay() + 6) % 7
   const cells: (number | null)[] = [
     ...Array(offset).fill(null),
@@ -164,35 +179,47 @@ function MonthView({ events, date }: { events: GCalEvent[]; date: Date }) {
   }
 
   return (
-    <div className="flex flex-col h-full p-2 select-none">
-      <div className="grid grid-cols-7 mb-1">
+    <FlexCol fullHeight noSelect className="p-2">
+      <Grid cols={7} className="mb-1">
         {['M','T','W','T','F','S','S'].map((d, i) => (
-          <div key={i} className="text-center text-xs font-medium text-stone-400 py-0.5">{d}</div>
+          <Text key={i} variant="label" size="small" color="muted" align="center" className="py-0.5">{d}</Text>
         ))}
-      </div>
-      <div className="grid grid-cols-7 flex-1 gap-0.5">
+      </Grid>
+      <Grid cols={7} flex1 className="gap-0.5">
         {cells.map((day, i) => {
-          if (!day) return <div key={i} />
-          const evs = dayEvents(day)
+          if (!day) return <Box key={i} />
+          const evs     = dayEvents(day)
           const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day
           return (
-            <div key={i} className={`rounded p-0.5 text-center min-h-0 ${isToday ? 'bg-blue-100' : 'hover:bg-stone-50'}`}>
-              <p className={`text-xs font-medium leading-none mb-0.5 ${isToday ? 'text-blue-600' : 'text-stone-500'}`}>
+            <Box
+              key={i}
+              className={`rounded p-0.5 text-center min-h-0 ${isToday ? '' : 'hover:bg-[var(--wt-surface-hover)]'}`}
+              style={isToday ? { background: 'var(--wt-surface)' } : undefined}
+            >
+              <Text
+                variant="label"
+                size="small"
+                color={isToday ? 'accent' : 'muted'}
+                align="center"
+                className="leading-none mb-0.5"
+              >
                 {day}
-              </p>
-              <div className="flex flex-wrap justify-center gap-px">
+              </Text>
+              <FlexRow wrap justify="center" className="gap-px">
                 {evs.slice(0, 3).map(e => (
                   <span key={e.id} className="w-1 h-1 rounded-full" style={{ background: eventColor(e) }} title={e.summary} />
                 ))}
                 {evs.length > 3 && (
-                  <span className="text-stone-400 leading-none" style={{ fontSize: 8 }}>+{evs.length - 3}</span>
+                  <Text as="span" variant="caption" size="small" color="muted" style={{ fontSize: '8px', lineHeight: '1' }}>
+                    +{evs.length - 3}
+                  </Text>
                 )}
-              </div>
-            </div>
+              </FlexRow>
+            </Box>
           )
         })}
-      </div>
-    </div>
+      </Grid>
+    </FlexCol>
   )
 }
 
@@ -204,11 +231,16 @@ interface Props {
   calendarId: string
 }
 
-export function CalendarWidget({ calendarId }: Props) {
-  const [view, setView]         = useState<View>('day')
-  const [current, setCurrent]   = useState(new Date())
+const VIEW_OPTIONS = [
+  { value: 'day',   label: 'Day'   },
+  { value: 'week',  label: 'Week'  },
+  { value: 'month', label: 'Month' },
+]
 
-  // Compute time range and nav step based on view
+export function CalendarWidget({ calendarId }: Props) {
+  const [view, setView]       = useState<View>('day')
+  const [current, setCurrent] = useState(new Date())
+
   const { timeMin, timeMax, weekStart } = (() => {
     if (view === 'day')   { const r = dayRange(current);   return { ...r, weekStart: undefined } }
     if (view === 'week')  { const r = weekRange(current);  return { ...r } }
@@ -240,50 +272,47 @@ export function CalendarWidget({ calendarId }: Props) {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2 text-red-500 text-xs p-4 text-center">
-        <p>Failed to load events</p>
-        <p className="text-red-400">{(error as Error).message}</p>
-        <button onClick={() => refetch()} className="underline hover:text-red-600">Retry</button>
-      </div>
+      <FlexCol align="center" justify="center" fullHeight gap="sm" className="p-4">
+        <Text variant="label" size="small" color="danger" align="center">Failed to load events</Text>
+        <Text variant="caption" size="large" color="danger" align="center">{(error as Error).message}</Text>
+        <Button variant="link" size="sm" onClick={() => refetch()}>Retry</Button>
+      </FlexCol>
     )
   }
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <FlexCol fullHeight style={{ background: 'var(--wt-bg)' }}>
       {/* Toolbar */}
-      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-stone-100 flex-shrink-0">
-        {/* View toggle */}
-        <div className="flex rounded-md bg-stone-100 p-0.5 text-xs gap-px">
-          {(['day', 'week', 'month'] as View[]).map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`px-2 py-0.5 rounded capitalize font-medium transition-colors ${
-                view === v ? 'bg-white text-stone-700 shadow-sm' : 'text-stone-400 hover:text-stone-600'
-              }`}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-
-        {/* Nav */}
+      <FlexRow
+        align="center"
+        gap="xs"
+        className="px-2 py-1.5 flex-shrink-0 border-b"
+        style={{ borderColor: 'var(--wt-border)' }}
+      >
+        <SegmentedControl
+          value={view}
+          options={VIEW_OPTIONS as { value: View; label: string }[]}
+          onChange={(v) => setView(v)}
+        />
         <IconButton icon={ChevronLeft} size="sm" onClick={() => navigate(-1)} />
-        <span className="text-xs text-stone-500 font-medium flex-1 text-center truncate">{navLabel()}</span>
+        <Text as="span" variant="label" size="small" color="muted" className="flex-1 text-center truncate">
+          {navLabel()}
+        </Text>
         <IconButton icon={ChevronRight} size="sm" onClick={() => navigate(1)} />
-
         <IconButton
           icon={RefreshCw}
           size="sm"
           onClick={() => refetch()}
-          className={isFetching ? 'animate-spin text-blue-400' : ''}
+          className={isFetching ? 'animate-spin' : ''}
         />
-      </div>
+      </FlexRow>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto min-h-0">
+      <ScrollArea>
         {isLoading ? (
-          <div className="flex items-center justify-center h-full text-stone-400 text-xs">Loading…</div>
+          <Center fullHeight>
+            <Text variant="caption" size="large" color="muted">Loading…</Text>
+          </Center>
         ) : view === 'day' ? (
           <DayView events={events} />
         ) : view === 'week' ? (
@@ -291,7 +320,7 @@ export function CalendarWidget({ calendarId }: Props) {
         ) : (
           <MonthView events={events} date={current} />
         )}
-      </div>
-    </div>
+      </ScrollArea>
+    </FlexCol>
   )
 }

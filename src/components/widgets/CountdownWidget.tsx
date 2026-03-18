@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
+import { Text } from '../../ui/web'
+import { FlexCol, FlexRow } from '../../ui/layouts'
 
 export interface CountdownSettings {
   title:      string
@@ -25,12 +27,11 @@ interface Delta {
 
 function calcDelta(targetDate: string): Delta | null {
   if (!targetDate) return null
-  // Treat the date as midnight local time
   const target = new Date(`${targetDate}T00:00:00`)
   if (isNaN(target.getTime())) return null
 
-  const total  = target.getTime() - Date.now()
-  const abs    = Math.abs(total)
+  const total   = target.getTime() - Date.now()
+  const abs     = Math.abs(total)
   const days    = Math.floor(abs / 86_400_000)
   const hours   = Math.floor((abs % 86_400_000) / 3_600_000)
   const minutes = Math.floor((abs % 3_600_000) / 60_000)
@@ -51,56 +52,67 @@ export function CountdownWidget({ widgetId }: { widgetId: string }) {
     return () => clearInterval(id)
   }, [])
 
-  const delta = calcDelta(settings.targetDate)
-  const isPast    = delta !== null && delta.total < 0
-  const isToday   = delta !== null && Math.abs(delta.total) < 86_400_000 && !isPast
+  const delta   = calcDelta(settings.targetDate)
+  const isPast  = delta !== null && delta.total < 0
+  const isToday = delta !== null && Math.abs(delta.total) < 86_400_000 && !isPast
 
   return (
-    <div
-      className="flex flex-col items-center justify-center h-full gap-3 select-none px-5"
-      style={{ color: 'var(--wt-text)' }}
-    >
-      {/* Title */}
-      <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--wt-text-muted)', opacity: 0.7 }}>
+    <FlexCol align="center" justify="center" fullHeight noSelect className="gap-3 px-5">
+      <Text
+        variant="label"
+        size="small"
+        color="muted"
+        textTransform="uppercase"
+        style={{ letterSpacing: '0.1em', opacity: 0.7 }}
+      >
         {settings.title || 'Countdown'}
-      </p>
+      </Text>
 
       {!settings.targetDate ? (
-        <p className="text-sm" style={{ color: 'var(--wt-text-muted)' }}>Set a date in settings</p>
+        <Text variant="body" size="small" color="muted">Set a date in settings</Text>
       ) : isToday ? (
-        <div className="flex flex-col items-center gap-1">
-          <span className="text-5xl">🎉</span>
-          <p className="text-xl font-semibold" style={{ color: 'var(--wt-accent)' }}>Today!</p>
-        </div>
+        <FlexCol align="center" className="gap-1">
+          <Text as="span" style={{ fontSize: '48px' }}>🎉</Text>
+          <Text variant="heading" size="large" color="accent">Today!</Text>
+        </FlexCol>
       ) : (
         <>
-          {/* Days */}
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-8xl font-thin tabular-nums leading-none" style={{ color: 'var(--wt-text)' }}>
-              {isPast ? delta!.days : delta!.days}
-            </span>
-            <span className="text-lg font-light" style={{ color: 'var(--wt-text-muted)' }}>
-              {isPast ? (delta!.days === 1 ? 'day ago' : 'days ago') : (delta!.days === 1 ? 'day' : 'days')}
-            </span>
-          </div>
+          <FlexRow align="baseline" className="gap-1.5">
+            <Text
+              as="span"
+              variant="display"
+              size="large"
+              style={{ fontSize: '96px', fontWeight: '100', lineHeight: '1', fontVariantNumeric: 'tabular-nums' }}
+            >
+              {delta!.days}
+            </Text>
+            <Text as="span" variant="body" size="large" color="muted" style={{ fontWeight: '300' }}>
+              {isPast
+                ? (delta!.days === 1 ? 'day ago' : 'days ago')
+                : (delta!.days === 1 ? 'day' : 'days')}
+            </Text>
+          </FlexRow>
 
-          {/* H:M:S */}
           {settings.showTime && delta && (
-            <p className="text-xl font-mono font-light tabular-nums" style={{ color: 'var(--wt-text-muted)' }}>
+            <Text
+              variant="heading"
+              size="small"
+              color="muted"
+              style={{ fontFamily: 'monospace', fontWeight: '300', fontVariantNumeric: 'tabular-nums' }}
+            >
               {pad(delta.hours)}:{pad(delta.minutes)}:{pad(delta.seconds)}
-            </p>
+            </Text>
           )}
 
-          {/* Target date label */}
           {settings.targetDate && (
-            <p className="text-xs" style={{ color: 'var(--wt-text-muted)', opacity: 0.5 }}>
+            <Text variant="caption" size="small" color="muted" style={{ opacity: 0.5 }}>
               {new Date(`${settings.targetDate}T00:00:00`).toLocaleDateString('en-US', {
                 month: 'long', day: 'numeric', year: 'numeric',
               })}
-            </p>
+            </Text>
           )}
         </>
       )}
-    </div>
+    </FlexCol>
   )
 }

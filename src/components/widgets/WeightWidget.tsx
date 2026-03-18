@@ -1,6 +1,7 @@
 import { useWeightLog } from '../../hooks/useNotion'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { Text } from '../../ui/web'
+import { FlexCol, FlexRow, Box, Center } from '../../ui/layouts'
 
 const DB_ID = '325b3daa10f080a0819cc8c9dc4098a8'
 
@@ -13,38 +14,70 @@ const DEFAULTS: WeightSettings = {
 }
 
 interface Entry {
-  date: string
+  date:   string
   weight: number
 }
 
 function parseEntries(results: any[]): Entry[] {
   return results
     .map((p) => ({
-      date: p.properties.Date?.date?.start ?? '',
+      date:   p.properties.Date?.date?.start ?? '',
       weight: p.properties.Weight?.number ?? null,
     }))
     .filter((e) => e.date && e.weight !== null) as Entry[]
 }
 
+// ── Local components ──────────────────────────────────────────────────────────
+
+function StatLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text
+      variant="label"
+      size="small"
+      color="muted"
+      textTransform="uppercase"
+      style={{ letterSpacing: '0.1em', opacity: 0.5 }}
+    >
+      {children}
+    </Text>
+  )
+}
+
+function StatValue({ children, color }: { children: React.ReactNode; color?: 'default' | 'accent' }) {
+  return (
+    <Text variant="heading" size="small" color={color ?? 'default'}>
+      {children}
+    </Text>
+  )
+}
+
+function Unit() {
+  return (
+    <Text as="span" variant="caption" size="large" color="muted" style={{ opacity: 0.4, marginLeft: '0.25rem' }}>
+      lbs
+    </Text>
+  )
+}
+
+// ── Widget ────────────────────────────────────────────────────────────────────
+
 export function WeightWidget({ widgetId }: { widgetId: string }) {
-  console.log('[WeightWidget] rendering, widgetId:', widgetId)
   const [settings] = useWidgetSettings<WeightSettings>(widgetId, DEFAULTS)
   const { data, isLoading, error } = useWeightLog(DB_ID)
-  console.log('[WeightWidget] data:', data, 'isLoading:', isLoading, 'error:', error)
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <Center fullHeight>
         <Text variant="caption" color="muted">Loading…</Text>
-      </div>
+      </Center>
     )
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <Text variant="caption" className="text-red-400">{(error as Error).message}</Text>
-      </div>
+      <Center fullHeight>
+        <Text variant="caption" color="danger">{(error as Error).message}</Text>
+      </Center>
     )
   }
 
@@ -52,9 +85,9 @@ export function WeightWidget({ widgetId }: { widgetId: string }) {
 
   if (entries.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <Center fullHeight>
         <Text variant="caption" color="muted">No entries yet</Text>
-      </div>
+      </Center>
     )
   }
 
@@ -64,50 +97,51 @@ export function WeightWidget({ widgetId }: { widgetId: string }) {
   const lost    = +(first - current).toFixed(1)
   const toGo    = +(current - goal).toFixed(1)
 
-  // Progress: how far from start toward goal (clamped 0–100)
   const totalNeeded = first - goal
-  const progress = totalNeeded > 0
+  const progress    = totalNeeded > 0
     ? Math.min(100, Math.max(0, ((first - current) / totalNeeded) * 100))
     : 0
 
   return (
-    <div className="flex flex-col justify-center h-full px-5 py-4 gap-3 select-none" style={{ color: 'var(--wt-text)' }}>
+    <FlexCol justify="center" fullHeight noSelect className="px-5 py-4 gap-3">
       {/* Current weight */}
-      <div>
-        <p className="text-xs uppercase tracking-widest opacity-50 mb-0.5">Current</p>
-        <p className="text-5xl font-bold leading-none" style={{ color: 'var(--wt-text)' }}>
-          {current}
-          <span className="text-lg font-normal opacity-40 ml-1">lbs</span>
-        </p>
-      </div>
+      <Box>
+        <StatLabel>Current</StatLabel>
+        <FlexRow align="baseline" className="mt-0.5">
+          <Text variant="display" size="large" style={{ fontWeight: '700', lineHeight: '1' }}>
+            {current}
+          </Text>
+          <Unit />
+        </FlexRow>
+      </Box>
 
       {/* Progress bar */}
-      <div className="w-full h-1.5 rounded-full" style={{ background: 'var(--wt-border, #e5e7eb)' }}>
-        <div
+      <Box className="w-full h-1.5 rounded-full" style={{ background: 'var(--wt-border)' }}>
+        <Box
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${progress}%`, background: 'var(--wt-accent)' }}
         />
-      </div>
+      </Box>
 
       {/* Stats row */}
-      <div className="flex gap-4">
-        <div>
-          <p className="text-xs uppercase tracking-widest opacity-50 mb-0.5">Goal</p>
-          <p className="text-xl font-semibold">{goal} <span className="text-xs font-normal opacity-40">lbs</span></p>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-widest opacity-50 mb-0.5">To go</p>
-          <p className="text-xl font-semibold" style={{ color: toGo <= 0 ? 'var(--wt-accent)' : 'var(--wt-text)' }}>
+      <FlexRow gap="md">
+        <Box>
+          <StatLabel>Goal</StatLabel>
+          <StatValue>{goal}<Unit /></StatValue>
+        </Box>
+        <Box>
+          <StatLabel>To go</StatLabel>
+          <StatValue color={toGo <= 0 ? 'accent' : 'default'}>
             {toGo <= 0 ? '🎯 Done' : `${toGo} lbs`}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-widest opacity-50 mb-0.5">Lost</p>
-          <p className="text-xl font-semibold" style={{ color: 'var(--wt-accent)' }}>
-            {lost > 0 ? `−${lost}` : lost} <span className="text-xs font-normal opacity-40">lbs</span>
-          </p>
-        </div>
-      </div>
-    </div>
+          </StatValue>
+        </Box>
+        <Box>
+          <StatLabel>Lost</StatLabel>
+          <StatValue color="accent">
+            {lost > 0 ? `−${lost}` : lost}<Unit />
+          </StatValue>
+        </Box>
+      </FlexRow>
+    </FlexCol>
   )
 }

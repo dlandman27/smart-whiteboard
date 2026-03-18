@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Plus, Check } from 'lucide-react'
 import { useNotionPages, useUpdatePage, useCreatePage } from '../../hooks/useNotion'
-import { Divider, Icon, Input, Text } from '../../ui/web'
+import { Button, Divider, Icon, Input, Text } from '../../ui/web'
+import { FlexCol, FlexRow, Box, Center, ScrollArea } from '../../ui/layouts'
 
 const DB_ID = '325b3daa10f0805fb7f1d1e230ee477f'
 
@@ -22,11 +23,11 @@ export function TasksWidget({ widgetId: _ }: { widgetId: string }) {
   const [isAdding, setIsAdding] = useState(false)
 
   if (isLoading) {
-    return <div className="flex items-center justify-center h-full"><Text variant="caption" color="muted">Loading…</Text></div>
+    return <Center fullHeight><Text variant="caption" color="muted">Loading…</Text></Center>
   }
 
   if (error) {
-    return <div className="flex items-center justify-center h-full"><Text variant="caption" color="danger">{(error as Error).message}</Text></div>
+    return <Center fullHeight><Text variant="caption" color="danger">{(error as Error).message}</Text></Center>
   }
 
   const pages: any[] = data?.results ?? []
@@ -49,27 +50,28 @@ export function TasksWidget({ widgetId: _ }: { widgetId: string }) {
   }
 
   return (
-    <div className="flex flex-col h-full select-none" style={{ color: 'var(--wt-text)' }}>
+    <FlexCol fullHeight noSelect style={{ color: 'var(--wt-text)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 flex-shrink-0">
+      <FlexRow align="center" justify="between" className="px-4 py-3 flex-shrink-0">
         <Text variant="label" color="muted">{active.length} remaining</Text>
-        <button
+        <Button
+          variant="accent"
+          size="sm"
+          iconLeft={<Icon icon={Plus} size={13} />}
           onClick={() => setIsAdding(true)}
-          className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs transition-colors"
-          style={{ color: 'var(--wt-accent)' }}
         >
-          <Icon icon={Plus} size={13} /> Add
-        </button>
-      </div>
+          Add
+        </Button>
+      </FlexRow>
 
       <Divider />
 
       {/* Task list */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+      <ScrollArea className="px-3 py-2 space-y-1">
         {active.length === 0 && !isAdding && (
-          <div className="flex items-center justify-center h-full">
+          <Center fullHeight>
             <Text variant="caption" color="muted">All done!</Text>
-          </div>
+          </Center>
         )}
 
         {active.map((page) => (
@@ -78,12 +80,12 @@ export function TasksWidget({ widgetId: _ }: { widgetId: string }) {
             onClick={() => markDone(page.id)}
             className="w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left transition-colors hover:opacity-80 group"
           >
-            <div
+            <Box
               className="w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors group-hover:border-current"
               style={{ borderColor: 'var(--wt-accent)' }}
             />
             <Text variant="body" size="small" className="flex-1 truncate">
-              {getTitle(page) || <span style={{ color: 'var(--wt-text-muted)' }}>Untitled</span>}
+              {getTitle(page) || <Text as="span" color="muted">Untitled</Text>}
             </Text>
           </button>
         ))}
@@ -94,24 +96,24 @@ export function TasksWidget({ widgetId: _ }: { widgetId: string }) {
             onClick={() => markUndone(page.id)}
             className="w-full flex items-center gap-3 px-2 py-2 rounded-xl text-left transition-colors hover:opacity-80"
           >
-            <div
+            <Box
               className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ background: 'var(--wt-accent)' }}
             >
               <Icon icon={Check} size={11} className="text-white" />
-            </div>
+            </Box>
             <Text variant="body" size="small" color="muted" className="flex-1 truncate line-through opacity-40">
               {getTitle(page)}
             </Text>
           </button>
         ))}
-      </div>
+      </ScrollArea>
 
       {/* Add input */}
       {isAdding && (
         <>
           <Divider />
-          <div className="px-3 py-2 flex-shrink-0">
+          <Box className="px-3 py-2 flex-shrink-0">
             <Input
               autoFocus
               type="text"
@@ -129,9 +131,9 @@ export function TasksWidget({ widgetId: _ }: { widgetId: string }) {
             <Text variant="caption" size="small" color="muted" className="mt-1">
               Enter to save · Esc to cancel
             </Text>
-          </div>
+          </Box>
         </>
       )}
-    </div>
+    </FlexCol>
   )
 }

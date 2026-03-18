@@ -62,7 +62,7 @@ function GCalSetup({ onBack }: { onBack: () => void }) {
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}>
         <button onClick={onBack} className="wt-action-btn" style={{ width: 28, height: 28, borderRadius: 8 }}>
-          <ChevronLeft size={16} />
+          <Icon icon={ChevronLeft} size={16} />
         </button>
         <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center flex-shrink-0">
           <Icon icon={Calendar} size={15} className="text-blue-500" />
@@ -95,7 +95,7 @@ function GCalSetup({ onBack }: { onBack: () => void }) {
           className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-opacity disabled:opacity-40"
           style={{ backgroundColor: 'var(--wt-accent)', color: 'var(--wt-accent-text)' }}
         >
-          <ExternalLink size={14} />
+          <Icon icon={ExternalLink} size={14} />
           {status.data?.connected ? 'Reconnect Google Calendar' : 'Connect Google Calendar'}
         </button>
       </div>
@@ -117,7 +117,7 @@ function SpotifySetup({ onBack }: { onBack: () => void }) {
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}>
         <button onClick={onBack} className="wt-action-btn" style={{ width: 28, height: 28, borderRadius: 8 }}>
-          <ChevronLeft size={16} />
+          <Icon icon={ChevronLeft} size={16} />
         </button>
         <div className="w-7 h-7 rounded-lg bg-green-500/10 flex items-center justify-center flex-shrink-0">
           <Icon icon={Music} size={15} className="text-green-500" />
@@ -146,7 +146,7 @@ function SpotifySetup({ onBack }: { onBack: () => void }) {
           disabled={!ready}
           className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-opacity disabled:opacity-40 bg-green-500 text-white hover:bg-green-600"
         >
-          <ExternalLink size={14} />
+          <Icon icon={ExternalLink} size={14} />
           {status.data?.connected ? 'Reconnect Spotify' : 'Connect Spotify'}
         </button>
       </div>

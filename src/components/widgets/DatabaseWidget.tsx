@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Plus, RefreshCw, Minus, Check } from 'lucide-react'
-import { Icon, IconButton, Text } from '../../ui/web'
+import { Button, Icon, IconButton, Input, Text } from '../../ui/web'
+import { FlexCol, FlexRow, Box, Center, ScrollArea } from '../../ui/layouts'
 import { useNotionPages, useUpdatePage, useCreatePage, useArchivePage } from '../../hooks/useNotion'
 
 // Property types we know how to display/edit
@@ -25,9 +26,14 @@ const NOTION_COLORS: Record<string, string> = {
 function Badge({ name, color }: { name: string; color: string }) {
   const cls = NOTION_COLORS[color] ?? 'bg-stone-400'
   return (
-    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium text-white ${cls}`}>
+    <Text
+      as="span"
+      variant="label"
+      size="small"
+      className={`inline-flex items-center px-1.5 py-0.5 rounded text-white ${cls}`}
+    >
       {name}
-    </span>
+    </Text>
   )
 }
 
@@ -77,8 +83,8 @@ interface Props {
 
 export function DatabaseWidget({ databaseId }: Props) {
   const { data, isLoading, error, refetch, isFetching } = useNotionPages(databaseId)
-  const updatePage = useUpdatePage(databaseId)
-  const createPage = useCreatePage(databaseId)
+  const updatePage  = useUpdatePage(databaseId)
+  const createPage  = useCreatePage(databaseId)
   const archivePage = useArchivePage(databaseId)
 
   const [editingCell, setEditingCell] = useState<{
@@ -86,8 +92,8 @@ export function DatabaseWidget({ databaseId }: Props) {
     propName: string
     value: string
   } | null>(null)
-  const [newTitle, setNewTitle] = useState('')
-  const [isAdding, setIsAdding] = useState(false)
+  const [newTitle, setNewTitle]   = useState('')
+  const [isAdding, setIsAdding]   = useState(false)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // ---- Derived data ----------------------------------------------------------
@@ -150,7 +156,8 @@ export function DatabaseWidget({ databaseId }: Props) {
       return (
         <button
           onClick={() => toggleCheckbox(page.id, propName, prop.checkbox)}
-          className="flex items-center justify-center w-5 h-5 rounded border border-stone-300 hover:border-stone-400 transition-colors flex-shrink-0"
+          className="flex items-center justify-center w-5 h-5 rounded border transition-colors flex-shrink-0"
+          style={{ borderColor: 'var(--wt-border-active)' }}
         >
           {prop.checkbox && <Icon icon={Check} size={11} className="text-green-500" />}
         </button>
@@ -176,14 +183,14 @@ export function DatabaseWidget({ databaseId }: Props) {
     if (prop.type === 'multi_select') {
       if (!prop.multi_select.length) return <Text as="span" variant="caption" color="disabled">—</Text>
       return (
-        <div className="flex flex-wrap gap-1">
+        <FlexRow wrap gap="xs">
           {prop.multi_select.slice(0, 2).map((s: any) => (
             <Badge key={s.id} name={s.name} color={s.color} />
           ))}
           {prop.multi_select.length > 2 && (
             <Text as="span" variant="caption" color="muted">+{prop.multi_select.length - 2}</Text>
           )}
-        </div>
+        </FlexRow>
       )
     }
 
@@ -201,7 +208,8 @@ export function DatabaseWidget({ databaseId }: Props) {
             if (e.key === 'Enter') commitEdit()
             if (e.key === 'Escape') setEditingCell(null)
           }}
-          className="w-full bg-white text-stone-800 text-xs px-1.5 py-0.5 rounded outline-none border border-blue-400 min-w-0 shadow-sm"
+          className="w-full text-xs px-1.5 py-0.5 rounded outline-none min-w-0 shadow-sm wt-input"
+          style={{ borderColor: 'var(--wt-accent)' }}
         />
       )
     }
@@ -210,7 +218,9 @@ export function DatabaseWidget({ databaseId }: Props) {
       <Text
         as="span"
         variant="caption"
-        className="text-stone-600 hover:text-stone-900 cursor-text block truncate"
+        color="muted"
+        className="hover:opacity-100 cursor-text block truncate"
+        style={{ opacity: 0.7 }}
         onClick={() => setEditingCell({ pageId: page.id, propName, value: displayVal })}
         title={displayVal || undefined}
       >
@@ -223,78 +233,88 @@ export function DatabaseWidget({ databaseId }: Props) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <Center fullHeight>
         <Text variant="caption" color="muted">Loading…</Text>
-      </div>
+      </Center>
     )
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-2 p-4">
-        <Text variant="label" className="text-red-500">Failed to load entries</Text>
-        <Text variant="caption" className="text-red-400">{(error as Error).message}</Text>
-        <button onClick={() => refetch()} className="underline text-xs text-red-500 hover:text-red-600 mt-1">Retry</button>
-      </div>
+      <FlexCol align="center" justify="center" fullHeight gap="sm" className="p-4">
+        <Text variant="label" color="danger">Failed to load entries</Text>
+        <Text variant="caption" color="danger">{(error as Error).message}</Text>
+        <Button variant="link" size="sm" onClick={() => refetch()} style={{ color: 'var(--wt-danger)' }}>Retry</Button>
+      </FlexCol>
     )
   }
 
   return (
-    <div className="flex flex-col h-full text-sm select-none bg-white">
+    <FlexCol fullHeight noSelect className="text-sm" style={{ background: 'var(--wt-bg)' }}>
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-stone-100 flex-shrink-0">
+      <FlexRow
+        align="center"
+        justify="between"
+        className="px-3 py-1.5 border-b flex-shrink-0"
+        style={{ borderColor: 'var(--wt-border)' }}
+      >
         <Text as="span" variant="caption" color="muted">{pages.length} {pages.length === 1 ? 'item' : 'items'}</Text>
-        <div className="flex items-center gap-1.5">
+        <FlexRow align="center" className="gap-1.5">
           <IconButton
             icon={RefreshCw}
             size="sm"
             onClick={() => refetch()}
             title="Refresh"
-            className={isFetching ? 'animate-spin text-blue-400' : ''}
+            className={isFetching ? 'animate-spin' : ''}
           />
-          <button
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-blue-50 hover:bg-blue-100 text-blue-500 hover:text-blue-600 transition-colors"
-          >
-            <Icon icon={Plus} size={11} /> New
-          </button>
-        </div>
-      </div>
+          <Button variant="accent" size="sm" iconLeft={<Icon icon={Plus} size={11} />} onClick={() => setIsAdding(true)}>
+            New
+          </Button>
+        </FlexRow>
+      </FlexRow>
 
       {/* Column headers */}
       {(sample || otherCols.length > 0) && (
-        <div className="flex items-center gap-2 px-3 py-1.5 border-b border-stone-100 flex-shrink-0 bg-stone-50/50">
-          <div className="flex-1 text-xs font-medium text-stone-400 uppercase tracking-wide truncate">
+        <FlexRow
+          align="center"
+          gap="sm"
+          className="px-3 py-1.5 border-b flex-shrink-0"
+          style={{ borderColor: 'var(--wt-border)', background: 'var(--wt-surface)' }}
+        >
+          <Text variant="label" size="small" color="muted" textTransform="uppercase" className="flex-1 truncate" style={{ letterSpacing: '0.05em' }}>
             {titlePropName}
-          </div>
+          </Text>
           {otherCols.map((col) => (
-            <div key={col} className="w-24 flex-shrink-0 text-xs font-medium text-stone-400 uppercase tracking-wide truncate">
+            <Text key={col} variant="label" size="small" color="muted" textTransform="uppercase" className="w-24 flex-shrink-0 truncate" style={{ letterSpacing: '0.05em' }}>
               {col}
-            </div>
+            </Text>
           ))}
-          <div className="w-5 flex-shrink-0" />
-        </div>
+          <Box className="w-5 flex-shrink-0" />
+        </FlexRow>
       )}
 
       {/* Rows */}
-      <div className="flex-1 overflow-y-auto">
+      <ScrollArea>
         {pages.length === 0 ? (
-          <div className="flex items-center justify-center h-full text-stone-300 text-xs">
-            No entries yet
-          </div>
+          <Center fullHeight>
+            <Text variant="caption" size="large" color="muted" style={{ opacity: 0.5 }}>No entries yet</Text>
+          </Center>
         ) : (
           pages.map((page) => (
-            <div
+            <FlexRow
               key={page.id}
-              className={`group flex items-center gap-2 px-3 py-2 border-b border-stone-100 hover:bg-stone-50 transition-colors ${deletingId === page.id ? 'opacity-40' : ''}`}
+              align="center"
+              gap="sm"
+              className={`group px-3 py-2 border-b transition-colors ${deletingId === page.id ? 'opacity-40' : 'hover:bg-[var(--wt-surface-hover)]'}`}
+              style={{ borderColor: 'var(--wt-border)' }}
             >
-              <div className="flex-1 min-w-0">
+              <Box flex1 className="min-w-0">
                 {renderCell(page, titlePropName)}
-              </div>
+              </Box>
               {otherCols.map((propName) => (
-                <div key={propName} className="w-24 flex-shrink-0 min-w-0">
+                <Box key={propName} className="w-24 flex-shrink-0 min-w-0">
                   {renderCell(page, propName)}
-                </div>
+                </Box>
               ))}
               <IconButton
                 icon={Minus}
@@ -304,30 +324,35 @@ export function DatabaseWidget({ databaseId }: Props) {
                 title="Remove"
                 className="flex-shrink-0 text-transparent group-hover:text-stone-300 hover:!text-red-400"
               />
-            </div>
+            </FlexRow>
           ))
         )}
-      </div>
+      </ScrollArea>
 
       {/* Add new page input */}
       {isAdding && (
-        <div className="px-3 py-2 border-t border-stone-100 bg-stone-50 flex-shrink-0">
-          <input
+        <Box
+          className="px-3 py-2 border-t flex-shrink-0"
+          style={{ borderColor: 'var(--wt-border)', background: 'var(--wt-surface)' }}
+        >
+          <Input
             autoFocus
             type="text"
             placeholder={`New ${titlePropName}…`}
             value={newTitle}
+            size="sm"
             onChange={(e) => setNewTitle(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleAddPage()
               if (e.key === 'Escape') { setIsAdding(false); setNewTitle('') }
             }}
             onBlur={() => { if (!newTitle.trim()) { setIsAdding(false) } }}
-            className="w-full bg-white text-stone-700 text-xs px-2 py-1.5 rounded border border-blue-400 outline-none placeholder-stone-300 shadow-sm"
           />
-          <p className="text-xs text-stone-300 mt-1">Enter to save · Esc to cancel</p>
-        </div>
+          <Text variant="caption" size="small" color="muted" className="mt-1" style={{ opacity: 0.5 }}>
+            Enter to save · Esc to cancel
+          </Text>
+        </Box>
       )}
-    </div>
+    </FlexCol>
   )
 }

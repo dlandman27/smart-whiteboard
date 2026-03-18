@@ -1,5 +1,6 @@
 import { useWhiteboardStore } from '../../store/whiteboard'
-import { SegmentedControl, SettingsSection } from '../../ui/web'
+import { SegmentedControl, SettingsSection, Text } from '../../ui/web'
+import { FlexCol, Grid } from '../../ui/layouts'
 import { DEFAULT_NOTE_SETTINGS, type NoteWidgetSettings } from './NoteWidget'
 import type { WidgetProps } from './registry'
 
@@ -25,9 +26,9 @@ export function NoteSettings({ widgetId }: WidgetProps) {
   }
 
   return (
-    <div className="space-y-5">
+    <FlexCol className="gap-5">
       <SettingsSection label="Color">
-        <div className="grid grid-cols-4 gap-2">
+        <Grid cols={4} gap="sm">
           {NOTE_COLORS.map((c) => (
             <button
               key={c.value}
@@ -37,17 +38,23 @@ export function NoteSettings({ widgetId }: WidgetProps) {
               className="relative w-full aspect-square rounded-lg border-2 transition-all"
               style={{
                 backgroundColor: c.value,
-                borderColor: settings.color === c.value ? '#78716c' : '#e7e5e4',
+                borderColor: settings.color === c.value ? 'var(--wt-border-active)' : 'var(--wt-border)',
               }}
             >
               {settings.color === c.value && (
-                <span className="absolute inset-0 flex items-center justify-center text-stone-600 text-xs font-bold">
+                <Text
+                  as="span"
+                  variant="label"
+                  size="small"
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ fontWeight: '700' }}
+                >
                   ✓
-                </span>
+                </Text>
               )}
             </button>
           ))}
-        </div>
+        </Grid>
       </SettingsSection>
 
       <SettingsSection label="Text Size">
@@ -84,6 +91,6 @@ export function NoteSettings({ widgetId }: WidgetProps) {
           onChange={(v) => set({ align: v })}
         />
       </SettingsSection>
-    </div>
+    </FlexCol>
   )
 }

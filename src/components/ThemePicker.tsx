@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, RotateCcw } from 'lucide-react'
 import { THEMES, VAR_LABELS, type ThemeVars } from '../themes/presets'
 import { useThemeStore } from '../store/theme'
+import { Icon } from '../ui/web'
 
 // Color vars shown in the advanced customizer, in display order
 const CUSTOM_VARS: (keyof ThemeVars)[] = [
@@ -122,7 +123,7 @@ export function ThemePicker() {
         }}
       >
         <span className="text-xs font-medium">Advanced customization</span>
-        {showAdvanced ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+        {showAdvanced ? <Icon icon={ChevronUp} size={12} /> : <Icon icon={ChevronDown} size={12} />}
       </button>
 
       {showAdvanced && (
@@ -167,7 +168,7 @@ export function ThemePicker() {
                 backgroundColor: 'var(--wt-surface-danger)',
               }}
             >
-              <RotateCcw size={11} />
+              <Icon icon={RotateCcw} size={11} />
               Reset to preset
             </button>
           )}

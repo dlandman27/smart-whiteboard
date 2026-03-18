@@ -1,12 +1,13 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { Checkbox, SegmentedControl, SettingsSection } from '../../ui/web'
+import { FlexCol } from '../../ui/layouts'
 import { DEFAULT_QUOTE_SETTINGS, type QuoteSettings } from './QuoteWidget'
 
 export function QuoteSettings({ widgetId }: { widgetId: string }) {
   const [settings, update] = useWidgetSettings<QuoteSettings>(widgetId, DEFAULT_QUOTE_SETTINGS)
 
   return (
-    <div className="space-y-5">
+    <FlexCol className="gap-5">
       <SettingsSection label="Text Size">
         <SegmentedControl
           value={settings.fontSize}
@@ -37,6 +38,6 @@ export function QuoteSettings({ widgetId }: { widgetId: string }) {
           onChange={(v) => update({ showRefresh: v })}
         />
       </SettingsSection>
-    </div>
+    </FlexCol>
   )
 }

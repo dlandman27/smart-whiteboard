@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { GripHorizontal, Settings, X } from 'lucide-react'
 import { useWhiteboardStore } from '../store/whiteboard'
+import { Icon } from '../ui/web'
 import type { PluginPreference } from '@whiteboard/sdk'
 
 // ── Preference fields ─────────────────────────────────────────────────────────
@@ -434,17 +435,17 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
             onPointerUp={onStripUp}
             onPointerCancel={onStripUp}
           >
-            <GripHorizontal size={13} />
+            <Icon icon={GripHorizontal} size={13} />
           </div>
 
           {hasSettings && (
             <button className="wt-action-btn" onClick={toggleSettings}>
-              <Settings size={13} />
+              <Icon icon={Settings} size={13} />
             </button>
           )}
 
           <button className="wt-action-btn wt-action-btn-danger" onClick={() => removeWidget(id)}>
-            <X size={13} />
+            <Icon icon={X} size={13} />
           </button>
         </div>
       )}
@@ -517,7 +518,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
               Settings
             </span>
             <button className="wt-action-btn" style={{ width: '1.25rem', height: '1.25rem', borderRadius: '9999px' }} onClick={closeSettings}>
-              <X size={11} />
+              <Icon icon={X} size={11} />
             </button>
           </div>
           <div className="flex-1 settings-scroll overflow-y-auto px-4 py-4 space-y-4">

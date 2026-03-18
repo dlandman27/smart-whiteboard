@@ -1,25 +1,34 @@
 import React from 'react'
 import { cn } from './utils/cn'
+import { typography } from '../theme/typography'
 
-export type ButtonVariant = 'solid' | 'outline' | 'ghost' | 'link'
+export type ButtonVariant = 'solid' | 'outline' | 'ghost' | 'link' | 'accent'
 export type ButtonSize    = 'sm' | 'md' | 'lg'
 
-const base = 'inline-flex items-center justify-center gap-2 font-sans font-medium transition-colors rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-stone-400 disabled:pointer-events-none disabled:opacity-40'
-
-const variantClass: Record<ButtonVariant, string> = {
-  solid:   'bg-stone-900 text-white hover:bg-stone-700',
-  outline: 'border border-stone-300 text-stone-700 hover:bg-stone-50',
-  ghost:   'text-stone-700 hover:bg-stone-100',
-  link:    'text-stone-700 underline-offset-4 hover:underline p-0 h-auto',
-}
-
+// Height + padding — layout only, no colors
 const sizeClass: Record<ButtonSize, string> = {
-  sm: 'text-xs px-3 py-1.5 h-8',
-  md: 'text-sm px-4 py-2   h-9',
-  lg: 'text-base px-5 py-2.5 h-11',
+  sm: 'h-8  px-3',
+  md: 'h-9  px-4',
+  lg: 'h-11 px-5',
 }
 
-interface Props extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+// Typography per size — same scale as Text
+const typMap = {
+  sm: typography.label.medium,
+  md: typography.label.large,
+  lg: typography.title.small,
+}
+
+// Colors — all CSS vars, no hardcoded values
+const variantStyle: Record<ButtonVariant, React.CSSProperties> = {
+  solid:   { backgroundColor: 'var(--wt-text)',   color: 'var(--wt-bg)' },
+  outline: { backgroundColor: 'transparent',      color: 'var(--wt-text)',        border: '1px solid var(--wt-border)' },
+  ghost:   { backgroundColor: 'transparent',      color: 'var(--wt-text)' },
+  link:    { backgroundColor: 'transparent',      color: 'var(--wt-text)' },
+  accent:  { backgroundColor: 'var(--wt-accent)', color: 'var(--wt-accent-text)' },
+}
+
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?:   ButtonVariant
   size?:      ButtonSize
   iconLeft?:  React.ReactNode
@@ -34,18 +43,31 @@ export function Button({
   iconRight,
   fullWidth = false,
   className,
+  style,
   children,
   ...props
-}: Props) {
+}: ButtonProps) {
+  const typ = typMap[size]
+
   return (
     <button
       className={cn(
-        base,
-        variantClass[variant],
+        'inline-flex items-center justify-center gap-2 rounded-lg',
+        'transition-opacity hover:opacity-80',
+        'focus-visible:outline-none focus-visible:ring-2 disabled:pointer-events-none disabled:opacity-40',
         variant !== 'link' && sizeClass[size],
+        variant === 'link'  && 'underline-offset-4 hover:underline',
         fullWidth && 'w-full',
         className,
       )}
+      style={{
+        fontSize:   typ.fontSize,
+        lineHeight: typ.lineHeight,
+        fontWeight: typ.fontWeight,
+        fontFamily: typ.fontFamily,
+        ...variantStyle[variant],
+        ...style,
+      }}
       {...props}
     >
       {iconLeft}

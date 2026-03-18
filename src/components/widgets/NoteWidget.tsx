@@ -1,4 +1,5 @@
 import { useWhiteboardStore } from '../../store/whiteboard'
+import { Box } from '../../ui/layouts'
 import type { WidgetProps } from './registry'
 
 export interface NoteWidgetSettings {
@@ -39,19 +40,20 @@ export function NoteWidget({ widgetId }: WidgetProps) {
   const { text, color, fontSize, fontFamily, align } = settings
 
   return (
-    <div className="w-full h-full" style={{ backgroundColor: color }}>
+    <Box fullHeight fullWidth style={{ backgroundColor: color }}>
       <textarea
         className={`
           note-scroll w-full h-full resize-none bg-transparent border-none outline-none
-          pt-9 px-4 pb-4 leading-relaxed text-stone-800
-          placeholder:text-stone-400
+          pt-9 px-4 pb-4 leading-relaxed
+          placeholder:text-[color:var(--wt-text-muted)]
           ${FONT_SIZE[fontSize]} ${FONT_FAMILY[fontFamily]}
           ${align === 'center' ? 'text-center' : 'text-left'}
         `}
+        style={{ color: 'var(--wt-text)' }}
         value={text}
         onChange={(e) => updateSettings(widgetId, { text: e.target.value })}
         placeholder="Write something…"
       />
-    </div>
+    </Box>
   )
 }

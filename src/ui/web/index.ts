@@ -5,7 +5,7 @@ export { typography, textColor } from '../theme'
 export type { TypographyStyle, TextVariant, TextSize, TextColor } from '../theme'
 
 export { Button } from './Button'
-export type { ButtonVariant, ButtonSize } from './Button'
+export type { ButtonProps, ButtonVariant, ButtonSize } from './Button'
 
 export { Card } from './Card'
 export type { CardTone, CardRadius, CardPadding } from './Card'
@@ -20,6 +20,9 @@ export { Spacer } from './Spacer'
 export type { SpacingSize } from './Spacer'
 
 export { Flex, FlexRow, FlexCol } from './Flex'
+
+export { Grid, Box, Center, ScrollArea } from '../layouts'
+export type { GridProps, GridGap, BoxProps, BoxOverflow, CenterProps, ScrollAreaProps } from '../layouts'
 
 export { Icon } from './Icon'
 

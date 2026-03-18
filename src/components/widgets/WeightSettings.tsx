@@ -1,5 +1,6 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { Input, SettingsSection } from '../../ui/web'
+import { FlexCol } from '../../ui/layouts'
 import type { WeightSettings } from './WeightWidget'
 
 const DEFAULTS: WeightSettings = { goalWeight: 170 }
@@ -8,7 +9,7 @@ export function WeightSettings({ widgetId }: { widgetId: string }) {
   const [settings, update] = useWidgetSettings<WeightSettings>(widgetId, DEFAULTS)
 
   return (
-    <div className="space-y-5">
+    <FlexCol className="gap-5">
       <SettingsSection label="Goal Weight (lbs)">
         <Input
           type="number"
@@ -16,6 +17,6 @@ export function WeightSettings({ widgetId }: { widgetId: string }) {
           onChange={(e) => update({ goalWeight: parseFloat(e.target.value) || 0 })}
         />
       </SettingsSection>
-    </div>
+    </FlexCol>
   )
 }

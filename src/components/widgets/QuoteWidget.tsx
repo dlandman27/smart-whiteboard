@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { RefreshCw } from 'lucide-react'
+import { Icon, Text, Button } from '../../ui/web'
+import { FlexCol } from '../../ui/layouts'
 
 export interface QuoteSettings {
   showRefresh: boolean
@@ -52,21 +54,21 @@ async function fetchQuote(): Promise<{ text: string; author: string }> {
   return { text: data.quote, author: data.author }
 }
 
-// ── Font maps ──────────────────────────────────────────────────────────────────
+// ── Size map ───────────────────────────────────────────────────────────────────
 
-const FONT_SIZE: Record<QuoteSettings['fontSize'], string> = {
-  sm: 'text-sm',
-  md: 'text-base',
-  lg: 'text-lg',
+const SIZE_MAP: Record<QuoteSettings['fontSize'], 'small' | 'medium' | 'large'> = {
+  sm: 'small',
+  md: 'medium',
+  lg: 'large',
 }
 
 // ── Widget ─────────────────────────────────────────────────────────────────────
 
 export function QuoteWidget({ widgetId }: { widgetId: string }) {
   const [settings] = useWidgetSettings<QuoteSettings>(widgetId, DEFAULT_QUOTE_SETTINGS)
-  const [quote, setQuote]       = useState<{ text: string; author: string } | null>(null)
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState<string | null>(null)
+  const [quote, setQuote]     = useState<{ text: string; author: string } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError]     = useState<string | null>(null)
 
   async function load(force = false) {
     if (!force) {
@@ -79,7 +81,7 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
       const q = await fetchQuote()
       saveCache(widgetId, { ...q, date: today() })
       setQuote(q)
-    } catch (e) {
+    } catch {
       setError('Could not load quote')
     } finally {
       setLoading(false)
@@ -88,51 +90,61 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
 
   useEffect(() => { load() }, [])
 
-  const alignClass = settings.align === 'center' ? 'text-center items-center' : 'text-left items-start'
+  const align    = settings.align
+  const flexAlign = align === 'center' ? 'center' : 'start'
 
   return (
-    <div
-      className={`flex flex-col justify-center h-full px-6 py-5 gap-4 select-none ${alignClass}`}
-      style={{ color: 'var(--wt-text)' }}
-    >
+    <FlexCol justify="center" align={flexAlign} fullHeight noSelect gap="md" className="px-6 py-5">
       {loading && (
-        <p className="text-sm animate-pulse" style={{ color: 'var(--wt-text-muted)' }}>Loading…</p>
+        <Text variant="body" size="small" color="muted" className="animate-pulse">Loading…</Text>
       )}
 
       {error && !loading && (
-        <p className="text-sm" style={{ color: 'var(--wt-text-muted)' }}>{error}</p>
+        <Text variant="body" size="small" color="muted">{error}</Text>
       )}
 
       {quote && !loading && (
         <>
-          {/* Opening mark */}
-          <span className="text-4xl font-serif leading-none -mb-2" style={{ color: 'var(--wt-accent)', opacity: 0.5 }}>"</span>
+          <Text
+            as="span"
+            variant="display"
+            size="large"
+            color="accent"
+            style={{ fontSize: '36px', lineHeight: '1', marginBottom: '-0.5rem', opacity: 0.5, fontFamily: 'serif' }}
+          >
+            "
+          </Text>
 
-          {/* Quote text */}
-          <p className={`font-light leading-relaxed ${FONT_SIZE[settings.fontSize]}`} style={{ color: 'var(--wt-text)' }}>
+          <Text variant="body" size={SIZE_MAP[settings.fontSize]} align={align} style={{ fontWeight: '300' }}>
             {quote.text}
-          </p>
+          </Text>
 
-          {/* Author */}
-          <p className="text-xs font-medium uppercase tracking-widest" style={{ color: 'var(--wt-text-muted)', opacity: 0.6 }}>
+          <Text
+            variant="label"
+            size="small"
+            color="muted"
+            textTransform="uppercase"
+            align={align}
+            style={{ opacity: 0.6, letterSpacing: '0.1em' }}
+          >
             — {quote.author}
-          </p>
+          </Text>
         </>
       )}
 
-      {/* Refresh button */}
       {settings.showRefresh && !loading && (
-        <button
+        <Button
+          variant="ghost"
+          size="sm"
+          iconLeft={<Icon icon={RefreshCw} size={11} />}
+          className="opacity-30"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => load(true)}
-          className="mt-1 flex items-center gap-1.5 text-xs opacity-30 hover:opacity-70 transition-opacity"
-          style={{ color: 'var(--wt-text-muted)' }}
           title="Get a new quote"
         >
-          <RefreshCw size={11} />
           new quote
-        </button>
+        </Button>
       )}
-    </div>
+    </FlexCol>
   )
 }

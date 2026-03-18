@@ -1,12 +1,13 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { Checkbox, Input, SettingsSection } from '../../ui/web'
+import { FlexCol } from '../../ui/layouts'
 import { DEFAULT_COUNTDOWN_SETTINGS, type CountdownSettings } from './CountdownWidget'
 
 export function CountdownSettings({ widgetId }: { widgetId: string }) {
   const [settings, update] = useWidgetSettings<CountdownSettings>(widgetId, DEFAULT_COUNTDOWN_SETTINGS)
 
   return (
-    <div className="space-y-5">
+    <FlexCol className="gap-5">
       <SettingsSection label="Label">
         <Input
           type="text"
@@ -31,6 +32,6 @@ export function CountdownSettings({ widgetId }: { widgetId: string }) {
           onChange={(v) => update({ showTime: v })}
         />
       </SettingsSection>
-    </div>
+    </FlexCol>
   )
 }

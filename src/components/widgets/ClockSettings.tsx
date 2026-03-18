@@ -1,4 +1,5 @@
 import { SegmentedControl, SettingsSection, Toggle } from '../../ui/web'
+import { FlexCol } from '../../ui/layouts'
 import { useWhiteboardStore } from '../../store/whiteboard'
 import { DEFAULT_CLOCK_SETTINGS, type ClockWidgetSettings } from './ClockWidget'
 import type { WidgetProps } from './registry'
@@ -14,7 +15,7 @@ export function ClockSettings({ widgetId }: WidgetProps) {
   }
 
   return (
-    <div className="space-y-5">
+    <FlexCol className="gap-5">
       <SettingsSection label="Display">
         <SegmentedControl
           value={settings.display}
@@ -54,7 +55,7 @@ export function ClockSettings({ widgetId }: WidgetProps) {
       )}
 
       <SettingsSection label="Show">
-        <div className="space-y-3">
+        <FlexCol className="gap-3">
           <Toggle
             label="Seconds"
             value={settings.showSeconds}
@@ -65,8 +66,8 @@ export function ClockSettings({ widgetId }: WidgetProps) {
             value={settings.showDate}
             onChange={(v) => set({ showDate: v })}
           />
-        </div>
+        </FlexCol>
       </SettingsSection>
-    </div>
+    </FlexCol>
   )
 }
