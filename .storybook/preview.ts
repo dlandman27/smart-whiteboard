@@ -12,7 +12,7 @@ const preview: Preview = {
       ],
     },
     controls: { matchers: { color: /(color)$/i } },
-    layout: 'centered',
+    layout: 'fullscreen',
   },
 }
 

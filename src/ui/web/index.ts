@@ -1,5 +1,8 @@
 export { Text } from './Text'
-export type { TextVariant, TextSize, TextColor, TextAlign } from './Text'
+export type { TextProps, TextVariant, TextSize, TextColor, TextAlign, TextTransform } from './Text'
+
+export { typography, textColor } from '../theme'
+export type { TypographyStyle, TextVariant, TextSize, TextColor } from '../theme'
 
 export { Button } from './Button'
 export type { ButtonVariant, ButtonSize } from './Button'
@@ -27,6 +30,10 @@ export { SegmentedControl } from './SegmentedControl'
 export type { SegmentedOption } from './SegmentedControl'
 
 export { Toggle } from './Toggle'
+
+export { Checkbox } from './Checkbox'
+
+export { Divider } from './Divider'
 
 export { SettingsSection } from './SettingsSection'
 

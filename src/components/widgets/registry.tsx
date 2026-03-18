@@ -1,9 +1,16 @@
-import { type LucideIcon, Clock, Sun, StickyNote } from 'lucide-react'
+import { type LucideIcon, Clock, Sun, StickyNote, Scale, CheckSquare, Timer, Quote } from 'lucide-react'
 import { ClockWidget } from './ClockWidget'
 import { ClockSettings } from './ClockSettings'
 import { WeatherWidget } from './WeatherWidget'
 import { NoteWidget } from './NoteWidget'
 import { NoteSettings } from './NoteSettings'
+import { WeightWidget } from './WeightWidget'
+import { WeightSettings } from './WeightSettings'
+import { TasksWidget } from './TasksWidget'
+import { CountdownWidget } from './CountdownWidget'
+import { CountdownSettings } from './CountdownSettings'
+import { QuoteWidget } from './QuoteWidget'
+import { QuoteSettings } from './QuoteSettings'
 import type { PluginPreference } from '@whiteboard/sdk'
 
 export type { WidgetProps } from '@whiteboard/sdk'
@@ -35,6 +42,49 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     defaultSize:        { width: 320, height: 200 },
     component:          ClockWidget,
     settingsComponent:  ClockSettings,
+  },
+  {
+    type:              'weight',
+    label:             'Weight Progress',
+    Icon:              Scale,
+    iconBg:            'bg-green-50',
+    iconClass:         'text-green-500',
+    keywords:          ['weight', 'fitness', 'health', 'progress', 'goal'],
+    defaultSize:       { width: 340, height: 200 },
+    component:         WeightWidget,
+    settingsComponent: WeightSettings,
+  },
+  {
+    type:        'tasks',
+    label:       'Tasks',
+    Icon:        CheckSquare,
+    iconBg:      'bg-blue-50',
+    iconClass:   'text-blue-500',
+    keywords:    ['tasks', 'todo', 'checklist', 'list'],
+    defaultSize: { width: 320, height: 400 },
+    component:   TasksWidget,
+  },
+  {
+    type:              'countdown',
+    label:             'Countdown',
+    Icon:              Timer,
+    iconBg:            'bg-violet-50',
+    iconClass:         'text-violet-500',
+    keywords:          ['countdown', 'timer', 'deadline', 'birthday', 'vacation', 'event'],
+    defaultSize:       { width: 300, height: 240 },
+    component:         CountdownWidget,
+    settingsComponent: CountdownSettings,
+  },
+  {
+    type:              'quote',
+    label:             'Quote of the Day',
+    Icon:              Quote,
+    iconBg:            'bg-rose-50',
+    iconClass:         'text-rose-400',
+    keywords:          ['quote', 'inspiration', 'motivation', 'daily', 'wisdom'],
+    defaultSize:       { width: 360, height: 260 },
+    component:         QuoteWidget,
+    settingsComponent: QuoteSettings,
   },
   {
     type:        'weather',

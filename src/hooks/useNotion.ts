@@ -38,6 +38,23 @@ export function useNotionPages(databaseId: string) {
   })
 }
 
+export function useWeightLog(databaseId: string) {
+  return useQuery({
+    queryKey: ['weight-log', databaseId],
+    queryFn: () =>
+      apiFetch<{ results: any[] }>(`/api/databases/${databaseId}/query`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sorts: [{ property: 'Date', direction: 'ascending' }],
+          page_size: 100,
+        }),
+      }),
+    enabled: !!databaseId,
+    refetchInterval: 60_000,
+  })
+}
+
 export function useUpdatePage(databaseId: string) {
   const qc = useQueryClient()
   return useMutation({

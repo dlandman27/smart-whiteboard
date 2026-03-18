@@ -32,6 +32,7 @@ export function WidgetCanvas({ slideDir, activeTool }: Props) {
 
       {widgets.map((widget) => {
         const def          = getStaticWidgetDef(widget.type ?? '')
+        console.log('[WidgetCanvas] widget.type:', widget.type, '→ def:', def?.label ?? 'NOT FOUND')
         const Comp         = def?.component
         const SettingsComp = def?.settingsComponent
 

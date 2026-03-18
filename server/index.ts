@@ -317,6 +317,25 @@ app.get('/api/spotify/now-playing', async (_req, res) => {
   }
 })
 
+// ── Quote of the Day ──────────────────────────────────────────────────────────
+
+let quoteCache: { quote: string; author: string; date: string } | null = null
+
+app.get('/api/quote', async (_req, res) => {
+  const today = new Date().toISOString().slice(0, 10)
+  if (quoteCache?.date === today) return res.json(quoteCache)
+
+  try {
+    const resp = await fetch('https://zenquotes.io/api/today')
+    if (!resp.ok) throw new Error(`ZenQuotes responded ${resp.status}`)
+    const data = await resp.json() as any[]
+    quoteCache = { quote: data[0].q, author: data[0].a, date: today }
+    res.json(quoteCache)
+  } catch (error: any) {
+    res.status(502).json({ error: error.message })
+  }
+})
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 const PORT = Number(process.env.PORT) || 3001
