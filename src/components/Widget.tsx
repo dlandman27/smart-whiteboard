@@ -36,9 +36,8 @@ function PreferenceFields({ widgetId, preferences }: { widgetId: string; prefere
   )
 }
 
-const GRID_SIZE       = 28
-const LONG_PRESS_MS   = 400
-const LONG_PRESS_MOVE = 10
+const GRID_SIZE      = 28
+const DRAG_THRESHOLD = 6
 const PANEL_WIDTH     = 272
 const GAP             = 10
 const ACTION_W        = 40
@@ -87,12 +86,9 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   const [pos,  setPos]  = useState({ x, y })
   const [size, setSize] = useState({ width, height })
 
-  const containerRef   = useRef<HTMLDivElement>(null)
-  const panelRef       = useRef<HTMLDivElement>(null)
-  const closeTimer     = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const longPressOrigin = useRef({ x: 0, y: 0 })
-  const longPressId    = useRef<number | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const panelRef     = useRef<HTMLDivElement>(null)
+  const closeTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Refs mirror state so event handler closures stay fresh
   const posRef  = useRef({ x, y })
@@ -115,8 +111,13 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     startW:    number; startH:  number
   } | null>(null)
 
-  // Body drag cleanup (document listeners added by long-press)
-  const bodyCleanup = useRef<(() => void) | null>(null)
+  // Body drag — pending until threshold crossed, then becomes a real drag
+  const bodyDrag = useRef<{
+    pointerId: number
+    startCX:   number; startCY: number
+    startX:    number; startY:  number
+    dragging:  boolean
+  } | null>(null)
 
   // Sync refs when props change (external store update)
   useEffect(() => { setPos({ x, y });         posRef.current  = { x, y }         }, [x, y])
@@ -152,9 +153,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
 
   // Cleanup on unmount
   useEffect(() => () => {
-    bodyCleanup.current?.()
-    if (longPressTimer.current) clearTimeout(longPressTimer.current)
-    if (closeTimer.current)     clearTimeout(closeTimer.current)
+    if (closeTimer.current) clearTimeout(closeTimer.current)
   }, [])
 
   function raise() { setZOrder(++zCounter) }
@@ -247,78 +246,45 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     setDragging(false)
   }
 
-  // ── Body long-press drag ──────────────────────────────────────────
+  // ── Body drag (threshold-based: move past DRAG_THRESHOLD to drag, lift to tap) ──
   function onBodyDown(e: React.PointerEvent) {
-    longPressOrigin.current = { x: e.clientX, y: e.clientY }
-    longPressId.current     = e.pointerId
-
-    longPressTimer.current = setTimeout(() => {
-      const pid = longPressId.current
-      if (pid === null) return
-
-      setActive(true)
-      setDragging(true)
-      raise()
-
-      const startX  = posRef.current.x
-      const startY  = posRef.current.y
-      const startCX = longPressOrigin.current.x
-      const startCY = longPressOrigin.current.y
-
-      function onMove(ev: PointerEvent) {
-        if (ev.pointerId !== pid) return
-        const np = calcDragPos(startX, startY, startCX, startCY, ev.clientX, ev.clientY)
-        posRef.current = np
-        setPos(np)
-      }
-      function onUp(ev: PointerEvent) {
-        if (ev.pointerId !== pid) return
-        updateLayout(id, calcDragPos(startX, startY, startCX, startCY, ev.clientX, ev.clientY))
-        bodyCleanup.current?.()
-        bodyCleanup.current = null
-        setDragging(false)
-      }
-
-      function onCancel(ev: PointerEvent) {
-        if (ev.pointerId !== pid) return
-        // pointercancel has unreliable coordinates (often 0,0) — restore to original position
-        posRef.current = { x: startX, y: startY }
-        setPos({ x: startX, y: startY })
-        bodyCleanup.current?.()
-        bodyCleanup.current = null
-        setDragging(false)
-      }
-
-      bodyCleanup.current = () => {
-        document.removeEventListener('pointermove',   onMove)
-        document.removeEventListener('pointerup',     onUp)
-        document.removeEventListener('pointercancel', onCancel)
-      }
-      document.addEventListener('pointermove',   onMove)
-      document.addEventListener('pointerup',     onUp)
-      document.addEventListener('pointercancel', onCancel)
-    }, LONG_PRESS_MS)
+    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
+    bodyDrag.current = {
+      pointerId: e.pointerId,
+      startCX:  e.clientX, startCY: e.clientY,
+      startX:   posRef.current.x, startY: posRef.current.y,
+      dragging: false,
+    }
+    raise()
   }
 
   function onBodyMove(e: React.PointerEvent) {
-    if (!longPressTimer.current || e.pointerId !== longPressId.current) return
-    const dx = e.clientX - longPressOrigin.current.x
-    const dy = e.clientY - longPressOrigin.current.y
-    if (dx * dx + dy * dy > LONG_PRESS_MOVE * LONG_PRESS_MOVE) {
-      clearTimeout(longPressTimer.current)
-      longPressTimer.current = null
+    const bd = bodyDrag.current
+    if (!bd || e.pointerId !== bd.pointerId) return
+    const dx = e.clientX - bd.startCX
+    const dy = e.clientY - bd.startCY
+    if (!bd.dragging) {
+      if (dx * dx + dy * dy < DRAG_THRESHOLD * DRAG_THRESHOLD) return
+      bd.dragging = true
+      setActive(true)
+      setDragging(true)
     }
+    const np = calcDragPos(bd.startX, bd.startY, bd.startCX, bd.startCY, e.clientX, e.clientY)
+    posRef.current = np
+    setPos(np)
   }
 
-  function onBodyUp() {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current)
-      longPressTimer.current = null
-      // Short tap — activate widget (shows controls + resize handles)
+  function onBodyUp(e: React.PointerEvent) {
+    const bd = bodyDrag.current
+    if (!bd || e.pointerId !== bd.pointerId) return
+    if (bd.dragging) {
+      updateLayout(id, calcDragPos(bd.startX, bd.startY, bd.startCX, bd.startCY, e.clientX, e.clientY))
+      setDragging(false)
+    } else {
+      // Tap — activate widget
       setActive(true)
-      raise()
     }
-    longPressId.current = null
+    bodyDrag.current = null
   }
 
   // ── Resize handle handlers ────────────────────────────────────────
@@ -381,12 +347,18 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         width:  size.width,
         height: size.height,
         zIndex: zOrder + (dragging || resizing ? 3 : showSettings ? 2 : isActive ? 1 : 0),
-        touchAction: dragging ? 'none' : undefined,
+        touchAction: 'none',
       }}
       onPointerDown={onBodyDown}
       onPointerMove={onBodyMove}
       onPointerUp={onBodyUp}
-      onPointerCancel={onBodyUp}
+      onPointerCancel={(e) => {
+        const bd = bodyDrag.current
+        if (bd && e.pointerId === bd.pointerId) {
+          if (bd.dragging) { setPos({ x: bd.startX, y: bd.startY }); posRef.current = { x: bd.startX, y: bd.startY }; setDragging(false) }
+          bodyDrag.current = null
+        }
+      }}
       onMouseEnter={() => setActive(true)}
       onMouseLeave={() => { if (!showSettings && !dragging && !resizing) setActive(false) }}
     >

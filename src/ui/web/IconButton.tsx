@@ -3,7 +3,7 @@ import { type LucideIcon } from 'lucide-react'
 import { cn } from './utils/cn'
 
 export type IconButtonVariant = 'default' | 'active' | 'ghost'
-export type IconButtonSize    = 'sm' | 'md' | 'lg'
+export type IconButtonSize    = 'sm' | 'md' | 'lg' | 'xl'
 
 const variantClass: Record<IconButtonVariant, string> = {
   default: 'wt-ibtn',
@@ -12,9 +12,10 @@ const variantClass: Record<IconButtonVariant, string> = {
 }
 
 const sizeClass: Record<IconButtonSize, { button: string; icon: number }> = {
-  sm: { button: 'p-1',   icon: 13 },
-  md: { button: 'p-1.5', icon: 14 },
-  lg: { button: 'p-2',   icon: 16 },
+  sm: { button: 'p-1',    icon: 13 },
+  md: { button: 'p-1.5',  icon: 14 },
+  lg: { button: 'p-2',    icon: 16 },
+  xl: { button: 'p-2.5',  icon: 20 },
 }
 
 interface Props {
@@ -48,7 +49,7 @@ export function IconButton({
       disabled={disabled}
       title={title}
       className={cn(
-        'rounded-lg transition-colors disabled:opacity-20 disabled:cursor-not-allowed',
+        'rounded-md transition-colors disabled:opacity-20 disabled:cursor-not-allowed',
         button,
         variantClass[variant],
         className,
