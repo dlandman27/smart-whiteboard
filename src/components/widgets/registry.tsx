@@ -1,9 +1,7 @@
-import { type LucideIcon, Clock, Sun, StickyNote, Scale, CheckSquare, Timer, Quote } from 'lucide-react'
+import { type LucideIcon, Clock, Sun, Scale, CheckSquare, Timer, Quote } from 'lucide-react'
 import { ClockWidget } from './ClockWidget'
 import { ClockSettings } from './ClockSettings'
 import { WeatherWidget } from './WeatherWidget'
-import { NoteWidget } from './NoteWidget'
-import { NoteSettings } from './NoteSettings'
 import { WeightWidget } from './WeightWidget'
 import { WeightSettings } from './WeightSettings'
 import { TasksWidget } from './TasksWidget'
@@ -95,18 +93,6 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     keywords:    ['weather', 'temperature', 'forecast', 'rain', 'sun'],
     defaultSize: { width: 300, height: 220 },
     component:   WeatherWidget,
-  },
-  {
-    type:              'note',
-    label:             'Note',
-    Icon:              StickyNote,
-    iconBg:            'bg-yellow-50',
-    iconClass:         'text-yellow-500',
-    keywords:          ['note', 'sticky', 'text', 'write', 'memo', 'post-it'],
-    defaultSize:       { width: 280, height: 300 },
-    scalable:          false,
-    component:         NoteWidget,
-    settingsComponent: NoteSettings,
   },
 ]
 

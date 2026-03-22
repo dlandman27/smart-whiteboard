@@ -15,7 +15,7 @@ export function Toggle({ value, label, onChange, className }: Props) {
         onPointerDown={(e) => e.stopPropagation()}
         onClick={() => onChange(!value)}
         className="relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0"
-        style={{ backgroundColor: value ? 'var(--wt-text)' : 'var(--wt-border-active)' }}
+        style={{ backgroundColor: value ? 'var(--wt-accent)' : 'var(--wt-border-active)' }}
       >
         <span
           className="absolute top-0.5 w-4 h-4 rounded-full shadow-sm transition-all duration-200"

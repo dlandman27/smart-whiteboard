@@ -103,10 +103,10 @@
 }
 
 /* ── Segmented control ─────────────────────────────────────────────────────── */
-.wt-seg-track { background-color: var(--wt-surface); }
+.wt-seg-track { background-color: var(--wt-border); border: 1px solid var(--wt-border-active); }
 .wt-seg-btn   { color: var(--wt-text-muted); transition: color 0.12s; }
 .wt-seg-btn:hover { color: var(--wt-text); }
-.wt-seg-active { background-color: var(--wt-bg); color: var(--wt-text); box-shadow: 0 1px 2px rgba(0,0,0,0.12); }
+.wt-seg-active { background-color: var(--wt-bg); color: var(--wt-text); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
 
 /* ── List row button (DatabasePicker widget rows) ──────────────────────────── */
 .wt-row-btn { transition: background-color 0.12s; color: inherit; }

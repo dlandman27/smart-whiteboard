@@ -317,23 +317,15 @@ app.get('/api/spotify/now-playing', async (_req, res) => {
   }
 })
 
-// ── Quote of the Day ──────────────────────────────────────────────────────────
+// ── Quote ─────────────────────────────────────────────────────────────────────
 
-let quoteCache: { quote: string; author: string; date: string } | null = null
+const QUOTES: { quote: string; author: string }[] = JSON.parse(
+  fs.readFileSync(path.join(process.cwd(), 'src/components/config/quotes.config.json'), 'utf-8')
+)
 
-app.get('/api/quote', async (_req, res) => {
-  const today = new Date().toISOString().slice(0, 10)
-  if (quoteCache?.date === today) return res.json(quoteCache)
-
-  try {
-    const resp = await fetch('https://zenquotes.io/api/today')
-    if (!resp.ok) throw new Error(`ZenQuotes responded ${resp.status}`)
-    const data = await resp.json() as any[]
-    quoteCache = { quote: data[0].q, author: data[0].a, date: today }
-    res.json(quoteCache)
-  } catch (error: any) {
-    res.status(502).json({ error: error.message })
-  }
+app.get('/api/quote', (_req, res) => {
+  const q = QUOTES[Math.floor(Math.random() * QUOTES.length)]
+  res.json(q)
 })
 
 // ── Start ─────────────────────────────────────────────────────────────────────

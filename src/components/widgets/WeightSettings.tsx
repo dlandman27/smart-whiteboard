@@ -10,6 +10,14 @@ export function WeightSettings({ widgetId }: { widgetId: string }) {
 
   return (
     <FlexCol className="gap-5">
+      <SettingsSection label="Notion Database ID">
+        <Input
+          type="text"
+          placeholder="Paste your database ID…"
+          value={settings.databaseId}
+          onChange={(e) => update({ databaseId: e.target.value.trim() })}
+        />
+      </SettingsSection>
       <SettingsSection label="Goal Weight (lbs)">
         <Input
           type="number"

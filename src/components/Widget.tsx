@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { GripHorizontal, Settings, X } from 'lucide-react'
+import { Maximize2, Minimize2, Settings, X } from 'lucide-react'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { Icon } from '../ui/web'
 import type { PluginPreference } from '@whiteboard/sdk'
@@ -36,31 +36,13 @@ function PreferenceFields({ widgetId, preferences }: { widgetId: string; prefere
   )
 }
 
-const GRID_SIZE      = 28
 const DRAG_THRESHOLD = 6
 const PANEL_WIDTH     = 272
-const GAP             = 10
-const ACTION_W        = 40
 const CLOSE_MS        = 130
-const MIN_W           = 200
-const MIN_H           = 140
-const HANDLE_HIT      = 44   // px — touch target for resize handles
 
 // Monotonically increasing counter — each activation gets a unique z-order
 let zCounter = 10
 
-type ResizeHandle = 'se' | 'sw' | 'ne' | 'nw' | 's' | 'n' | 'e' | 'w'
-
-const RESIZE_CURSORS: Record<ResizeHandle, string> = {
-  n: 'n-resize', s: 's-resize',
-  e: 'e-resize', w: 'w-resize',
-  ne: 'ne-resize', sw: 'sw-resize',
-  nw: 'nw-resize', se: 'se-resize',
-}
-
-function clamp(v: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, v))
-}
 
 interface Props {
   id:               string
@@ -72,19 +54,28 @@ interface Props {
   settingsContent?: React.ReactNode
   preferences?:     PluginPreference[]
   refSize?:         { width: number; height: number }
+  slotAssigned?:    boolean
+  onDropped?:       (rect: { x: number; y: number; width: number; height: number }, cursorPt: { x: number; y: number }) => void
+  onDragStart?:     () => void
+  onDragMove?:      (cx: number, cy: number) => void
+  onDragEnd?:       () => void
 }
 
-export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize }: Props) {
+export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
   const { updateLayout, removeWidget } = useWhiteboardStore()
 
   const [active,       setActive]       = useState(false)
   const [zOrder,       setZOrder]       = useState(0)
   const [dragging,     setDragging]     = useState(false)
-  const [resizing,     setResizing]     = useState(false)
+  const [dragOrigin,   setDragOrigin]   = useState('50% 50%')
   const [showSettings, setShowSettings] = useState(false)
   const [isClosing,    setIsClosing]    = useState(false)
   const [pos,  setPos]  = useState({ x, y })
   const [size, setSize] = useState({ width, height })
+  const [fullscreen,    setFullscreen]   = useState(false)
+  const [fsExpanded,    setFsExpanded]   = useState(false)
+  const [fsRect,        setFsRect]       = useState<{ left: number; top: number; width: number; height: number } | null>(null)
+  const fsExitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const panelRef     = useRef<HTMLDivElement>(null)
@@ -93,23 +84,6 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   // Refs mirror state so event handler closures stay fresh
   const posRef  = useRef({ x, y })
   const sizeRef = useRef({ width, height })
-  const ctrlRef = useRef(false)
-
-  // Strip drag state (captured on drag handle)
-  const stripDrag = useRef<{
-    pointerId: number
-    startCX: number; startCY: number
-    startX:  number; startY:  number
-  } | null>(null)
-
-  // Resize state (captured on resize handle)
-  const resizeDrag = useRef<{
-    pointerId: number
-    handle:    ResizeHandle
-    startCX:   number; startCY: number
-    startX:    number; startY:  number
-    startW:    number; startH:  number
-  } | null>(null)
 
   // Body drag — pending until threshold crossed, then becomes a real drag
   const bodyDrag = useRef<{
@@ -122,14 +96,6 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   // Sync refs when props change (external store update)
   useEffect(() => { setPos({ x, y });         posRef.current  = { x, y }         }, [x, y])
   useEffect(() => { setSize({ width, height }); sizeRef.current = { width, height } }, [width, height])
-
-  // Ctrl key for grid snap
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) { ctrlRef.current = e.ctrlKey }
-    window.addEventListener('keydown', onKey)
-    window.addEventListener('keyup',   onKey)
-    return () => { window.removeEventListener('keydown', onKey); window.removeEventListener('keyup', onKey) }
-  }, [])
 
   // Deactivate when tapping outside on touch devices
   useEffect(() => {
@@ -153,7 +119,8 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
 
   // Cleanup on unmount
   useEffect(() => () => {
-    if (closeTimer.current) clearTimeout(closeTimer.current)
+    if (closeTimer.current)   clearTimeout(closeTimer.current)
+    if (fsExitTimer.current)  clearTimeout(fsExitTimer.current)
   }, [])
 
   function raise() { setZOrder(++zCounter) }
@@ -173,81 +140,42 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     else openSettings()
   }
 
+  // ── Fullscreen ────────────────────────────────────────────────────
+  function enterFullscreen() {
+    const el = containerRef.current
+    if (!el) return
+    if (fsExitTimer.current) clearTimeout(fsExitTimer.current)
+    const rect = el.getBoundingClientRect()
+    setFsRect({ left: rect.left, top: rect.top, width: rect.width, height: rect.height })
+    setFullscreen(true)
+    setFsExpanded(false)
+    raise()
+    // Two rAFs: first lets React commit fixed-at-origin rect, second triggers the expand transition
+    requestAnimationFrame(() => requestAnimationFrame(() => setFsExpanded(true)))
+  }
+  function exitFullscreen() {
+    setFsExpanded(false)
+    fsExitTimer.current = setTimeout(() => {
+      setFullscreen(false)
+      setFsRect(null)
+    }, 300)
+  }
+
   // ── Helpers ───────────────────────────────────────────────────────
   function calcDragPos(
     startX: number, startY: number,
     startCX: number, startCY: number,
     clientX: number, clientY: number,
   ) {
-    let newX = startX + (clientX - startCX)
-    let newY = startY + (clientY - startCY)
-    if (ctrlRef.current) {
-      newX = Math.round(newX / GRID_SIZE) * GRID_SIZE
-      newY = Math.round(newY / GRID_SIZE) * GRID_SIZE
+    return {
+      x: startX + (clientX - startCX),
+      y: startY + (clientY - startCY),
     }
-    const p = containerRef.current?.parentElement
-    if (p) {
-      newX = clamp(newX, 0, p.clientWidth  - sizeRef.current.width)
-      newY = clamp(newY, 0, p.clientHeight - sizeRef.current.height)
-    }
-    return { x: newX, y: newY }
-  }
-
-  function calcResizeResult(
-    handle: ResizeHandle,
-    startX: number, startY: number, startW: number, startH: number,
-    startCX: number, startCY: number,
-    clientX: number, clientY: number,
-  ) {
-    const dx = clientX - startCX
-    const dy = clientY - startCY
-    let newX = startX, newY = startY, newW = startW, newH = startH
-
-    if (handle.includes('e')) newW = Math.max(MIN_W, startW + dx)
-    if (handle.includes('w')) { newW = Math.max(MIN_W, startW - dx); newX = startX + (startW - newW) }
-    if (handle.includes('s')) newH = Math.max(MIN_H, startH + dy)
-    if (handle.includes('n')) { newH = Math.max(MIN_H, startH - dy); newY = startY + (startH - newH) }
-
-    const p = containerRef.current?.parentElement
-    if (p) {
-      if (newX < 0) { newW += newX; newX = 0 }
-      if (newY < 0) { newH += newY; newY = 0 }
-      newW = Math.min(newW, p.clientWidth  - newX)
-      newH = Math.min(newH, p.clientHeight - newY)
-    }
-    return { x: newX, y: newY, width: newW, height: newH }
-  }
-
-  // ── Drag strip handlers ───────────────────────────────────────────
-  function onStripDown(e: React.PointerEvent) {
-    e.stopPropagation()
-    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
-    stripDrag.current = {
-      pointerId: e.pointerId,
-      startCX: e.clientX, startCY: e.clientY,
-      startX: posRef.current.x, startY: posRef.current.y,
-    }
-    setDragging(true)
-    setActive(true)
-    raise()
-  }
-  function onStripMove(e: React.PointerEvent) {
-    if (!stripDrag.current || e.pointerId !== stripDrag.current.pointerId) return
-    const { startX, startY, startCX, startCY } = stripDrag.current
-    const np = calcDragPos(startX, startY, startCX, startCY, e.clientX, e.clientY)
-    posRef.current = np
-    setPos(np)
-  }
-  function onStripUp(e: React.PointerEvent) {
-    if (!stripDrag.current || e.pointerId !== stripDrag.current.pointerId) return
-    const { startX, startY, startCX, startCY } = stripDrag.current
-    updateLayout(id, calcDragPos(startX, startY, startCX, startCY, e.clientX, e.clientY))
-    stripDrag.current = null
-    setDragging(false)
   }
 
   // ── Body drag (threshold-based: move past DRAG_THRESHOLD to drag, lift to tap) ──
   function onBodyDown(e: React.PointerEvent) {
+    if (fullscreen) return
     ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
     bodyDrag.current = {
       pointerId: e.pointerId,
@@ -266,20 +194,42 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     if (!bd.dragging) {
       if (dx * dx + dy * dy < DRAG_THRESHOLD * DRAG_THRESHOLD) return
       bd.dragging = true
+      const rect = containerRef.current?.getBoundingClientRect()
+      if (rect) {
+        const ox = ((bd.startCX - rect.left) / rect.width  * 100).toFixed(1) + '%'
+        const oy = ((bd.startCY - rect.top)  / rect.height * 100).toFixed(1) + '%'
+        setDragOrigin(`${ox} ${oy}`)
+      }
+      onDragStart?.()
       setActive(true)
       setDragging(true)
     }
     const np = calcDragPos(bd.startX, bd.startY, bd.startCX, bd.startCY, e.clientX, e.clientY)
     posRef.current = np
     setPos(np)
+    // Use cursor position (relative to canvas) for slot detection — more intuitive than widget center
+    const pRect = containerRef.current?.parentElement?.getBoundingClientRect()
+    const cx = pRect ? e.clientX - pRect.left : np.x + sizeRef.current.width / 2
+    const cy = pRect ? e.clientY - pRect.top  : np.y + sizeRef.current.height / 2
+    onDragMove?.(cx, cy)
   }
 
   function onBodyUp(e: React.PointerEvent) {
     const bd = bodyDrag.current
     if (!bd || e.pointerId !== bd.pointerId) return
     if (bd.dragging) {
-      updateLayout(id, calcDragPos(bd.startX, bd.startY, bd.startCX, bd.startCY, e.clientX, e.clientY))
+      const finalRect = { ...calcDragPos(bd.startX, bd.startY, bd.startCX, bd.startCY, e.clientX, e.clientY), ...sizeRef.current }
+      const pRect = containerRef.current?.parentElement?.getBoundingClientRect()
+      const cursorPt = pRect
+        ? { x: e.clientX - pRect.left, y: e.clientY - pRect.top }
+        : { x: finalRect.x + finalRect.width / 2, y: finalRect.y + finalRect.height / 2 }
+      updateLayout(id, finalRect)
+      onDropped?.(finalRect, cursorPt)
+      onDragEnd?.()
       setDragging(false)
+      // Reset local pos to prop values so snap-back (restored by parent) takes effect
+      setPos({ x, y })
+      posRef.current = { x, y }
     } else {
       // Tap — activate widget
       setActive(true)
@@ -287,68 +237,56 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     bodyDrag.current = null
   }
 
-  // ── Resize handle handlers ────────────────────────────────────────
-  function onResizeDown(handle: ResizeHandle, e: React.PointerEvent) {
-    e.stopPropagation()
-    ;(e.currentTarget as Element).setPointerCapture(e.pointerId)
-    resizeDrag.current = {
-      pointerId: e.pointerId,
-      handle,
-      startCX: e.clientX, startCY: e.clientY,
-      startX: posRef.current.x,      startY: posRef.current.y,
-      startW: sizeRef.current.width, startH: sizeRef.current.height,
-    }
-    setResizing(true)
-    setActive(true)
-    raise()
-  }
-  function onResizeMove(e: React.PointerEvent) {
-    if (!resizeDrag.current || e.pointerId !== resizeDrag.current.pointerId) return
-    const { handle, startX, startY, startW, startH, startCX, startCY } = resizeDrag.current
-    const r = calcResizeResult(handle, startX, startY, startW, startH, startCX, startCY, e.clientX, e.clientY)
-    posRef.current  = { x: r.x, y: r.y }
-    sizeRef.current = { width: r.width, height: r.height }
-    setPos({ x: r.x, y: r.y })
-    setSize({ width: r.width, height: r.height })
-  }
-  function onResizeUp(e: React.PointerEvent) {
-    if (!resizeDrag.current || e.pointerId !== resizeDrag.current.pointerId) return
-    const { handle, startX, startY, startW, startH, startCX, startCY } = resizeDrag.current
-    updateLayout(id, calcResizeResult(handle, startX, startY, startW, startH, startCX, startCY, e.clientX, e.clientY))
-    resizeDrag.current = null
-    setResizing(false)
-  }
-
   // ── Render ────────────────────────────────────────────────────────
-  const hasPrefs   = !!(preferences && preferences.length > 0)
+  const hasPrefs    = !!(preferences && preferences.length > 0)
   const hasSettings = !!(settingsContent || hasPrefs)
-  const isActive   = active || showSettings
-  const openRight  = pos.x + size.width + GAP + ACTION_W + GAP + PANEL_WIDTH + 12 < window.innerWidth
-  const actionLeft = openRight ? size.width + GAP : -(GAP + ACTION_W)
-  const panelMaxH  = Math.min(Math.max(size.height, 320), window.innerHeight - 40)
-  const panelTop   = Math.min(0, window.innerHeight - 12 - pos.y - panelMaxH)
-  const panelLeft  = openRight
-    ? size.width + GAP + ACTION_W + GAP
-    : -(GAP + ACTION_W + GAP + PANEL_WIDTH)
-  const animClass  = isClosing
+  const isActive    = active || showSettings || fullscreen
+  const openRight   = pos.x + size.width + PANEL_WIDTH + 12 < window.innerWidth
+  const panelMaxH   = Math.min(Math.max(size.height, 320), window.innerHeight - 40)
+  const panelTop    = Math.min(0, window.innerHeight - 12 - pos.y - panelMaxH)
+  const panelLeft   = openRight ? size.width + 8 : -(PANEL_WIDTH + 8)
+  const animClass   = isClosing
     ? (openRight ? 'settings-close-right' : 'settings-close-left')
     : (openRight ? 'settings-open-right'  : 'settings-open-left')
-  const scale = refSize ? Math.min(size.width / refSize.width, size.height / refSize.height) : 1
+  const renderW = fullscreen && fsExpanded ? window.innerWidth  : size.width
+  const renderH = fullscreen && fsExpanded ? window.innerHeight : size.height
+  const scale = refSize ? Math.min(renderW / refSize.width, renderH / refSize.height) : 1
+  // When dragging, shrink every widget to the same target footprint
+  const DRAG_TARGET_W = 260
+  const DRAG_TARGET_H = 160
+  const dragScale = Math.min(DRAG_TARGET_W / size.width, DRAG_TARGET_H / size.height)
 
-  const handles: ResizeHandle[] = ['se', 'sw', 'ne', 'nw', 's', 'n', 'e', 'w']
+  const FS_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)'
+  const fsStyle: React.CSSProperties = fullscreen && fsRect
+    ? {
+        position:   'fixed',
+        left:       fsExpanded ? 0             : fsRect.left,
+        top:        fsExpanded ? 0             : fsRect.top,
+        width:      fsExpanded ? '100vw'       : fsRect.width,
+        height:     fsExpanded ? '100vh'       : fsRect.height,
+        zIndex:     9999,
+        touchAction: 'none',
+        transition: `left 0.3s ${FS_EASE}, top 0.3s ${FS_EASE}, width 0.3s ${FS_EASE}, height 0.3s ${FS_EASE}`,
+        borderRadius: fsExpanded ? 0 : undefined,
+      }
+    : {
+        position:   'absolute',
+        left:       pos.x,
+        top:        pos.y,
+        width:      size.width,
+        height:     size.height,
+        zIndex:     zOrder + (dragging ? 3 : showSettings ? 2 : isActive ? 1 : 0),
+        touchAction: 'none',
+        transform:   dragging ? `scale(${dragScale})` : undefined,
+        transformOrigin: dragging ? dragOrigin : 'center',
+        transition:  dragging ? 'transform 0.15s ease' : 'transform 0.2s ease',
+        opacity:     dragging ? 0.85 : 1,
+      }
 
   return (
     <div
       ref={containerRef}
-      style={{
-        position: 'absolute',
-        left: pos.x,
-        top:  pos.y,
-        width:  size.width,
-        height: size.height,
-        zIndex: zOrder + (dragging || resizing ? 3 : showSettings ? 2 : isActive ? 1 : 0),
-        touchAction: 'none',
-      }}
+      style={fsStyle}
       onPointerDown={onBodyDown}
       onPointerMove={onBodyMove}
       onPointerUp={onBodyUp}
@@ -360,16 +298,20 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         }
       }}
       onMouseEnter={() => setActive(true)}
-      onMouseLeave={() => { if (!showSettings && !dragging && !resizing) setActive(false) }}
+      onMouseLeave={() => {
+        if (!showSettings && !dragging) setActive(false)
+      }}
     >
       {/* Widget frame — content fills the entire frame, no overlapping header */}
       <div
-        className={`w-full h-full rounded-2xl overflow-hidden border transition-all duration-150 ${dragging || resizing ? 'scale-[1.01]' : ''}`}
+        className="w-full h-full overflow-hidden border transition-all duration-150"
         style={{
+          borderRadius:    fullscreen && fsExpanded ? 0 : '1rem',
+          transition:      `border-radius 0.3s ${FS_EASE}, border-color 0.15s, box-shadow 0.15s`,
           backgroundColor: 'var(--wt-bg)',
           backdropFilter:  'var(--wt-backdrop)',
-          borderColor:     (dragging || resizing || isActive) ? 'var(--wt-border-active)' : 'var(--wt-border)',
-          boxShadow:       dragging || resizing ? 'var(--wt-shadow-lg)' : isActive ? 'var(--wt-shadow-md)' : 'var(--wt-shadow-sm)',
+          borderColor:     (dragging || isActive) ? 'var(--wt-border-active)' : 'var(--wt-border)',
+          boxShadow:       dragging ? 'var(--wt-shadow-lg)' : isActive ? 'var(--wt-shadow-md)' : 'var(--wt-shadow-sm)',
         }}
       >
         <div className="w-full h-full flex items-center justify-center overflow-hidden">
@@ -385,89 +327,31 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         </div>
       </div>
 
-      {/* Floating action panel — tap to reveal, to the side */}
-      {isActive && (
-        <div
-          className="absolute flex flex-col gap-1 p-1 rounded-xl"
-          style={{
-            top: 0, left: actionLeft, width: ACTION_W, zIndex: 20,
-            backgroundColor: 'var(--wt-action-bg)',
-            border:          '1px solid var(--wt-action-border)',
-            boxShadow:       'var(--wt-shadow-md)',
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          {/* Drag handle */}
-          <div
-            data-drag-handle
-            className="wt-action-btn cursor-grab active:cursor-grabbing"
-            style={{ touchAction: 'none' }}
-            onPointerDown={onStripDown}
-            onPointerMove={onStripMove}
-            onPointerUp={onStripUp}
-            onPointerCancel={onStripUp}
-          >
-            <Icon icon={GripHorizontal} size={13} />
-          </div>
-
-          {hasSettings && (
-            <button className="wt-action-btn" onClick={toggleSettings}>
-              <Icon icon={Settings} size={13} />
-            </button>
-          )}
-
-          <button className="wt-action-btn wt-action-btn-danger" onClick={() => removeWidget(id)}>
-            <Icon icon={X} size={13} />
+      {/* Corner action buttons — top-right overlay */}
+      <div
+        className="absolute flex flex-row gap-1 p-1 rounded-xl transition-opacity duration-100"
+        style={{
+          top: 8, right: 8, zIndex: 20,
+          backgroundColor: 'var(--wt-action-bg)',
+          border:          '1px solid var(--wt-action-border)',
+          boxShadow:       'var(--wt-shadow-md)',
+          opacity:         isActive ? 1 : 0,
+          pointerEvents:   isActive ? 'auto' : 'none',
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+      >
+        {hasSettings && (
+          <button className="wt-action-btn" onClick={toggleSettings}>
+            <Icon icon={Settings} size={13} />
           </button>
-        </div>
-      )}
-
-      {/* Resize handles — outside the overflow:hidden frame so they aren't clipped */}
-      {handles.map((handle) => {
-        const H = HANDLE_HIT
-        const style: React.CSSProperties = {
-          position: 'absolute',
-          cursor:      RESIZE_CURSORS[handle],
-          touchAction: 'none',
-          display:     'flex',
-          alignItems:  'center',
-          justifyContent: 'center',
-          zIndex: 11,
-        }
-        if (handle === 'n')  { style.top = -H/2;    style.left = '50%'; style.transform = 'translateX(-50%)'; style.width = 80; style.height = H }
-        if (handle === 's')  { style.bottom = -H/2; style.left = '50%'; style.transform = 'translateX(-50%)'; style.width = 80; style.height = H }
-        if (handle === 'e')  { style.right = -H/2;  style.top = '50%';  style.transform = 'translateY(-50%)'; style.width = H;  style.height = 80 }
-        if (handle === 'w')  { style.left = -H/2;   style.top = '50%';  style.transform = 'translateY(-50%)'; style.width = H;  style.height = 80 }
-        if (handle === 'ne') { style.top = -H/2;    style.right = -H/2; style.width = H; style.height = H }
-        if (handle === 'nw') { style.top = -H/2;    style.left  = -H/2; style.width = H; style.height = H }
-        if (handle === 'se') { style.bottom = -H/2; style.right = -H/2; style.width = H; style.height = H }
-        if (handle === 'sw') { style.bottom = -H/2; style.left  = -H/2; style.width = H; style.height = H }
-
-        return (
-          <div
-            key={handle}
-            data-resize-handle
-            style={style}
-            onPointerDown={(e) => onResizeDown(handle, e)}
-            onPointerMove={onResizeMove}
-            onPointerUp={onResizeUp}
-            onPointerCancel={onResizeUp}
-          >
-            {handle.length === 2 && (
-              <div
-                className={`w-3 h-3 rounded-sm border-2 transition-opacity duration-150 ${isActive ? 'opacity-100' : 'opacity-0'}`}
-                style={{ backgroundColor: 'var(--wt-bg)', borderColor: 'var(--wt-border-active)' }}
-              />
-            )}
-            {handle.length === 1 && (
-              <div
-                className={`rounded-full transition-opacity duration-150 ${handle === 'n' || handle === 's' ? 'w-8 h-1' : 'w-1 h-8'} ${isActive ? 'opacity-100' : 'opacity-0'}`}
-                style={{ backgroundColor: 'var(--wt-border-active)' }}
-              />
-            )}
-          </div>
-        )
-      })}
+        )}
+        <button className="wt-action-btn" onClick={fullscreen ? exitFullscreen : enterFullscreen}>
+          <Icon icon={fullscreen ? Minimize2 : Maximize2} size={13} />
+        </button>
+        <button className="wt-action-btn wt-action-btn-danger" onClick={() => removeWidget(id)}>
+          <Icon icon={X} size={13} />
+        </button>
+      </div>
 
       {/* Settings panel */}
       {showSettings && hasSettings && (

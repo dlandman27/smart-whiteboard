@@ -3,14 +3,14 @@ import { useWidgetSettings } from '@whiteboard/sdk'
 import { Text } from '../../ui/web'
 import { FlexCol, FlexRow, Box, Center } from '../../ui/layouts'
 
-const DB_ID = '325b3daa10f080a0819cc8c9dc4098a8'
-
 export interface WeightSettings {
-  goalWeight: number
+  databaseId: string
+  goalWeight:  number
 }
 
 const DEFAULTS: WeightSettings = {
-  goalWeight: 170,
+  databaseId: '',
+  goalWeight:  170,
 }
 
 interface Entry {
@@ -63,7 +63,15 @@ function Unit() {
 
 export function WeightWidget({ widgetId }: { widgetId: string }) {
   const [settings] = useWidgetSettings<WeightSettings>(widgetId, DEFAULTS)
-  const { data, isLoading, error } = useWeightLog(DB_ID)
+  const { data, isLoading, error } = useWeightLog(settings.databaseId)
+
+  if (!settings.databaseId) {
+    return (
+      <Center fullHeight>
+        <Text variant="caption" color="muted">Set your Notion database ID in settings</Text>
+      </Center>
+    )
+  }
 
   if (isLoading) {
     return (

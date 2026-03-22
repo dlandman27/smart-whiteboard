@@ -15,7 +15,7 @@ export function ClockSettings({ widgetId }: WidgetProps) {
   }
 
   return (
-    <FlexCol className="gap-5">
+    <FlexCol className="gap-5" fullWidth>
       <SettingsSection label="Display">
         <SegmentedControl
           value={settings.display}

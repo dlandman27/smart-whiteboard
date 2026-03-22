@@ -8,9 +8,11 @@ import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
 import { useGCalCredentials } from '../store/gcal'
 import { useSpotifyCredentials } from '../store/spotify'
 import { useWhiteboardStore } from '../store/whiteboard'
+import type { PendingWidget } from '../types'
 
 interface Props {
   onClose: () => void
+  onWidgetSelected?: (widget: PendingWidget) => void
 }
 
 function dbTitle(db: any): string {
@@ -198,7 +200,7 @@ function SectionHeader({ label }: { label: string }) {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-export function DatabasePicker({ onClose }: Props) {
+export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
   const [query,      setQuery]   = useState('')
   const [selectedIdx, setSelected] = useState(0)
   const [setup,      setSetup]   = useState<SetupView | null>(null)
@@ -224,6 +226,15 @@ export function DatabasePicker({ onClose }: Props) {
 
   function addOff() { return widgets.length * 24 }
 
+  function selectWidget(pending: PendingWidget) {
+    if (onWidgetSelected) {
+      onWidgetSelected(pending)
+    } else {
+      addWidget({ ...pending, x: 60 + addOff(), y: 60 + addOff() })
+    }
+    onClose()
+  }
+
   // ── Build flat list ──────────────────────────────────────────────────────────
 
   const items = useMemo<ListItem[]>(() => {
@@ -243,7 +254,7 @@ export function DatabasePicker({ onClose }: Props) {
           kind: 'widget', id: `util-${def.type}`,
           icon: <Icon icon={def.Icon} size={15} className={def.iconClass} />,
           iconBg: def.iconBg, name: def.label, source: 'Built-in', added,
-          onAdd: () => { addWidget({ type: def.type, databaseTitle: def.label, x: 60 + addOff(), y: 60 + addOff(), ...def.defaultSize }); onClose() },
+          onAdd: () => selectWidget({ type: def.type, databaseTitle: def.label, ...def.defaultSize }),
         })
       }
     }
@@ -259,7 +270,7 @@ export function DatabasePicker({ onClose }: Props) {
           kind: 'widget', id: `notion-${db.id}`,
           icon: <Icon icon={Database} size={15} className="text-blue-500" />,
           iconBg: 'bg-blue-500/10', name: dbTitle(db), source: 'Notion', added,
-          onAdd: () => { addWidget({ type: 'database', databaseId: db.id, databaseTitle: dbTitle(db), x: 60 + addOff(), y: 60 + addOff(), width: 500, height: 380 }); onClose() },
+          onAdd: () => selectWidget({ type: 'database', databaseId: db.id, databaseTitle: dbTitle(db), width: 500, height: 380 }),
         })
       }
     }
@@ -287,7 +298,7 @@ export function DatabasePicker({ onClose }: Props) {
             icon: <Icon icon={Calendar} size={15} className="text-white" />,
             iconBg: '', iconColor: cal.backgroundColor ?? '#4285f4',
             name: cal.summary, source: 'Google Calendar', added,
-            onAdd: () => { addWidget({ type: 'calendar', calendarId: cal.id, databaseTitle: cal.summary, x: 60 + addOff(), y: 60 + addOff(), width: 380, height: 460 }); onClose() },
+            onAdd: () => selectWidget({ type: 'calendar', calendarId: cal.id, databaseTitle: cal.summary, width: 380, height: 460 }),
           })
         }
         // Always show a manage option
@@ -313,7 +324,7 @@ export function DatabasePicker({ onClose }: Props) {
           kind: 'widget', id: 'spotify-npl',
           icon: <Icon icon={Music} size={15} className="text-green-500" />,
           iconBg: 'bg-green-500/10', name: 'Now Playing', source: 'Spotify', added,
-          onAdd: () => { addWidget({ type: 'spotify-now-playing', databaseTitle: 'Now Playing', x: 60 + addOff(), y: 60 + addOff(), width: 320, height: 180 }); onClose() },
+          onAdd: () => selectWidget({ type: 'spotify-now-playing', databaseTitle: 'Now Playing', width: 320, height: 180 }),
         })
         list.push({ kind: 'action', id: 'spotify-manage', icon: <Icon icon={Music} size={15} className="text-green-500" />, iconBg: 'bg-green-500/10', name: 'Manage connection', source: 'Spotify', label: 'Settings →', onClick: () => setSetup('spotify') })
       }

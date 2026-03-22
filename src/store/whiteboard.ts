@@ -1,11 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { WidgetLayout } from '../types'
+import { DEFAULT_LAYOUT_ID } from '../layouts/presets'
 
 export interface Board {
   id: string
   name: string
+  layoutId: string
   widgets: WidgetLayout[]
+  slotGap?: number   // px gap between slots (default 12)
+  slotPad?: number   // px padding from canvas edges (default 16)
 }
 
 interface WhiteboardStore {
@@ -14,14 +18,18 @@ interface WhiteboardStore {
 
   // Board management
   addBoard: (name: string) => void
+  removeBoard: (id: string) => void
   setActiveBoard: (id: string) => void
   renameBoard: (id: string, name: string) => void
+  setLayout: (boardId: string, layoutId: string) => void
 
   // Widget management (always on the active board)
   addWidget:      (widget: Omit<WidgetLayout, 'id'>) => void
   updateLayout:   (id: string, updates: Partial<Pick<WidgetLayout, 'x' | 'y' | 'width' | 'height'>>) => void
   updateSettings: (id: string, settings: Record<string, unknown>) => void
   removeWidget:   (id: string) => void
+  assignSlot:        (widgetId: string, slotId: string | null) => void
+  setLayoutSpacing:  (boardId: string, gap: number, pad: number) => void
 }
 
 const DEFAULT_ID = 'default'
@@ -29,22 +37,38 @@ const DEFAULT_ID = 'default'
 export const useWhiteboardStore = create<WhiteboardStore>()(
   persist(
     (set) => ({
-      boards: [{ id: DEFAULT_ID, name: 'Main', widgets: [] }],
+      boards: [{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
       activeBoardId: DEFAULT_ID,
 
       addBoard: (name) => {
         const id = crypto.randomUUID()
         set((s) => ({
-          boards: [...s.boards, { id, name, widgets: [] }],
+          boards: [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
           activeBoardId: id,
         }))
       },
+
+      removeBoard: (id) =>
+        set((s) => {
+          if (s.boards.length <= 1) return s  // always keep at least one board
+          const remaining = s.boards.filter((b) => b.id !== id)
+          const idx       = s.boards.findIndex((b) => b.id === id)
+          const nextActive = s.activeBoardId === id
+            ? (remaining[Math.min(idx, remaining.length - 1)]?.id ?? remaining[0].id)
+            : s.activeBoardId
+          return { boards: remaining, activeBoardId: nextActive }
+        }),
 
       setActiveBoard: (id) => set({ activeBoardId: id }),
 
       renameBoard: (id, name) =>
         set((s) => ({
           boards: s.boards.map((b) => (b.id === id ? { ...b, name } : b)),
+        })),
+
+      setLayout: (boardId, layoutId) =>
+        set((s) => ({
+          boards: s.boards.map((b) => b.id === boardId ? { ...b, layoutId } : b),
         })),
 
       addWidget: (widget) =>
@@ -82,16 +106,45 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
               : b
           ),
         })),
+
+      assignSlot: (widgetId, slotId) =>
+        set((s) => ({
+          boards: s.boards.map((b) =>
+            b.id === s.activeBoardId
+              ? {
+                  ...b,
+                  widgets: b.widgets.map((w) =>
+                    w.id === widgetId ? { ...w, slotId: slotId ?? undefined } : w
+                  ),
+                }
+              : b
+          ),
+        })),
+
+      setLayoutSpacing: (boardId, gap, pad) =>
+        set((s) => ({
+          boards: s.boards.map((b) =>
+            b.id === boardId ? { ...b, slotGap: gap, slotPad: pad } : b
+          ),
+        })),
     }),
     {
       name: 'whiteboard-layout',
-      version: 1,
-      // Migrate old flat { widgets: [] } format to boards format
+      version: 2,
       migrate: (state: any, version: number) => {
         if (version === 0) {
           return {
-            boards: [{ id: DEFAULT_ID, name: 'Main', widgets: state?.widgets ?? [] }],
+            boards: [{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: state?.widgets ?? [] }],
             activeBoardId: DEFAULT_ID,
+          }
+        }
+        if (version === 1) {
+          return {
+            ...state,
+            boards: (state.boards ?? []).map((b: any) => ({
+              ...b,
+              layoutId: b.layoutId ?? DEFAULT_LAYOUT_ID,
+            })),
           }
         }
         return state

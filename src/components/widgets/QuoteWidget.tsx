@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { RefreshCw } from 'lucide-react'
-import { Icon, Text, Button } from '../../ui/web'
+import { Icon, Text } from '../../ui/web'
 import { FlexCol } from '../../ui/layouts'
 
 export interface QuoteSettings {
@@ -94,57 +94,57 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
   const flexAlign = align === 'center' ? 'center' : 'start'
 
   return (
-    <FlexCol justify="center" align={flexAlign} fullHeight noSelect gap="md" className="px-6 py-5">
-      {loading && (
-        <Text variant="body" size="small" color="muted" className="animate-pulse">Loading…</Text>
-      )}
-
-      {error && !loading && (
-        <Text variant="body" size="small" color="muted">{error}</Text>
-      )}
-
-      {quote && !loading && (
-        <>
-          <Text
-            as="span"
-            variant="display"
-            size="large"
-            color="accent"
-            style={{ fontSize: '36px', lineHeight: '1', marginBottom: '-0.5rem', opacity: 0.5, fontFamily: 'serif' }}
-          >
-            "
-          </Text>
-
-          <Text variant="body" size={SIZE_MAP[settings.fontSize]} align={align} style={{ fontWeight: '300' }}>
-            {quote.text}
-          </Text>
-
-          <Text
-            variant="label"
-            size="small"
-            color="muted"
-            textTransform="uppercase"
-            align={align}
-            style={{ opacity: 0.6, letterSpacing: '0.1em' }}
-          >
-            — {quote.author}
-          </Text>
-        </>
-      )}
-
-      {settings.showRefresh && !loading && (
-        <Button
-          variant="ghost"
-          size="sm"
-          iconLeft={<Icon icon={RefreshCw} size={11} />}
-          className="opacity-30"
+    <div className="relative w-full h-full">
+      {settings.showRefresh && (
+        <button
+          className="absolute top-3 right-3 opacity-25 hover:opacity-70 transition-opacity"
+          style={{ zIndex: 1 }}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => load(true)}
-          title="Get a new quote"
+          title="New quote"
         >
-          new quote
-        </Button>
+          <Icon icon={RefreshCw} size={13} />
+        </button>
       )}
-    </FlexCol>
+
+      <FlexCol justify="center" align={flexAlign} fullHeight noSelect gap="md" className="px-6 py-5">
+        {loading && (
+          <Text variant="body" size="small" color="muted" className="animate-pulse">Loading…</Text>
+        )}
+
+        {error && !loading && (
+          <Text variant="body" size="small" color="muted">{error}</Text>
+        )}
+
+        {quote && !loading && (
+          <>
+            <Text
+              as="span"
+              variant="display"
+              size="large"
+              color="accent"
+              style={{ fontSize: '36px', lineHeight: '1', marginBottom: '-0.5rem', opacity: 0.5, fontFamily: 'serif' }}
+            >
+              "
+            </Text>
+
+            <Text variant="body" size={SIZE_MAP[settings.fontSize]} align={align} style={{ fontWeight: '300' }}>
+              {quote.text}
+            </Text>
+
+            <Text
+              variant="label"
+              size="small"
+              color="muted"
+              textTransform="uppercase"
+              align={align}
+              style={{ opacity: 0.6, letterSpacing: '0.1em' }}
+            >
+              — {quote.author}
+            </Text>
+          </>
+        )}
+      </FlexCol>
+    </div>
   )
 }
