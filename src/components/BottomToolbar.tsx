@@ -73,7 +73,7 @@ export function BottomToolbar({ onToolChange, onOpenSettings, onCloseSettings }:
       {/* ── Eraser submenu ─────────────────────────────────────────── */}
       {activeTool === 'eraser' && (
         <Pill
-          className="slide-up absolute bottom-20 left-1/2 z-20 flex items-center gap-3 px-4 py-2.5 pointer-events-auto select-none"
+          className="slide-up absolute bottom-20 left-1/2 z-[9999] flex items-center gap-3 px-4 py-2.5 pointer-events-auto select-none"
           style={{ transform: 'translateX(-50%)' }}
         >
           <Icon icon={Eraser} size={13} className="text-stone-400 flex-shrink-0" />
@@ -92,7 +92,7 @@ export function BottomToolbar({ onToolChange, onOpenSettings, onCloseSettings }:
       {/* ── Marker submenu ─────────────────────────────────────────── */}
       {activeTool === 'marker' && (
         <Pill
-          className="slide-up absolute bottom-20 left-1/2 z-20 flex items-center gap-px px-3 py-2 pointer-events-auto select-none"
+          className="slide-up absolute bottom-20 left-1/2 z-[9999] flex items-center gap-px px-3 py-2 pointer-events-auto select-none"
           style={{ transform: 'translateX(-50%)' }}
         >
           <div className="flex items-center gap-1.5">
@@ -131,7 +131,7 @@ export function BottomToolbar({ onToolChange, onOpenSettings, onCloseSettings }:
 
       {/* ── Main toolbar ───────────────────────────────────────────── */}
       <Pill
-        className="absolute bottom-2 left-1/2 z-20 flex items-center gap-px p-2.5 select-none"
+        className="absolute bottom-2 left-1/2 z-[9999] flex items-center gap-px p-2.5 select-none"
         style={{
           transform:     hidden ? 'translateX(-50%) translateY(calc(100% + 12px))' : 'translateX(-50%)',
           transition:    'transform 0.25s ease, opacity 0.25s ease',
