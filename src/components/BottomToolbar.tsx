@@ -13,13 +13,14 @@ type Tool = 'pointer' | 'marker' | 'eraser'
 
 interface Props {
   onToolChange:      (tool: Tool) => void
+  settingsOpen:      boolean
   onOpenSettings:    () => void
   onCloseSettings:   () => void
   onWidgetSelected:  (widget: PendingWidget) => void
   onSlide:           (dir: 'left' | 'right') => void
 }
 
-export function BottomToolbar({ onToolChange, onOpenSettings, onCloseSettings, onWidgetSelected, onSlide }: Props) {
+export function BottomToolbar({ onToolChange, settingsOpen, onOpenSettings, onCloseSettings, onWidgetSelected, onSlide }: Props) {
   const { activeBoardId, boards } = useWhiteboardStore()
 
   const [activeTool,  setActiveTool]  = useState<Tool>('pointer')
@@ -88,8 +89,8 @@ export function BottomToolbar({ onToolChange, onOpenSettings, onCloseSettings, o
         <IconButton
           icon={Palette}
           size="xl"
-          variant="default"
-          onClick={onOpenSettings}
+          variant={settingsOpen ? 'active' : 'default'}
+          onClick={settingsOpen ? onCloseSettings : onOpenSettings}
           title="Theme"
         />
 
@@ -115,8 +116,8 @@ export function BottomToolbar({ onToolChange, onOpenSettings, onCloseSettings, o
         <IconButton
           icon={Plus}
           size="xl"
-          variant="default"
-          onClick={() => { selectTool('pointer'); setShowPicker(true) }}
+          variant={showPicker ? 'active' : 'default'}
+          onClick={() => { selectTool('pointer'); setShowPicker((v) => !v) }}
           title="Add Widget"
         />
       </Pill>

@@ -30,6 +30,7 @@ export function Whiteboard() {
 
       <BottomToolbar
         onToolChange={setActiveTool}
+        settingsOpen={showSettings}
         onOpenSettings={() => setShowSettings(true)}
         onCloseSettings={() => setShowSettings(false)}
         onWidgetSelected={(w) => { setPendingWidget(w); setActiveTool('pointer') }}

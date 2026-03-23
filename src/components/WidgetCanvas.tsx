@@ -143,17 +143,25 @@ export function WidgetCanvas({ slideDir, activeTool, pendingWidget, onClearPendi
 
       {/* Pending placement hint */}
       {pendingWidget && (
-        <div className="absolute inset-0 flex items-end justify-center pointer-events-none pb-24 z-10">
+        <div className="absolute inset-0 flex items-end justify-center pb-24 z-10" style={{ pointerEvents: 'none' }}>
           <div
-            className="px-4 py-2 rounded-xl text-sm font-medium"
+            className="flex items-center gap-3 px-4 py-2 rounded-xl text-sm font-medium"
             style={{
               backgroundColor: 'var(--wt-settings-bg)',
               border:          '1px solid var(--wt-settings-border)',
               boxShadow:       'var(--wt-shadow-md)',
               color:           'var(--wt-text)',
+              pointerEvents:   'auto',
             }}
           >
-            Click a slot to place
+            <span>Click a slot to place</span>
+            <button
+              onClick={onClearPending}
+              className="text-xs font-semibold px-2 py-0.5 rounded-lg transition-opacity hover:opacity-70"
+              style={{ color: 'var(--wt-text-muted)', background: 'var(--wt-surface-hover)' }}
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}

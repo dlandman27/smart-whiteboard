@@ -19,7 +19,7 @@ export function SettingsPanel({ onClose }: Props) {
           border:          '1px solid var(--wt-settings-border)',
           boxShadow:       'var(--wt-shadow-lg)',
           backdropFilter:  'var(--wt-backdrop)',
-          width:           320,
+          width:           340,
         }}
       >
         {/* Header */}

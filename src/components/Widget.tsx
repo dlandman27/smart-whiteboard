@@ -75,7 +75,9 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   const [fullscreen,    setFullscreen]   = useState(false)
   const [fsExpanded,    setFsExpanded]   = useState(false)
   const [fsRect,        setFsRect]       = useState<{ left: number; top: number; width: number; height: number } | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const fsExitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const containerRef = useRef<HTMLDivElement>(null)
   const panelRef     = useRef<HTMLDivElement>(null)
@@ -348,8 +350,20 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         <button className="wt-action-btn" onClick={fullscreen ? exitFullscreen : enterFullscreen}>
           <Icon icon={fullscreen ? Minimize2 : Maximize2} size={13} />
         </button>
-        <button className="wt-action-btn wt-action-btn-danger" onClick={() => removeWidget(id)}>
-          <Icon icon={X} size={13} />
+        <button
+          className="wt-action-btn wt-action-btn-danger"
+          style={confirmDelete ? { background: '#ef4444', color: '#fff', paddingLeft: 6, paddingRight: 6, borderRadius: 6 } : undefined}
+          onClick={() => {
+            if (confirmDelete) {
+              if (deleteTimer.current) clearTimeout(deleteTimer.current)
+              removeWidget(id)
+            } else {
+              setConfirmDelete(true)
+              deleteTimer.current = setTimeout(() => setConfirmDelete(false), 3000)
+            }
+          }}
+        >
+          {confirmDelete ? <span style={{ fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap' }}>Remove?</span> : <Icon icon={X} size={13} />}
         </button>
       </div>
 
