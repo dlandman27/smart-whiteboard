@@ -5,7 +5,7 @@ import type { LayoutSlot } from '../types'
 
 export const DEFAULT_SLOT_GAP = 12  // px gap between adjacent slots
 export const DEFAULT_SLOT_PAD = 16  // px padding from canvas edges
-export const TOOLBAR_RESERVED = 80  // px reserved at bottom for toolbar
+export const TOOLBAR_RESERVED = 68  // px reserved at bottom for toolbar
 
 export interface SlotRect {
   id: string

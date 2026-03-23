@@ -9,9 +9,9 @@ interface Props {
 export function SettingsPanel({ onClose }: Props) {
   return (
     <>
-      <div className="fixed inset-0 z-30" onClick={onClose} />
+      <div className="fixed inset-0 z-[10000]" onClick={onClose} />
       <div
-        className="fixed bottom-20 left-1/2 z-40 rounded-2xl"
+        className="fixed bottom-20 left-1/2 z-[10001] rounded-2xl"
         style={{
           transform:       'translateX(-50%)',
           animation:       'slideUp 0.15s ease-out',

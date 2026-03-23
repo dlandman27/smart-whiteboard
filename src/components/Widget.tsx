@@ -275,7 +275,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         top:        pos.y,
         width:      size.width,
         height:     size.height,
-        zIndex:     zOrder + (dragging ? 3 : showSettings ? 2 : isActive ? 1 : 0),
+        zIndex:     showSettings ? 10002 : zOrder + (dragging ? 3 : isActive ? 1 : 0),
         touchAction: 'none',
         transform:   dragging ? `scale(${dragScale})` : undefined,
         transformOrigin: dragging ? dragOrigin : 'center',
@@ -314,7 +314,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
           boxShadow:       dragging ? 'var(--wt-shadow-lg)' : isActive ? 'var(--wt-shadow-md)' : 'var(--wt-shadow-sm)',
         }}
       >
-        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+        <div className={`w-full h-full overflow-hidden${refSize ? ' flex items-center justify-center' : ''}`}>
           <div style={{
             width:           refSize ? refSize.width  : '100%',
             height:          refSize ? refSize.height : '100%',

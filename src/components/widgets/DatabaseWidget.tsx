@@ -250,16 +250,17 @@ export function DatabaseWidget({ databaseId }: Props) {
   }
 
   return (
-    <FlexCol fullHeight noSelect className="text-sm" style={{ background: 'var(--wt-bg)' }}>
+    <FlexCol fullHeight fullWidth noSelect className="text-sm" style={{ background: 'var(--wt-bg)' }}>
       {/* Toolbar */}
       <FlexRow
+        fullWidth
         align="center"
         justify="between"
         className="px-3 py-1.5 border-b flex-shrink-0"
         style={{ borderColor: 'var(--wt-border)' }}
       >
         <Text as="span" variant="caption" color="muted">{pages.length} {pages.length === 1 ? 'item' : 'items'}</Text>
-        <FlexRow align="center" className="gap-1.5">
+        {/* <FlexRow align="center" className="gap-1.5">
           <IconButton
             icon={RefreshCw}
             size="sm"
@@ -270,12 +271,13 @@ export function DatabaseWidget({ databaseId }: Props) {
           <Button variant="accent" size="sm" iconLeft={<Icon icon={Plus} size={11} />} onClick={() => setIsAdding(true)}>
             New
           </Button>
-        </FlexRow>
+        </FlexRow> */}
       </FlexRow>
 
       {/* Column headers */}
       {(sample || otherCols.length > 0) && (
         <FlexRow
+          fullWidth
           align="center"
           gap="sm"
           className="px-3 py-1.5 border-b flex-shrink-0"
@@ -294,7 +296,7 @@ export function DatabaseWidget({ databaseId }: Props) {
       )}
 
       {/* Rows */}
-      <ScrollArea>
+      <ScrollArea className="w-full">
         {pages.length === 0 ? (
           <Center fullHeight>
             <Text variant="caption" size="large" color="muted" style={{ opacity: 0.5 }}>No entries yet</Text>
@@ -303,6 +305,7 @@ export function DatabaseWidget({ databaseId }: Props) {
           pages.map((page) => (
             <FlexRow
               key={page.id}
+              fullWidth
               align="center"
               gap="sm"
               className={`group px-3 py-2 border-b transition-colors ${deletingId === page.id ? 'opacity-40' : 'hover:bg-[var(--wt-surface-hover)]'}`}

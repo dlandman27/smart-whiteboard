@@ -43,11 +43,11 @@ export function LayoutPicker({ onClose }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-30" onClick={onClose} />
+      <div className="fixed inset-0 z-[10000]" onClick={onClose} />
 
       <div
         ref={panelRef}
-        className="fixed bottom-20 left-1/2 z-40 rounded-2xl overflow-hidden"
+        className="fixed bottom-20 left-1/2 z-[10001] rounded-2xl overflow-hidden"
         style={{
           transform:       'translateX(-50%)',
           width:           480,

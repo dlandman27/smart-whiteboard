@@ -376,10 +376,10 @@ export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
 
   return (
     <>
-      <div className="fixed inset-0 z-30" onClick={onClose} />
+      <div className="fixed inset-0 z-[10000]" onClick={onClose} />
 
       <div
-        className="fixed bottom-20 left-1/2 z-40 flex flex-col rounded-2xl overflow-hidden"
+        className="fixed bottom-20 left-1/2 z-[10001] flex flex-col rounded-2xl overflow-hidden"
         style={{
           transform:       'translateX(-50%)',
           width:           580,
