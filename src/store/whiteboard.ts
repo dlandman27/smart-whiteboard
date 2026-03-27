@@ -75,7 +75,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         set((s) => ({
           boards: s.boards.map((b) =>
             b.id === s.activeBoardId
-              ? { ...b, widgets: [...b.widgets, { ...widget, id: crypto.randomUUID() }] }
+              ? { ...b, widgets: [...b.widgets, { ...widget, id: (widget as any).id ?? crypto.randomUUID() }] }
               : b
           ),
         })),
