@@ -1,18 +1,11 @@
 import { SegmentedControl, SettingsSection, Toggle } from '../../ui/web'
 import { FlexCol } from '../../ui/layouts'
-import { useWhiteboardStore } from '../../store/whiteboard'
+import { useWidgetSettings } from '@whiteboard/sdk'
 import { DEFAULT_CLOCK_SETTINGS, type ClockWidgetSettings } from './ClockWidget'
 import type { WidgetProps } from './registry'
 
 export function ClockSettings({ widgetId }: WidgetProps) {
-  const { updateSettings, boards, activeBoardId } = useWhiteboardStore()
-
-  const raw      = boards.find((b) => b.id === activeBoardId)?.widgets.find((w) => w.id === widgetId)?.settings
-  const settings: ClockWidgetSettings = { ...DEFAULT_CLOCK_SETTINGS, ...(raw ?? {}) } as ClockWidgetSettings
-
-  function set(patch: Partial<ClockWidgetSettings>) {
-    updateSettings(widgetId, patch as Record<string, unknown>)
-  }
+  const [settings, set] = useWidgetSettings<ClockWidgetSettings>(widgetId, DEFAULT_CLOCK_SETTINGS)
 
   return (
     <FlexCol className="gap-5" fullWidth>

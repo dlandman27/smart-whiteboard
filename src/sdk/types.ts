@@ -14,6 +14,7 @@ export interface PluginPreference {
 }
 
 export interface WidgetManifestEntry {
+  /** Namespaced widget type, e.g. "@yourname/my-widget" */
   type:        string
   label:       string
   icon:        string   // Lucide icon name (e.g. "Music")
@@ -25,6 +26,7 @@ export interface WidgetManifestEntry {
 }
 
 export interface PluginManifest {
+  /** Namespaced plugin id, e.g. "@yourname/my-widget". Must be unique. */
   id:           string
   name:         string
   version:      string

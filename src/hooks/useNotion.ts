@@ -81,6 +81,44 @@ export function useCreatePage(databaseId: string) {
   })
 }
 
+export function usePageBlocks(pageId: string) {
+  return useQuery({
+    queryKey: ['blocks', pageId],
+    queryFn: () => apiFetch<{ results: any[] }>(`/api/pages/${pageId}/blocks`),
+    enabled: !!pageId,
+    refetchInterval: 30_000,
+  })
+}
+
+export function useUpdateBlock(pageId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({ blockId, data }: { blockId: string; data: Record<string, unknown> }) =>
+      apiFetch(`/api/blocks/${blockId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
+    onMutate: async ({ blockId, data }) => {
+      await qc.cancelQueries({ queryKey: ['blocks', pageId] })
+      const prev = qc.getQueryData<{ results: any[] }>(['blocks', pageId])
+      if (prev) {
+        qc.setQueryData(['blocks', pageId], {
+          ...prev,
+          results: prev.results.map((b) =>
+            b.id === blockId ? { ...b, to_do: { ...b.to_do, ...(data.to_do as object) } } : b
+          ),
+        })
+      }
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['blocks', pageId], ctx.prev)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['blocks', pageId] }),
+  })
+}
+
 export function useArchivePage(databaseId: string) {
   const qc = useQueryClient()
   return useMutation({

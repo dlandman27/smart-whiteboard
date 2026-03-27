@@ -120,6 +120,7 @@ export function BottomToolbar({ onToolChange, settingsOpen, onOpenSettings, onCl
           onClick={() => { selectTool('pointer'); setShowPicker((v) => !v) }}
           title="Add Widget"
         />
+
       </Pill>
 
       {showBoard  && <BoardMenu onClose={() => setShowBoard(false)} onSlide={onSlide} />}

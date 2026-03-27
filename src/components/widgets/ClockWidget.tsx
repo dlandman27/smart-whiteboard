@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useWhiteboardStore } from '../../store/whiteboard'
+import { useWidgetSettings } from '@whiteboard/sdk'
 import { Text } from '../../ui/web'
 import { FlexCol, FlexRow } from '../../ui/layouts'
 import { fontFamily } from '../../ui/theme'
@@ -149,11 +149,7 @@ function DateDisplay({ date }: { date: Date }) {
 
 export function ClockWidget({ widgetId }: WidgetProps) {
   const [now, setNow] = useState(new Date())
-
-  const raw      = useWhiteboardStore((s) =>
-    s.boards.find((b) => b.id === s.activeBoardId)?.widgets.find((w) => w.id === widgetId)?.settings
-  )
-  const settings: ClockWidgetSettings = { ...DEFAULT_CLOCK_SETTINGS, ...(raw ?? {}) } as ClockWidgetSettings
+  const [settings]    = useWidgetSettings<ClockWidgetSettings>(widgetId, DEFAULT_CLOCK_SETTINGS)
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)

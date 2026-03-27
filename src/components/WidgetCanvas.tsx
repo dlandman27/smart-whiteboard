@@ -18,10 +18,11 @@ interface Props {
 
 export function WidgetCanvas({ slideDir, activeTool, pendingWidget, onClearPending }: Props) {
   const { boards, activeBoardId, addWidget, updateLayout, assignSlot } = useWhiteboardStore()
-  const { slotMap } = useLayout()
+  const { slotMap, layout } = useLayout()
 
   const activeIndex = boards.findIndex((b) => b.id === activeBoardId)
   const widgets     = boards[activeIndex]?.widgets ?? []
+  const isFreeform  = layout.slots.length === 0
 
   // Track which widget is being dragged and which slot is hovered
   const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null)
@@ -69,6 +70,7 @@ export function WidgetCanvas({ slideDir, activeTool, pendingWidget, onClearPendi
     const targetSlotId = findSlotAtCenter(cursorPt.x, cursorPt.y)
 
     if (!targetSlotId) {
+      if (isFreeform) return  // position already updated by Widget on drag end
       // Missed all slots — snap back to where the drag started
       const origin = dragStartRef.current
       if (origin) {
@@ -119,10 +121,20 @@ export function WidgetCanvas({ slideDir, activeTool, pendingWidget, onClearPendi
     onClearPending()
   }
 
+  function handleCanvasClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (!pendingWidget || !isFreeform) return
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = Math.max(0, e.clientX - rect.left - pendingWidget.width / 2)
+    const y = Math.max(0, e.clientY - rect.top  - pendingWidget.height / 2)
+    addWidget({ ...pendingWidget, x, y, slotId: undefined })
+    onClearPending()
+  }
+
   return (
     <div
       key={activeBoardId}
       className={`absolute inset-0 ${slideDir === 'right' ? 'board-slide-right' : 'board-slide-left'}`}
+      onClick={handleCanvasClick}
     >
       {widgets.length === 0 && activeTool === 'pointer' && !pendingWidget && (
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -154,7 +166,7 @@ export function WidgetCanvas({ slideDir, activeTool, pendingWidget, onClearPendi
               pointerEvents:   'auto',
             }}
           >
-            <span>Click a slot to place</span>
+            <span>{isFreeform ? 'Click anywhere to place' : 'Click a slot to place'}</span>
             <button
               onClick={onClearPending}
               className="text-xs font-semibold px-2 py-0.5 rounded-lg transition-opacity hover:opacity-70"

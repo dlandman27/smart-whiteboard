@@ -1,4 +1,4 @@
-import { type LucideIcon, Clock, Sun, Scale, CheckSquare, Timer, Quote } from 'lucide-react'
+import { type LucideIcon, Clock, Sun, Scale, CheckSquare, Timer, Quote, ListChecks } from 'lucide-react'
 import { ClockWidget } from './ClockWidget'
 import { ClockSettings } from './ClockSettings'
 import { WeatherWidget } from './WeatherWidget'
@@ -9,6 +9,9 @@ import { CountdownWidget } from './CountdownWidget'
 import { CountdownSettings } from './CountdownSettings'
 import { QuoteWidget } from './QuoteWidget'
 import { QuoteSettings } from './QuoteSettings'
+import { RoutinesWidget } from './RoutinesWidget'
+import { RoutinesSettings } from './RoutinesSettings'
+import { TasksSettings } from './TasksSettings'
 import type { PluginPreference } from '@whiteboard/sdk'
 
 export type { WidgetProps } from '@whiteboard/sdk'
@@ -31,7 +34,7 @@ export interface StaticWidgetDef {
 
 const BUILTIN_WIDGETS: StaticWidgetDef[] = [
   {
-    type:               'clock',
+    type:               '@whiteboard/clock',
     label:              'Clock',
     Icon:               Clock,
     iconBg:             'bg-stone-100',
@@ -42,7 +45,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     settingsComponent:  ClockSettings,
   },
   {
-    type:              'weight',
+    type:              '@whiteboard/weight',
     label:             'Weight Progress',
     Icon:              Scale,
     iconBg:            'bg-green-50',
@@ -53,17 +56,18 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     settingsComponent: WeightSettings,
   },
   {
-    type:        'tasks',
-    label:       'Tasks',
-    Icon:        CheckSquare,
-    iconBg:      'bg-blue-50',
-    iconClass:   'text-blue-500',
-    keywords:    ['tasks', 'todo', 'checklist', 'list'],
-    defaultSize: { width: 320, height: 400 },
-    component:   TasksWidget,
+    type:              '@whiteboard/tasks',
+    label:             'Tasks',
+    Icon:              CheckSquare,
+    iconBg:            'bg-blue-50',
+    iconClass:         'text-blue-500',
+    keywords:          ['tasks', 'todo', 'checklist', 'list'],
+    defaultSize:       { width: 320, height: 400 },
+    component:         TasksWidget,
+    settingsComponent: TasksSettings,
   },
   {
-    type:              'countdown',
+    type:              '@whiteboard/countdown',
     label:             'Countdown',
     Icon:              Timer,
     iconBg:            'bg-violet-50',
@@ -74,7 +78,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     settingsComponent: CountdownSettings,
   },
   {
-    type:              'quote',
+    type:              '@whiteboard/quote',
     label:             'Quote of the Day',
     Icon:              Quote,
     iconBg:            'bg-rose-50',
@@ -85,7 +89,19 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     settingsComponent: QuoteSettings,
   },
   {
-    type:        'weather',
+    type:              '@whiteboard/routines',
+    label:             'Routines',
+    Icon:              ListChecks,
+    iconBg:            'bg-emerald-50',
+    iconClass:         'text-emerald-500',
+    keywords:          ['routines', 'habits', 'daily', 'checklist', 'morning', 'evening'],
+    defaultSize:       { width: 320, height: 480 },
+    scalable:          false,
+    component:         RoutinesWidget,
+    settingsComponent: RoutinesSettings,
+  },
+  {
+    type:        '@whiteboard/weather',
     label:       'Weather',
     Icon:        Sun,
     iconBg:      'bg-amber-50',

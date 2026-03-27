@@ -82,6 +82,22 @@ app.delete('/api/pages/:id', async (req, res) => {
   }
 })
 
+app.get('/api/pages/:id/blocks', async (req, res) => {
+  try {
+    res.json(await notion.blocks.children.list({ block_id: req.params.id, page_size: 100 }))
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.patch('/api/blocks/:id', async (req, res) => {
+  try {
+    res.json(await notion.blocks.update({ block_id: req.params.id, ...req.body }))
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
 // ── Token storage ─────────────────────────────────────────────────────────────
 
 const TOKEN_PATH = path.join(process.cwd(), 'tokens.json')

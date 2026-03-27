@@ -4,6 +4,11 @@ export const DEFAULT_LAYOUT_ID = 'dashboard'
 
 export const LAYOUT_PRESETS: Layout[] = [
   {
+    id:    'freeform',
+    name:  'Freeform',
+    slots: [],
+  },
+  {
     id: 'focus',
     name: 'Focus',
     slots: [

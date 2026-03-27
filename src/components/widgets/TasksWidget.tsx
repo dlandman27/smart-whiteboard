@@ -3,8 +3,15 @@ import { Plus, Check } from 'lucide-react'
 import { useNotionPages, useUpdatePage, useCreatePage } from '../../hooks/useNotion'
 import { Button, Divider, Icon, Input, Text } from '../../ui/web'
 import { FlexCol, FlexRow, Box, Center, ScrollArea } from '../../ui/layouts'
+import { useWidgetSettings } from '@whiteboard/sdk'
 
-const DB_ID = '325b3daa10f0805fb7f1d1e230ee477f'
+export interface TasksWidgetSettings {
+  databaseId: string
+}
+
+export const TASKS_DEFAULTS: TasksWidgetSettings = {
+  databaseId: '',
+}
 
 function getTitle(page: any): string {
   return page.properties.Name?.title?.map((t: any) => t.plain_text).join('') ?? ''
@@ -14,13 +21,18 @@ function getStatus(page: any): string {
   return page.properties.Status?.status?.name ?? 'Not started'
 }
 
-export function TasksWidget({ widgetId: _ }: { widgetId: string }) {
-  const { data, isLoading, error } = useNotionPages(DB_ID)
-  const updatePage = useUpdatePage(DB_ID)
-  const createPage = useCreatePage(DB_ID)
+export function TasksWidget({ widgetId }: { widgetId: string }) {
+  const [settings] = useWidgetSettings<TasksWidgetSettings>(widgetId, TASKS_DEFAULTS)
+  const { data, isLoading, error } = useNotionPages(settings.databaseId)
+  const updatePage = useUpdatePage(settings.databaseId)
+  const createPage = useCreatePage(settings.databaseId)
 
   const [newTask, setNewTask]   = useState('')
   const [isAdding, setIsAdding] = useState(false)
+
+  if (!settings.databaseId) {
+    return <Center fullHeight><Text variant="caption" color="muted">Set your Notion database ID in settings</Text></Center>
+  }
 
   if (isLoading) {
     return <Center fullHeight><Text variant="caption" color="muted">Loading…</Text></Center>

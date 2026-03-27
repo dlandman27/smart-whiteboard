@@ -38,7 +38,7 @@ export function useGCalStatus() {
     queryKey: ['gcal-status'],
     queryFn: () => apiFetch<GCalStatus>('/api/gcal/status'),
     retry: false,
-    refetchInterval: 5_000,
+    enabled: false,
   })
 }
 
@@ -57,6 +57,7 @@ export function useGCalCalendars() {
   return useQuery({
     queryKey: ['gcal-calendars'],
     queryFn: () => apiFetch<{ items: GCalCalendar[] }>('/api/gcal/calendars'),
+    enabled: false,
   })
 }
 
