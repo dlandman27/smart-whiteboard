@@ -150,6 +150,23 @@
 }
 .wt-logo-btn:hover { background-color: var(--wt-surface-hover); }
 
+/* ── Widget frame bezel ────────────────────────────────────────────────────── */
+.wt-widget-frame {
+  position: relative;
+}
+.wt-widget-frame::after {
+  content:        '';
+  position:       absolute;
+  inset:          0;
+  border-radius:  inherit;
+  pointer-events: none;
+  z-index:        10;
+  border-top:     3px solid rgba(255,255,255,0.12);
+  border-left:    3px solid rgba(255,255,255,0.08);
+  border-bottom:  3px solid rgba(0,0,0,0.1);
+  border-right:   3px solid rgba(0,0,0,0.07);
+}
+
 /* ── Widget action button styles (themed via CSS vars) ─────────────────────── */
 .wt-action-btn {
   display: flex;

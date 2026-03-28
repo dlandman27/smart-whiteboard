@@ -404,14 +404,18 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     >
       {/* Widget frame — content fills the entire frame, no overlapping header */}
       <div
-        className="w-full h-full overflow-hidden border transition-all duration-150"
+        className="wt-widget-frame w-full h-full overflow-hidden border"
         style={{
           borderRadius:    fullscreen && fsExpanded ? 0 : '1rem',
           transition:      `border-radius 0.3s ${FS_EASE}, border-color 0.15s, box-shadow 0.15s`,
           backgroundColor: 'var(--wt-bg)',
           backdropFilter:  'var(--wt-backdrop)',
           borderColor:     (dragging || isActive) ? 'var(--wt-border-active)' : 'var(--wt-border)',
-          boxShadow:       dragging ? 'var(--wt-shadow-lg)' : isActive ? 'var(--wt-shadow-md)' : 'var(--wt-shadow-sm)',
+          boxShadow:       dragging
+            ? `0 8px 0 rgba(0,0,0,0.18), var(--wt-shadow-lg)`
+            : isActive
+            ? `0 5px 0 rgba(0,0,0,0.14), var(--wt-shadow-md)`
+            : `0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm)`,
         }}
       >
         <div className={`w-full h-full overflow-hidden${refSize ? ' flex items-center justify-center' : ''}`}>
