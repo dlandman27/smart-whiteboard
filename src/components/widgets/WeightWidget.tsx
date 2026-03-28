@@ -3,7 +3,6 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, ReferenceLine, CartesianGrid,
 } from 'recharts'
-import { Plus, Minus, Check, X } from 'lucide-react'
 import { useWeightLog, useCreatePage } from '../../hooks/useNotion'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { Text, Icon } from '../../ui/web'
@@ -192,7 +191,7 @@ function AddEntryForm({ databaseId, lastWeight, onDone }: {
           Log Weight
         </Text>
         <button onPointerDown={(e) => e.stopPropagation()} onClick={onDone} className="wt-action-btn">
-          <Icon icon={X} size={13} />
+          <Icon icon="X" size={13} />
         </button>
       </FlexRow>
 
@@ -208,7 +207,7 @@ function AddEntryForm({ databaseId, lastWeight, onDone }: {
             className="w-8 h-8 rounded-full flex items-center justify-center transition-colors flex-shrink-0"
             style={{ background: 'var(--wt-surface)', border: '1px solid var(--wt-border)' }}
           >
-            <Icon icon={Minus} size={13} />
+            <Icon icon="Minus" size={13} />
           </button>
           <input
             type="number"
@@ -225,7 +224,7 @@ function AddEntryForm({ databaseId, lastWeight, onDone }: {
             className="w-8 h-8 rounded-full flex items-center justify-center transition-colors flex-shrink-0"
             style={{ background: 'var(--wt-surface)', border: '1px solid var(--wt-border)' }}
           >
-            <Icon icon={Plus} size={13} />
+            <Icon icon="Plus" size={13} />
           </button>
         </FlexRow>
       </FlexCol>
@@ -252,7 +251,7 @@ function AddEntryForm({ databaseId, lastWeight, onDone }: {
         className="flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-opacity disabled:opacity-40 flex-shrink-0"
         style={{ background: 'var(--wt-accent)', color: 'var(--wt-accent-text)' }}
       >
-        <Icon icon={Check} size={14} />
+        <Icon icon="Check" size={14} />
         {createPage.isPending ? 'Saving…' : 'Save'}
       </button>
     </FlexCol>
@@ -344,7 +343,7 @@ function AddBtn({ onClick }: { onClick: () => void }) {
       className="w-6 h-6 rounded-full flex items-center justify-center transition-opacity hover:opacity-80 flex-shrink-0"
       style={{ background: 'var(--wt-accent)', color: 'var(--wt-accent-text)' }}
     >
-      <Icon icon={Plus} size={12} />
+      <Icon icon="Plus" size={12} />
     </button>
   )
 }
@@ -383,7 +382,7 @@ export function WeightWidget({ widgetId }: { widgetId: string }) {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-opacity hover:opacity-80"
               style={{ background: 'var(--wt-accent)', color: 'var(--wt-accent-text)' }}
             >
-              <Icon icon={Plus} size={12} /> Log first entry
+              <Icon icon="Plus" size={12} /> Log first entry
             </button>
           </FlexCol>
         </Center>

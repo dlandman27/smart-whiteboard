@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { ChevronLeft, ChevronRight, RefreshCw } from 'lucide-react'
 import { IconButton, Text, Button, SegmentedControl } from '../../ui/web'
 import { FlexCol, FlexRow, Box, Grid, Center, ScrollArea } from '../../ui/layouts'
 import { useGCalEvents, type GCalEvent } from '../../hooks/useGCal'
@@ -294,13 +293,13 @@ export function CalendarWidget({ calendarId }: Props) {
           options={VIEW_OPTIONS as { value: View; label: string }[]}
           onChange={(v) => setView(v)}
         />
-        <IconButton icon={ChevronLeft} size="sm" onClick={() => navigate(-1)} />
+        <IconButton icon="CaretLeft" size="sm" onClick={() => navigate(-1)} />
         <Text as="span" variant="label" size="small" color="muted" className="flex-1 text-center truncate">
           {navLabel()}
         </Text>
-        <IconButton icon={ChevronRight} size="sm" onClick={() => navigate(1)} />
+        <IconButton icon="CaretRight" size="sm" onClick={() => navigate(1)} />
         <IconButton
-          icon={RefreshCw}
+          icon="ArrowsClockwise"
           size="sm"
           onClick={() => refetch()}
           className={isFetching ? 'animate-spin' : ''}

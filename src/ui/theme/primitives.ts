@@ -28,7 +28,7 @@ export const fontSize = {
 } as const
 
 export const fontFamily = {
-  base: 'Inter, system-ui, -apple-system, sans-serif',
+  base: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
   mono: 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace',
 } as const
 

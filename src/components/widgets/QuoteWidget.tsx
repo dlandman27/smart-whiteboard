@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { RefreshCw } from 'lucide-react'
 import { Icon, Text } from '../../ui/web'
 import { FlexCol } from '../../ui/layouts'
 
@@ -103,7 +102,7 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
           onClick={() => load(true)}
           title="New quote"
         >
-          <Icon icon={RefreshCw} size={13} />
+          <Icon icon="ArrowsClockwise" size={13} />
         </button>
       )}
 

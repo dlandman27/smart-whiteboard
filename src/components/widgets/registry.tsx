@@ -1,4 +1,4 @@
-import { type LucideIcon, Clock, Sun, Scale, CheckSquare, Timer, Quote, ListChecks } from 'lucide-react'
+import type { PluginPreference } from '@whiteboard/sdk'
 import { ClockWidget } from './ClockWidget'
 import { ClockSettings } from './ClockSettings'
 import { WeatherWidget } from './WeatherWidget'
@@ -12,14 +12,18 @@ import { QuoteSettings } from './QuoteSettings'
 import { RoutinesWidget } from './RoutinesWidget'
 import { RoutinesSettings } from './RoutinesSettings'
 import { TasksSettings } from './TasksSettings'
-import type { PluginPreference } from '@whiteboard/sdk'
+import { HtmlWidget } from './HtmlWidget'
+import { NFLWidget, NBAWidget } from './SportsWidget'
+import { NFLSettings, NBASettings } from './SportsSettings'
+import { NoteWidget } from './NoteWidget'
+import { PomodoroWidget, PomodoroSettings } from './PomodoroWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 
 export interface StaticWidgetDef {
   type:               string
   label:              string
-  Icon:               LucideIcon
+  Icon:               string
   iconBg:             string
   iconClass:          string
   keywords:           string[]
@@ -36,7 +40,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
   {
     type:               '@whiteboard/clock',
     label:              'Clock',
-    Icon:               Clock,
+    Icon:              'Clock',
     iconBg:             'bg-stone-100',
     iconClass:          'text-stone-500',
     keywords:           ['clock', 'time', 'date'],
@@ -47,7 +51,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
   {
     type:              '@whiteboard/weight',
     label:             'Weight Progress',
-    Icon:              Scale,
+    Icon:              'Scales',
     iconBg:            'bg-green-50',
     iconClass:         'text-green-500',
     keywords:          ['weight', 'fitness', 'health', 'progress', 'goal'],
@@ -58,7 +62,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
   {
     type:              '@whiteboard/tasks',
     label:             'Tasks',
-    Icon:              CheckSquare,
+    Icon:              'CheckSquare',
     iconBg:            'bg-blue-50',
     iconClass:         'text-blue-500',
     keywords:          ['tasks', 'todo', 'checklist', 'list'],
@@ -69,7 +73,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
   {
     type:              '@whiteboard/countdown',
     label:             'Countdown',
-    Icon:              Timer,
+    Icon:              'Timer',
     iconBg:            'bg-violet-50',
     iconClass:         'text-violet-500',
     keywords:          ['countdown', 'timer', 'deadline', 'birthday', 'vacation', 'event'],
@@ -80,7 +84,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
   {
     type:              '@whiteboard/quote',
     label:             'Quote of the Day',
-    Icon:              Quote,
+    Icon:              'Quotes',
     iconBg:            'bg-rose-50',
     iconClass:         'text-rose-400',
     keywords:          ['quote', 'inspiration', 'motivation', 'daily', 'wisdom'],
@@ -91,7 +95,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
   {
     type:              '@whiteboard/routines',
     label:             'Routines',
-    Icon:              ListChecks,
+    Icon:              'ListChecks',
     iconBg:            'bg-emerald-50',
     iconClass:         'text-emerald-500',
     keywords:          ['routines', 'habits', 'daily', 'checklist', 'morning', 'evening'],
@@ -103,12 +107,65 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
   {
     type:        '@whiteboard/weather',
     label:       'Weather',
-    Icon:        Sun,
+    Icon:        'Sun',
     iconBg:      'bg-amber-50',
     iconClass:   'text-amber-500',
     keywords:    ['weather', 'temperature', 'forecast', 'rain', 'sun'],
     defaultSize: { width: 300, height: 220 },
     component:   WeatherWidget,
+  },
+  {
+    type:             '@whiteboard/nfl',
+    label:            'NFL Scores',
+    Icon:             'Trophy',
+    iconBg:           'bg-orange-50',
+    iconClass:        'text-orange-500',
+    keywords:         ['nfl', 'football', 'scores', 'sports'],
+    defaultSize:      { width: 340, height: 420 },
+    component:        NFLWidget,
+    settingsComponent: NFLSettings,
+  },
+  {
+    type:             '@whiteboard/nba',
+    label:            'NBA Scores',
+    Icon:             'Trophy',
+    iconBg:           'bg-blue-50',
+    iconClass:        'text-blue-500',
+    keywords:         ['nba', 'basketball', 'scores', 'sports'],
+    defaultSize:      { width: 340, height: 420 },
+    component:        NBAWidget,
+    settingsComponent: NBASettings,
+  },
+  {
+    type:        '@whiteboard/note',
+    label:       'Note',
+    Icon:        'Note',
+    iconBg:      'bg-yellow-50',
+    iconClass:   'text-yellow-500',
+    keywords:    ['note', 'text', 'memo', 'sticky', 'write'],
+    defaultSize: { width: 320, height: 200 },
+    component:   NoteWidget,
+  },
+  {
+    type:              '@whiteboard/pomodoro',
+    label:             'Pomodoro Timer',
+    Icon:              'ClockCounterClockwise',
+    iconBg:            'bg-red-50',
+    iconClass:         'text-red-500',
+    keywords:          ['pomodoro', 'timer', 'focus', 'productivity', 'work', 'break'],
+    defaultSize:       { width: 280, height: 340 },
+    component:         PomodoroWidget,
+    settingsComponent: PomodoroSettings,
+  },
+  {
+    type:        '@whiteboard/html',
+    label:       'Custom (HTML)',
+    Icon:        'Code',
+    iconBg:      'bg-slate-100',
+    iconClass:   'text-slate-500',
+    keywords:    ['html', 'custom', 'code', 'embed', 'dynamic'],
+    defaultSize: { width: 400, height: 300 },
+    component:   HtmlWidget,
   },
 ]
 

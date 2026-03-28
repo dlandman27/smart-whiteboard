@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Plus, ChevronLeft, ChevronRight, Check, X as XIcon } from 'lucide-react'
 import { IconButton } from '../ui/web'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { Pill } from './Pill'
@@ -47,7 +46,7 @@ export function BoardNav({ onSlide }: Props) {
   return (
     <Pill className="absolute top-4 right-4 z-20 flex items-center gap-px px-2 py-2 pointer-events-auto select-none">
       <IconButton
-        icon={ChevronLeft}
+        icon="CaretLeft"
         onClick={() => prevBoard && goTo(prevBoard.id, 'left')}
         disabled={!prevBoard}
         title={prevBoard?.name}
@@ -78,8 +77,8 @@ export function BoardNav({ onSlide }: Props) {
             }}
             className="wt-input w-28 text-xs text-center rounded-md px-2 py-1"
           />
-          <IconButton icon={Check} size="sm" onClick={handleAddBoard} className="text-green-500 hover:text-green-600" />
-          <IconButton icon={XIcon} size="sm" onClick={() => { setIsNaming(false); setNewBoardName('') }} />
+          <IconButton icon="Check" size="sm" onClick={handleAddBoard} className="text-green-500 hover:text-green-600" />
+          <IconButton icon="X" size="sm" onClick={() => { setIsNaming(false); setNewBoardName('') }} />
         </div>
       ) : (
         <button
@@ -92,14 +91,14 @@ export function BoardNav({ onSlide }: Props) {
       )}
 
       <IconButton
-        icon={ChevronRight}
+        icon="CaretRight"
         onClick={() => nextBoard && goTo(nextBoard.id, 'right')}
         disabled={!nextBoard}
         title={nextBoard?.name}
       />
 
       <IconButton
-        icon={Plus}
+        icon="Plus"
         onClick={() => !isNaming && setIsNaming(true)}
         title="New board"
       />

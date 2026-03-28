@@ -1,4 +1,4 @@
-import { Music } from 'lucide-react'
+import { Icon } from '../../src/ui/web'
 import type { WidgetProps } from '@whiteboard/sdk'
 import { useSpotifyStatus } from '../../src/hooks/useSpotify'
 import { useSpotifyNowPlaying } from './hooks'
@@ -29,7 +29,7 @@ function ProgressBar({ progressMs, durationMs }: { progressMs: number; durationM
 function NotConnected() {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-2 px-4 text-center select-none">
-      <Music size={24} style={{ color: 'var(--wt-text-muted)' }} />
+      <Icon icon="MusicNote" size={24} style={{ color: 'var(--wt-text-muted)' }} />
       <p className="text-xs" style={{ color: 'var(--wt-text-muted)' }}>
         Connect Spotify in <strong style={{ color: 'var(--wt-text)' }}>Settings</strong>
       </p>
@@ -42,7 +42,7 @@ function NotConnected() {
 function NotPlaying() {
   return (
     <div className="flex flex-col items-center justify-center h-full gap-2 select-none">
-      <Music size={24} style={{ color: 'var(--wt-text-muted)' }} />
+      <Icon icon="MusicNote" size={24} style={{ color: 'var(--wt-text-muted)' }} />
       <p className="text-sm" style={{ color: 'var(--wt-text-muted)' }}>Nothing playing</p>
     </div>
   )
@@ -57,7 +57,7 @@ function NowPlaying({ track }: { track: NonNullable<ReturnType<typeof useSpotify
         <img src={track.albumArt} alt={track.album} className="w-16 h-16 rounded-md flex-shrink-0 object-cover" />
       ) : (
         <div className="w-16 h-16 rounded-md flex-shrink-0 flex items-center justify-center" style={{ backgroundColor: 'var(--wt-surface)' }}>
-          <Music size={24} className="text-green-500" />
+          <Icon icon="MusicNote" size={24} style={{ color: '#22c55e' }} />
         </div>
       )}
       <div className="flex-1 min-w-0 space-y-1.5">

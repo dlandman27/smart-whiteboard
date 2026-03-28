@@ -6,9 +6,11 @@ import { type Background, DEFAULT_BACKGROUND } from '../constants/backgrounds'
 interface ThemeStore {
   activeThemeId:   string
   customOverrides: Partial<ThemeVars>
+  customTheme:     ThemeVars | null
   background:      Background
 
   setTheme:           (id: string) => void
+  setCustomTheme:     (vars: Partial<ThemeVars>, background?: Background, baseThemeId?: string) => void
   setOverride:        (key: keyof ThemeVars, value: string) => void
   clearOverrides:     () => void
   applyToDOM:         () => void
@@ -20,12 +22,25 @@ export const useThemeStore = create<ThemeStore>()(
     (set, get) => ({
       activeThemeId:   'minimal',
       customOverrides: {},
+      customTheme:     null,
       background:      DEFAULT_BACKGROUND,
 
       setTheme: (id) => {
         const theme = THEME_MAP[id]
-        set({ activeThemeId: id, customOverrides: {}, ...(theme ? { background: theme.background } : {}) })
+        set({ activeThemeId: id, customOverrides: {}, customTheme: null, ...(theme ? { background: theme.background } : {}) })
         if (theme) applyThemeVars(theme.vars)
+      },
+
+      setCustomTheme: (vars, background, baseThemeId) => {
+        const base = THEME_MAP[baseThemeId ?? 'minimal']?.vars ?? THEME_MAP['minimal'].vars
+        const fullVars = { ...base, ...vars } as ThemeVars
+        set({
+          activeThemeId: 'custom',
+          customTheme:   fullVars,
+          customOverrides: {},
+          ...(background ? { background } : {}),
+        })
+        applyThemeVars(fullVars)
       },
 
       setBackground: (bg) => set({ background: bg }),
@@ -44,7 +59,11 @@ export const useThemeStore = create<ThemeStore>()(
       },
 
       applyToDOM: () => {
-        const { activeThemeId, customOverrides } = get()
+        const { activeThemeId, customOverrides, customTheme } = get()
+        if (activeThemeId === 'custom' && customTheme) {
+          applyThemeVars(customTheme)
+          return
+        }
         const base = THEME_MAP[activeThemeId]?.vars
         if (base) applyThemeVars({ ...base, ...customOverrides } as ThemeVars)
       },

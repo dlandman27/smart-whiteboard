@@ -1,4 +1,4 @@
-import { ArrowLeftRight } from 'lucide-react'
+import { Icon } from '../../ui/web'
 
 export type SlotMode = 'hidden' | 'place' | 'swap'
 
@@ -41,7 +41,7 @@ export function LayoutSlot({ x, y, width, height, mode, isHovered, onClick }: Pr
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
             style={{ backgroundColor: '#f97316', color: '#fff' }}
           >
-            <ArrowLeftRight size={12} />
+            <Icon icon="ArrowsLeftRight" size={12} />
             Swap
           </div>
         )}

@@ -40,4 +40,12 @@ export { Divider } from './Divider'
 
 export { SettingsSection } from './SettingsSection'
 
+export { Panel } from './Panel'
+
+export { PanelHeader } from './PanelHeader'
+
+export { Slider } from './Slider'
+
+export { MenuItem } from './MenuItem'
+
 export { cn } from './utils/cn'

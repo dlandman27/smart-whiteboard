@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "mcp": "tsx mcp/server.ts",
     "start:kiosk": "concurrently \"npm run server\" \"npm run client\" \"node scripts/kiosk.js\"",
     "client": "vite",
     "server": "tsx watch server/index.ts",
@@ -16,6 +17,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.28.0",
     "@notionhq/client": "^2.2.15",
+    "@phosphor-icons/react": "^2.1.10",
     "@supabase/auth-ui-react": "^0.4.7",
     "@supabase/auth-ui-shared": "^0.1.8",
     "@supabase/supabase-js": "^2.100.0",
@@ -31,7 +33,7 @@
     "react-rnd": "^10.4.1",
     "recharts": "^3.8.0",
     "ws": "^8.20.0",
-    "zod": "^4.3.6",
+    "zod": "^3.25.76",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

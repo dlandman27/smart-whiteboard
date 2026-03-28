@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import { Plus, RefreshCw, Minus, Check } from 'lucide-react'
 import { Button, Icon, IconButton, Input, Text } from '../../ui/web'
 import { FlexCol, FlexRow, Box, Center, ScrollArea } from '../../ui/layouts'
 import { useNotionPages, useUpdatePage, useCreatePage, useArchivePage } from '../../hooks/useNotion'
@@ -159,7 +158,7 @@ export function DatabaseWidget({ databaseId }: Props) {
           className="flex items-center justify-center w-5 h-5 rounded border transition-colors flex-shrink-0"
           style={{ borderColor: 'var(--wt-border-active)' }}
         >
-          {prop.checkbox && <Icon icon={Check} size={11} className="text-green-500" />}
+          {prop.checkbox && <Icon icon="Check" size={11} className="text-green-500" />}
         </button>
       )
     }
@@ -268,7 +267,7 @@ export function DatabaseWidget({ databaseId }: Props) {
             title="Refresh"
             className={isFetching ? 'animate-spin' : ''}
           />
-          <Button variant="accent" size="sm" iconLeft={<Icon icon={Plus} size={11} />} onClick={() => setIsAdding(true)}>
+          <Button variant="accent" size="sm" iconLeft={<Icon icon="Plus" size={11} />} onClick={() => setIsAdding(true)}>
             New
           </Button>
         </FlexRow> */}
@@ -320,7 +319,7 @@ export function DatabaseWidget({ databaseId }: Props) {
                 </Box>
               ))}
               <IconButton
-                icon={Minus}
+                icon="Minus"
                 size="sm"
                 onClick={() => handleDelete(page.id)}
                 disabled={deletingId === page.id}

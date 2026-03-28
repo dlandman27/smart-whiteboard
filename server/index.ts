@@ -3,6 +3,8 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import fs from 'fs'
 import path from 'path'
+import { createServer } from 'http'
+import { WebSocketServer, WebSocket } from 'ws'
 import { Client } from '@notionhq/client'
 import { google } from 'googleapis'
 
@@ -11,6 +13,130 @@ dotenv.config()
 const app = express()
 app.use(cors())
 app.use(express.json())
+
+// ── WebSocket canvas bridge ────────────────────────────────────────────────────
+
+const httpServer = createServer(app)
+const wss = new WebSocketServer({ server: httpServer })
+
+const browserClients = new Set<WebSocket>()
+let cachedWidgets: unknown[] = []
+let cachedCanvas: { width: number; height: number } = { width: 1920, height: 1080 }
+let cachedBoards: { id: string; name: string; widgets: unknown[] }[] = []
+let cachedActiveBoardId = ''
+
+wss.on('connection', (ws) => {
+  browserClients.add(ws)
+  ws.on('message', (data) => {
+    try {
+      const msg = JSON.parse(data.toString())
+      if (msg.type === 'state_update') {
+        cachedWidgets      = msg.widgets ?? []
+        cachedBoards       = msg.boards  ?? []
+        cachedActiveBoardId = msg.activeBoardId ?? ''
+        if (msg.canvas) cachedCanvas = msg.canvas
+      }
+    } catch { /* ignore */ }
+  })
+  ws.on('close', () => browserClients.delete(ws))
+})
+
+function broadcast(msg: object) {
+  const payload = JSON.stringify(msg)
+  for (const client of browserClients) {
+    if (client.readyState === WebSocket.OPEN) client.send(payload)
+  }
+}
+
+// ── Canvas control endpoints ───────────────────────────────────────────────────
+
+app.get('/api/canvas/widgets', (_req, res) => {
+  res.json({ widgets: cachedWidgets, canvas: cachedCanvas })
+})
+
+app.post('/api/canvas/widget', (req, res) => {
+  const id = crypto.randomUUID()
+  broadcast({ type: 'create_widget', id, ...req.body })
+  res.json({ id })
+})
+
+app.patch('/api/canvas/widget/:id', (req, res) => {
+  broadcast({ type: 'update_widget', id: req.params.id, ...req.body })
+  res.json({ ok: true })
+})
+
+app.delete('/api/canvas/widget/:id', (req, res) => {
+  broadcast({ type: 'delete_widget', id: req.params.id })
+  res.json({ ok: true })
+})
+
+app.post('/api/canvas/clear-widgets', (_req, res) => {
+  broadcast({ type: 'clear_widgets' })
+  res.json({ ok: true })
+})
+
+app.post('/api/canvas/focus-widget', (req, res) => {
+  const { id } = req.body
+  if (id) broadcast({ type: 'focus_widget', id })
+  else    broadcast({ type: 'unfocus_widget' })
+  res.json({ ok: true })
+})
+
+app.post('/api/canvas/theme', (req, res) => {
+  broadcast({ type: 'set_theme', themeId: req.body.themeId })
+  res.json({ ok: true })
+})
+
+app.post('/api/canvas/custom-theme', (req, res) => {
+  broadcast({ type: 'set_custom_theme', vars: req.body.vars ?? {}, background: req.body.background })
+  res.json({ ok: true })
+})
+
+// ── Board endpoints ────────────────────────────────────────────────────────────
+
+app.get('/api/canvas/boards', (_req, res) => {
+  res.json({ boards: cachedBoards, activeBoardId: cachedActiveBoardId })
+})
+
+app.post('/api/canvas/board', (req, res) => {
+  const id = crypto.randomUUID()
+  broadcast({ type: 'create_board', id, name: req.body.name ?? 'New Board' })
+  res.json({ id })
+})
+
+app.patch('/api/canvas/board/:id', (req, res) => {
+  broadcast({ type: 'rename_board', id: req.params.id, name: req.body.name })
+  res.json({ ok: true })
+})
+
+app.delete('/api/canvas/board/:id', (req, res) => {
+  broadcast({ type: 'delete_board', id: req.params.id })
+  res.json({ ok: true })
+})
+
+app.post('/api/canvas/board/:id/activate', (req, res) => {
+  broadcast({ type: 'switch_board', id: req.params.id })
+  res.json({ ok: true })
+})
+
+// ── Sports (ESPN proxy) ───────────────────────────────────────────────────────
+
+const ESPN_URLS: Record<string, string> = {
+  nfl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard',
+  nba: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard',
+}
+
+app.get('/api/sports/:league', async (req, res) => {
+  const url = ESPN_URLS[req.params.league]
+  if (!url) return res.status(400).json({ error: 'Unknown league' })
+  try {
+    const r = await fetch(url)
+    const d = await r.json()
+    res.json(d)
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
 
 // ── Notion ────────────────────────────────────────────────────────────────────
 
@@ -77,6 +203,20 @@ app.patch('/api/pages/:id', async (req, res) => {
 app.delete('/api/pages/:id', async (req, res) => {
   try {
     res.json(await notion.pages.update({ page_id: req.params.id, archived: true }))
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.post('/api/notion/databases', async (req, res) => {
+  try {
+    const { parentPageId, title, properties } = req.body
+    const db = await notion.databases.create({
+      parent:     { type: 'page_id', page_id: parentPageId },
+      title:      [{ type: 'text', text: { content: title } }],
+      properties: properties,
+    } as any)
+    res.json({ id: db.id })
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
@@ -347,7 +487,7 @@ app.get('/api/quote', (_req, res) => {
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 const PORT = Number(process.env.PORT) || 3001
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`\n🗂  Smart Whiteboard server running on http://localhost:${PORT}`)
   if (!process.env.NOTION_API_KEY)  console.warn('⚠️  NOTION_API_KEY not set')
   else                              console.log('✅  Notion API key loaded')

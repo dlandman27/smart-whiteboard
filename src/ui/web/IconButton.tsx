@@ -1,6 +1,7 @@
 import React from 'react'
-import { type LucideIcon } from 'lucide-react'
+import type { IconWeight } from '@phosphor-icons/react'
 import { cn } from './utils/cn'
+import { Icon, type IconProp } from './Icon'
 
 export type IconButtonVariant = 'default' | 'active' | 'ghost'
 export type IconButtonSize    = 'sm' | 'md' | 'lg' | 'xl'
@@ -19,9 +20,10 @@ const sizeClass: Record<IconButtonSize, { button: string; icon: number }> = {
 }
 
 interface Props {
-  icon:       LucideIcon
+  icon:       IconProp
   variant?:   IconButtonVariant
   size?:      IconButtonSize
+  weight?:    IconWeight
   filled?:    boolean
   title?:     string
   disabled?:  boolean
@@ -31,9 +33,10 @@ interface Props {
 }
 
 export function IconButton({
-  icon: IconComponent,
+  icon,
   variant   = 'default',
   size      = 'md',
+  weight    = 'regular',
   filled    = false,
   title,
   disabled,
@@ -41,7 +44,8 @@ export function IconButton({
   onClick,
   onMouseDown,
 }: Props) {
-  const { button, icon } = sizeClass[size]
+  const { button, icon: iconSize } = sizeClass[size]
+  const effectiveWeight: IconWeight = (filled || variant === 'active') ? 'fill' : weight
   return (
     <button
       onClick={onClick}
@@ -55,7 +59,7 @@ export function IconButton({
         className,
       )}
     >
-      <IconComponent size={icon} fill={filled || variant === 'active' ? 'currentColor' : 'none'} />
+      <Icon icon={icon} size={iconSize} weight={effectiveWeight} />
     </button>
   )
 }

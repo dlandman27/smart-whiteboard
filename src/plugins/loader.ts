@@ -1,5 +1,3 @@
-import * as LucideIcons from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
 import type { StaticWidgetDef } from '../components/widgets/registry'
 import type { PluginManifest, PluginModule } from '@whiteboard/sdk'
 
@@ -20,16 +18,10 @@ export function loadPluginDefs(): StaticWidgetDef[] {
     if (!pluginMod?.component) continue
 
     for (const entry of manifest.widgets) {
-      const Icon = (LucideIcons as Record<string, unknown>)[entry.icon] as LucideIcon | undefined
-      if (!Icon) {
-        console.warn(`[plugin:${manifest.id}] Unknown Lucide icon "${entry.icon}" for widget "${entry.type}"`)
-        continue
-      }
-
       defs.push({
         type:              entry.type,
         label:             entry.label,
-        Icon,
+        Icon:              entry.icon,
         iconBg:            entry.iconBg,
         iconClass:         entry.iconClass,
         keywords:          entry.keywords,

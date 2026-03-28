@@ -1,24 +1,21 @@
-import { Cloud, CloudLightning, CloudRain, CloudSnow, Droplets, Sun, Wind } from 'lucide-react'
 import { Icon, Text } from '../../ui/web'
 import { FlexCol, FlexRow, Center } from '../../ui/layouts'
 import { useWeather } from '../../hooks/useWeather'
 import type { WidgetProps } from './registry'
 
-type IconType = typeof Sun
-
 interface WeatherInfo {
   label:       string
-  WeatherIcon: IconType
+  weatherIcon: string
 }
 
 function getWeatherInfo(code: number): WeatherInfo {
-  if (code === 0)  return { label: 'Clear',         WeatherIcon: Sun            }
-  if (code <= 3)   return { label: 'Partly Cloudy', WeatherIcon: Cloud          }
-  if (code <= 48)  return { label: 'Foggy',         WeatherIcon: Cloud          }
-  if (code <= 67)  return { label: 'Rainy',         WeatherIcon: CloudRain      }
-  if (code <= 77)  return { label: 'Snowy',         WeatherIcon: CloudSnow      }
-  if (code <= 82)  return { label: 'Showers',       WeatherIcon: CloudRain      }
-  return                  { label: 'Stormy',        WeatherIcon: CloudLightning  }
+  if (code === 0)  return { label: 'Clear',         weatherIcon: 'Sun'            }
+  if (code <= 3)   return { label: 'Partly Cloudy', weatherIcon: 'Cloud'          }
+  if (code <= 48)  return { label: 'Foggy',         weatherIcon: 'Cloud'          }
+  if (code <= 67)  return { label: 'Rainy',         weatherIcon: 'CloudRain'      }
+  if (code <= 77)  return { label: 'Snowy',         weatherIcon: 'CloudSnow'      }
+  if (code <= 82)  return { label: 'Showers',       weatherIcon: 'CloudRain'      }
+  return                  { label: 'Stormy',        weatherIcon: 'CloudLightning' }
 }
 
 export function WeatherWidget(_props: WidgetProps) {
@@ -46,7 +43,7 @@ export function WeatherWidget(_props: WidgetProps) {
     )
   }
 
-  const { label, WeatherIcon } = getWeatherInfo(data.weatherCode)
+  const { label, weatherIcon } = getWeatherInfo(data.weatherCode)
 
   return (
     <FlexCol fullHeight fullWidth noSelect className="px-5 py-4 gap-2">
@@ -60,7 +57,7 @@ export function WeatherWidget(_props: WidgetProps) {
             {label}
           </Text>
         </FlexCol>
-        <Icon icon={WeatherIcon} size={26} style={{ color: 'var(--wt-accent)', flexShrink: 0 }} />
+        <Icon icon={weatherIcon} size={26} style={{ color: 'var(--wt-accent)', flexShrink: 0 }} />
       </FlexRow>
 
       {/* Temperature */}
@@ -86,11 +83,11 @@ export function WeatherWidget(_props: WidgetProps) {
         </FlexRow>
         <FlexRow gap="sm">
           <FlexRow align="center" gap="xs">
-            <Icon icon={Droplets} size={11} style={{ color: 'var(--wt-text-muted)' }} />
+            <Icon icon="Drop" size={11} style={{ color: 'var(--wt-text-muted)' }} />
             <Text as="span" variant="caption" size="small" color="muted">{data.humidity}%</Text>
           </FlexRow>
           <FlexRow align="center" gap="xs">
-            <Icon icon={Wind} size={11} style={{ color: 'var(--wt-text-muted)' }} />
+            <Icon icon="Wind" size={11} style={{ color: 'var(--wt-text-muted)' }} />
             <Text as="span" variant="caption" size="small" color="muted">{data.windSpeed} mph</Text>
           </FlexRow>
         </FlexRow>

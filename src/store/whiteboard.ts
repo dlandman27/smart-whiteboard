@@ -17,17 +17,18 @@ interface WhiteboardStore {
   activeBoardId: string
 
   // Board management
-  addBoard:         (name: string) => void
+  addBoard:         (name: string, id?: string) => void
   removeBoard:      (id: string) => void
   setActiveBoard:   (id: string) => void
   renameBoard:      (id: string, name: string) => void
-  setLayout:        (boardId: string, layoutId: string) => void
+  setLayout:        (boardId: string, layoutId: string, widgetUpdates?: Array<{ id: string; slotId: string | null; x: number; y: number; width: number; height: number }>) => void
 
   // Widget management (always on the active board)
   addWidget:        (widget: Omit<WidgetLayout, 'id'>) => void
   updateLayout:     (id: string, updates: Partial<Pick<WidgetLayout, 'x' | 'y' | 'width' | 'height'>>) => void
   updateSettings:   (id: string, settings: Record<string, unknown>) => void
   removeWidget:     (id: string) => void
+  clearWidgets:     () => void
   assignSlot:       (widgetId: string, slotId: string | null) => void
   setLayoutSpacing: (boardId: string, gap: number, pad: number) => void
 }
@@ -40,8 +41,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
       boards:        [{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
       activeBoardId: DEFAULT_ID,
 
-      addBoard: (name) => {
-        const id = crypto.randomUUID()
+      addBoard: (name, presetId) => {
+        const id = presetId ?? crypto.randomUUID()
         set((s) => ({
           boards:        [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
           activeBoardId: id,
@@ -66,9 +67,19 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           boards: s.boards.map((b) => b.id === id ? { ...b, name } : b),
         })),
 
-      setLayout: (boardId, layoutId) =>
+      setLayout: (boardId, layoutId, widgetUpdates) =>
         set((s) => ({
-          boards: s.boards.map((b) => b.id === boardId ? { ...b, layoutId } : b),
+          boards: s.boards.map((b) => {
+            if (b.id !== boardId) return b
+            const widgets = widgetUpdates
+              ? b.widgets.map((w) => {
+                  const upd = widgetUpdates.find((u) => u.id === w.id)
+                  if (!upd) return w
+                  return { ...w, slotId: upd.slotId ?? undefined, x: upd.x, y: upd.y, width: upd.width, height: upd.height }
+                })
+              : b.widgets
+            return { ...b, layoutId, widgets }
+          }),
         })),
 
       addWidget: (widget) =>
@@ -104,6 +115,13 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
             b.id === s.activeBoardId
               ? { ...b, widgets: b.widgets.filter((w) => w.id !== id) }
               : b
+          ),
+        })),
+
+      clearWidgets: () =>
+        set((s) => ({
+          boards: s.boards.map((b) =>
+            b.id === s.activeBoardId ? { ...b, widgets: [] } : b
           ),
         })),
 

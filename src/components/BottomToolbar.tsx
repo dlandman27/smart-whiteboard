@@ -1,36 +1,39 @@
 import { useState, useRef, useEffect } from 'react'
-import { MousePointer2, Pen, Eraser, Plus, Palette } from 'lucide-react'
 import { Icon, IconButton } from '../ui/web'
-import { DRAWING_COLORS, STROKE_WIDTHS, DEFAULT_COLOR, DEFAULT_STROKE, DEFAULT_ERASER_SIZE } from '../constants/drawing'
+import { DEFAULT_COLOR, DEFAULT_STROKE, DEFAULT_ERASER_SIZE } from '../constants/drawing'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { DrawingCanvas } from './DrawingCanvas'
 import { DatabasePicker } from './DatabasePicker'
 import { BoardMenu } from './BoardMenu'
+import { NotificationCenter } from './NotificationCenter'
+import { LayoutPicker } from './layout/LayoutPicker'
+import { SettingsPanel } from './SettingsPanel'
 import { Pill } from './Pill'
 import type { PendingWidget } from '../types'
 
 type Tool = 'pointer' | 'marker' | 'eraser'
+type ActivePanel = 'theme' | 'layout' | 'board' | 'picker' | null
 
 interface Props {
-  onToolChange:      (tool: Tool) => void
-  settingsOpen:      boolean
-  onOpenSettings:    () => void
-  onCloseSettings:   () => void
-  onWidgetSelected:  (widget: PendingWidget) => void
-  onSlide:           (dir: 'left' | 'right') => void
+  onToolChange:     (tool: Tool) => void
+  onWidgetSelected: (widget: PendingWidget) => void
+  onSlide:          (dir: 'left' | 'right') => void
 }
 
-export function BottomToolbar({ onToolChange, settingsOpen, onOpenSettings, onCloseSettings, onWidgetSelected, onSlide }: Props) {
+export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props) {
   const { activeBoardId, boards } = useWhiteboardStore()
 
   const [activeTool,  setActiveTool]  = useState<Tool>('pointer')
   const [activeColor, setActiveColor] = useState(DEFAULT_COLOR)
   const [strokeWidth, setStrokeWidth] = useState(DEFAULT_STROKE)
   const [eraserSize,  setEraserSize]  = useState(DEFAULT_ERASER_SIZE)
-  const [showPicker,  setShowPicker]  = useState(false)
-  const [showBoard,   setShowBoard]   = useState(false)
+  const [activePanel, setActivePanel] = useState<ActivePanel>(null)
   const [hidden,      setHidden]      = useState(false)
   const touchStartY                   = useRef(0)
+
+  function togglePanel(panel: Exclude<ActivePanel, null>) {
+    setActivePanel((p) => p === panel ? null : panel)
+  }
 
   const activeBoard = boards.find((b) => b.id === activeBoardId)
 
@@ -40,7 +43,7 @@ export function BottomToolbar({ onToolChange, settingsOpen, onOpenSettings, onCl
 
   function onToolbarTouchEnd(e: React.TouchEvent) {
     const delta = e.changedTouches[0].clientY - touchStartY.current
-    if (delta > 20) { setHidden(true); setShowPicker(false); onCloseSettings() }
+    if (delta > 20) { setHidden(true); setActivePanel(null) }
   }
 
   useEffect(() => {
@@ -87,11 +90,23 @@ export function BottomToolbar({ onToolChange, settingsOpen, onOpenSettings, onCl
       >
         {/* Theme */}
         <IconButton
-          icon={Palette}
+          icon="Palette"
           size="xl"
-          variant={settingsOpen ? 'active' : 'default'}
-          onClick={settingsOpen ? onCloseSettings : onOpenSettings}
+          variant={activePanel === 'theme' ? 'active' : 'default'}
+          onClick={() => togglePanel('theme')}
           title="Theme"
+        />
+
+        <div className="w-px h-7 mx-2" style={{ backgroundColor: 'var(--wt-border)' }} />
+
+        {/* Layout picker */}
+        <IconButton
+          icon="SquaresFour"
+          size="xl"
+          variant={activePanel === 'layout' ? 'active' : 'default'}
+          onClick={() => togglePanel('layout')}
+          title="Layout"
+
         />
 
         <div className="w-px h-7 mx-2" style={{ backgroundColor: 'var(--wt-border)' }} />
@@ -99,11 +114,11 @@ export function BottomToolbar({ onToolChange, settingsOpen, onOpenSettings, onCl
         {/* Board picker */}
         <button
           onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => setShowBoard((v) => !v)}
+          onClick={() => togglePanel('board')}
           className="wt-nav-btn px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
           style={{
-            color:      showBoard ? 'var(--wt-accent)' : 'var(--wt-text)',
-            background: showBoard ? 'color-mix(in srgb, var(--wt-accent) 10%, transparent)' : 'transparent',
+            color:      activePanel === 'board' ? 'var(--wt-accent)' : 'var(--wt-text)',
+            background: activePanel === 'board' ? 'color-mix(in srgb, var(--wt-accent) 10%, transparent)' : 'transparent',
           }}
           title="Boards & Layout"
         >
@@ -114,19 +129,25 @@ export function BottomToolbar({ onToolChange, settingsOpen, onOpenSettings, onCl
 
         {/* Add widget */}
         <IconButton
-          icon={Plus}
+          icon="Plus"
           size="xl"
-          variant={showPicker ? 'active' : 'default'}
-          onClick={() => { selectTool('pointer'); setShowPicker((v) => !v) }}
+          variant={activePanel === 'picker' ? 'active' : 'default'}
+          onClick={() => { selectTool('pointer'); togglePanel('picker') }}
           title="Add Widget"
         />
 
+        <div className="w-px h-7 mx-2" style={{ backgroundColor: 'var(--wt-border)' }} />
+
+        <NotificationCenter />
+
       </Pill>
 
-      {showBoard  && <BoardMenu onClose={() => setShowBoard(false)} onSlide={onSlide} />}
-      {showPicker && (
+      {activePanel === 'theme'  && <SettingsPanel onClose={() => setActivePanel(null)} />}
+      {activePanel === 'layout' && <LayoutPicker  onClose={() => setActivePanel(null)} />}
+      {activePanel === 'board'  && <BoardMenu     onClose={() => setActivePanel(null)} onSlide={onSlide} />}
+      {activePanel === 'picker' && (
         <DatabasePicker
-          onClose={() => setShowPicker(false)}
+          onClose={() => setActivePanel(null)}
           onWidgetSelected={(w) => { onWidgetSelected(w) }}
         />
       )}

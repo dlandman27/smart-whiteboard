@@ -123,6 +123,20 @@ export function useArchivePage(databaseId: string) {
   const qc = useQueryClient()
   return useMutation({
     mutationFn: (pageId: string) => apiFetch(`/api/pages/${pageId}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['pages', databaseId] }),
+    onMutate: async (pageId) => {
+      await qc.cancelQueries({ queryKey: ['pages', databaseId] })
+      const prev = qc.getQueryData<{ results: any[] }>(['pages', databaseId])
+      if (prev) {
+        qc.setQueryData(['pages', databaseId], {
+          ...prev,
+          results: prev.results.filter((p) => p.id !== pageId),
+        })
+      }
+      return { prev }
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prev) qc.setQueryData(['pages', databaseId], ctx.prev)
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['pages', databaseId] }),
   })
 }
