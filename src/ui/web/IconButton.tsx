@@ -53,7 +53,7 @@ export function IconButton({
       disabled={disabled}
       title={title}
       className={cn(
-        'rounded-md transition-colors disabled:opacity-20 disabled:cursor-not-allowed',
+        'rounded-md disabled:opacity-20 disabled:cursor-not-allowed',
         button,
         variantClass[variant],
         className,

@@ -5,12 +5,11 @@ interface Props {
   dot: string
   children: React.ReactNode
 }
-// TODO: Update div here to be a new Flex Component or Screen Component
 
 export function WhiteboardBackground({ bg, dot, children }: Props) {
   return (
     <div
-      className="relative w-screen h-screen overflow-hidden"
+      className="relative w-screen h-screen"
       style={{
         backgroundColor: bg,
         backgroundSize: '28px 28px',

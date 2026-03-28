@@ -3,10 +3,10 @@ import { cn } from '../ui/web/utils/cn'
 
 type Props = React.HTMLAttributes<HTMLDivElement>
 
-export function Pill({ className, children, ...rest }: Props) {
+export const Pill = React.forwardRef<HTMLDivElement, Props>(({ className, children, ...rest }, ref) => {
   return (
-    <div className={cn('wt-pill border rounded-2xl', className)} {...rest}>
+    <div ref={ref} className={cn('wt-pill rounded-2xl', className)} {...rest}>
       {children}
     </div>
   )
-}
+})

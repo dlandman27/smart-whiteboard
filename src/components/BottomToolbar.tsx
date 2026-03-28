@@ -30,6 +30,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
   const [activePanel, setActivePanel] = useState<ActivePanel>(null)
   const [hidden,      setHidden]      = useState(false)
   const touchStartY                   = useRef(0)
+  const pillRef                       = useRef<HTMLDivElement>(null)
 
   function togglePanel(panel: Exclude<ActivePanel, null>) {
     setActivePanel((p) => p === panel ? null : panel)
@@ -61,6 +62,17 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
     }
   }, [hidden])
 
+  useEffect(() => {
+    if (hidden || activePanel) return
+    function onPointerDown(e: PointerEvent) {
+      if (!pillRef.current?.contains(e.target as Node)) {
+        setHidden(true)
+      }
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [hidden, activePanel])
+
   function selectTool(tool: Tool) {
     setActiveTool(tool)
     onToolChange(tool)
@@ -78,7 +90,8 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
 
       {/* ── Main toolbar ─────────────────────────────────────────── */}
       <Pill
-        className="absolute bottom-2 left-1/2 z-[9999] flex items-center gap-px p-2.5 select-none"
+        ref={pillRef}
+        className="absolute bottom-2 left-1/2 z-[9999] flex items-center gap-2 p-2.5 select-none"
         style={{
           transform:     hidden ? 'translateX(-50%) translateY(calc(100% + 12px))' : 'translateX(-50%)',
           transition:    'transform 0.25s ease, opacity 0.25s ease',
@@ -97,8 +110,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
           title="Theme"
         />
 
-        <div className="w-px h-7 mx-2" style={{ backgroundColor: 'var(--wt-border)' }} />
-
         {/* Layout picker */}
         <IconButton
           icon="SquaresFour"
@@ -109,7 +120,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
 
         />
 
-        <div className="w-px h-7 mx-2" style={{ backgroundColor: 'var(--wt-border)' }} />
 
         {/* Board picker */}
         <button
@@ -125,7 +135,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
           {activeBoard?.name ?? 'Board'}
         </button>
 
-        <div className="w-px h-7 mx-2" style={{ backgroundColor: 'var(--wt-border)' }} />
 
         {/* Add widget */}
         <IconButton
@@ -136,11 +145,49 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
           title="Add Widget"
         />
 
-        <div className="w-px h-7 mx-2" style={{ backgroundColor: 'var(--wt-border)' }} />
 
         <NotificationCenter />
 
+        {/* Hide tab — sits on top of the pill */}
+        <button
+          onClick={() => { setHidden(true); setActivePanel(null) }}
+          style={{
+            position:        'absolute',
+            top:             0,
+            left:            '50%',
+            transform:       'translate(-50%, -100%)',
+            background:      'var(--wt-bg)',
+            border:          '1px solid var(--wt-border)',
+            borderBottom:    'none',
+            borderRadius:    '6px 6px 0 0',
+            padding:         '2px 28px',
+            cursor:          'pointer',
+            color:           'var(--wt-text-muted)',
+            display:         'flex',
+            alignItems:      'center',
+          }}
+        >
+          <Icon icon="CaretDown" size={11} />
+        </button>
+
       </Pill>
+
+      {/* ── Show-again tab ───────────────────────────────────────── */}
+      <button
+        onClick={() => setHidden(false)}
+        className="absolute bottom-0 left-1/2 z-[9999] flex items-center gap-1 px-4 py-1 wt-pill rounded-t-xl rounded-b-none select-none"
+        style={{
+          transform:     hidden ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(100%)',
+          transition:    'transform 0.25s ease',
+          borderBottom:  'none',
+          fontSize:      12,
+          fontWeight:    600,
+          color:         'var(--wt-text-muted)',
+        }}
+      >
+        <Icon icon="CaretUp" size={12} />
+        Menu
+      </button>
 
       {activePanel === 'theme'  && <SettingsPanel onClose={() => setActivePanel(null)} />}
       {activePanel === 'layout' && <LayoutPicker  onClose={() => setActivePanel(null)} />}
