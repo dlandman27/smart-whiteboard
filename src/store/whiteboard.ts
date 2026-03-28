@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { WidgetLayout } from '../types'
+import type { WidgetLayout, LayoutSlot } from '../types'
 import { DEFAULT_LAYOUT_ID } from '../layouts/presets'
 
 export interface Board {
@@ -10,6 +10,7 @@ export interface Board {
   widgets: WidgetLayout[]
   slotGap?: number
   slotPad?: number
+  customSlots?: LayoutSlot[]
 }
 
 interface WhiteboardStore {
@@ -22,6 +23,7 @@ interface WhiteboardStore {
   setActiveBoard:   (id: string) => void
   renameBoard:      (id: string, name: string) => void
   setLayout:        (boardId: string, layoutId: string, widgetUpdates?: Array<{ id: string; slotId: string | null; x: number; y: number; width: number; height: number }>) => void
+  setCustomLayout:  (boardId: string, slots: LayoutSlot[]) => void
 
   // Widget management (always on the active board)
   addWidget:        (widget: Omit<WidgetLayout, 'id'>) => void
@@ -80,6 +82,13 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
               : b.widgets
             return { ...b, layoutId, widgets }
           }),
+        })),
+
+      setCustomLayout: (boardId, slots) =>
+        set((s) => ({
+          boards: s.boards.map((b) =>
+            b.id === boardId ? { ...b, layoutId: 'custom', customSlots: slots } : b
+          ),
         })),
 
       addWidget: (widget) =>

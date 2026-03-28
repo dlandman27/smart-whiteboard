@@ -42,7 +42,7 @@ export function useCanvasSocket() {
 
         const {
           addWidget, updateLayout, updateSettings, removeWidget, clearWidgets,
-          addBoard, renameBoard, removeBoard, setActiveBoard,
+          addBoard, renameBoard, removeBoard, setActiveBoard, setCustomLayout,
         } = useWhiteboardStore.getState()
         const { setFocusedWidget } = useUIStore.getState()
         const { setTheme, setCustomTheme } = useThemeStore.getState()
@@ -92,6 +92,9 @@ export function useCanvasSocket() {
         } else if (msg.type === 'set_custom_theme') {
           const { __baseTheme, ...vars } = msg.vars ?? {}
           setCustomTheme(vars, msg.background, __baseTheme)
+        } else if (msg.type === 'set_custom_layout') {
+          const boardId = useWhiteboardStore.getState().activeBoardId
+          setCustomLayout(boardId, msg.slots ?? [])
         }
       }
 

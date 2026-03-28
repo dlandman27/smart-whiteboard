@@ -75,6 +75,13 @@ app.post('/api/canvas/clear-widgets', (_req, res) => {
   res.json({ ok: true })
 })
 
+app.post('/api/canvas/layout', (req, res) => {
+  const { slots } = req.body
+  if (!Array.isArray(slots)) return res.status(400).json({ error: 'slots must be an array' })
+  broadcast({ type: 'set_custom_layout', slots })
+  res.json({ ok: true })
+})
+
 app.post('/api/canvas/focus-widget', (req, res) => {
   const { id } = req.body
   if (id) broadcast({ type: 'focus_widget', id })

@@ -500,6 +500,56 @@ server.registerTool(
 )
 
 server.registerTool(
+  'create_layout',
+  {
+    description: [
+      'Define a custom AI-generated layout for the active board.',
+      'The layout is a set of named slots expressed as fractions (0–1) of the canvas.',
+      'Once applied, widgets snap into these slots — the user drags within the slot boundaries you define.',
+      '',
+      'COORDINATE SYSTEM:',
+      '  x=0, y=0 is the top-left corner of the canvas.',
+      '  x=1.0 is the full canvas width; y=1.0 is the full canvas height.',
+      '  Slots should cover the entire canvas (no gaps unless intentional).',
+      '',
+      'THINKING IN SLOTS — common patterns:',
+      '  Left 30% sidebar:   { id:"sidebar", x:0,    y:0, width:0.30, height:1 }',
+      '  Right 70% main:     { id:"main",    x:0.30, y:0, width:0.70, height:1 }',
+      '  Top strip 20%:      { id:"header",  x:0,    y:0, width:1,    height:0.20 }',
+      '  Bottom-left quad:   { id:"bl",      x:0,    y:0.5, width:0.5, height:0.5 }',
+      '',
+      'TIPS:',
+      '  - Give slots meaningful ids (e.g. "sidebar", "main", "footer") — shown in the UI.',
+      '  - Slots must not overlap and should tile perfectly (x+width of one = x of the next).',
+      '  - Fractional arithmetic: thirds = 0.333, quarters = 0.25, etc.',
+      '  - After creating the layout, call apply_layout or create_widget to fill the slots.',
+    ].join('\n'),
+    inputSchema: z.object({
+      slots: z.array(z.object({
+        id:     z.string().describe('Unique slot identifier (e.g. "main", "sidebar", "footer")'),
+        x:      z.number().min(0).max(1).describe('Left edge as fraction of canvas width'),
+        y:      z.number().min(0).max(1).describe('Top edge as fraction of canvas height'),
+        width:  z.number().min(0.01).max(1).describe('Width as fraction of canvas width'),
+        height: z.number().min(0.01).max(1).describe('Height as fraction of canvas height'),
+        label:  z.string().optional().describe('Optional human-readable label for the slot'),
+      })).min(1).describe('Slot definitions that tile the canvas'),
+    }),
+  },
+  async ({ slots }) => {
+    await api('POST', '/api/canvas/layout', { slots })
+    const summary = slots.map((s) =>
+      `  ${s.id}: x=${s.x.toFixed(2)} y=${s.y.toFixed(2)} w=${s.width.toFixed(2)} h=${s.height.toFixed(2)}${s.label ? ` (${s.label})` : ''}`
+    ).join('\n')
+    return {
+      content: [{
+        type: 'text',
+        text: `Custom layout applied with ${slots.length} slot${slots.length === 1 ? '' : 's'}:\n${summary}\n\nWidgets will now snap into these slots. Use create_widget or apply_layout to populate them.`,
+      }],
+    }
+  }
+)
+
+server.registerTool(
   'apply_layout',
   {
     description: [

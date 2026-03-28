@@ -65,7 +65,7 @@ export function LayoutPicker({ onClose }: Props) {
       <PanelHeader title="Layout" onClose={onClose} />
 
       <div className="grid grid-cols-4 gap-2.5 p-4">
-        {LAYOUT_PRESETS.map((layout) => {
+        {LAYOUT_PRESETS.filter((l) => l.id !== 'custom').map((layout) => {
           const isActive = layout.id === currentLayout
           return (
             <button

@@ -31,8 +31,8 @@ function PreferenceFields({ widgetId, preferences }: { widgetId: string; prefere
 }
 
 const DRAG_THRESHOLD = 6
-const PANEL_WIDTH     = 272
-const CLOSE_MS        = 130
+const SETTINGS_W     = 260
+const CLOSE_MS       = 130
 
 // Monotonically increasing counter — each activation gets a unique z-order
 let zCounter = 10
@@ -71,11 +71,13 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   const [fsExpanded,    setFsExpanded]   = useState(false)
   const [fsRect,        setFsRect]       = useState<{ left: number; top: number; width: number; height: number } | null>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
-  const fsExitTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const deleteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [removing,      setRemoving]      = useState(false)
+  const [frameAnim,     setFrameAnim]     = useState<'entrance' | 'settle' | null>('entrance')
+  const fsExitTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const deleteTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const prevSlotAssigned = useRef(slotAssigned)
 
   const containerRef = useRef<HTMLDivElement>(null)
-  const panelRef     = useRef<HTMLDivElement>(null)
   const closeTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Resize (corner + edge handles) — free-floating only
@@ -116,15 +118,22 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     return () => document.removeEventListener('pointerdown', onDown)
   }, [active, showSettings])
 
-  // Close settings when clicking outside panel
+
+  // Entrance animation on mount
   useEffect(() => {
-    if (!showSettings) return
-    function onDown(e: PointerEvent) {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) closeSettings()
+    const t = setTimeout(() => setFrameAnim(null), 500)
+    return () => clearTimeout(t)
+  }, [])
+
+  // Settle animation when dropped into a slot
+  useEffect(() => {
+    if (!prevSlotAssigned.current && slotAssigned) {
+      setFrameAnim('settle')
+      const t = setTimeout(() => setFrameAnim(null), 450)
+      return () => clearTimeout(t)
     }
-    document.addEventListener('pointerdown', onDown)
-    return () => document.removeEventListener('pointerdown', onDown)
-  }, [showSettings])
+    prevSlotAssigned.current = slotAssigned
+  }, [slotAssigned])
 
   // Cleanup on unmount
   useEffect(() => () => {
@@ -321,14 +330,16 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         posRef.current = { x, y }
       }
     } else {
-      // Tap — activate, and detect triple-tap for focus toggle
-      setActive(true)
+      // Tap — double-tap activates dock, triple-tap toggles fullscreen
       tapCount.current += 1
       if (tapTimer.current) clearTimeout(tapTimer.current)
       if (tapCount.current >= 3) {
         tapCount.current = 0
         if (fullscreen) { exitFullscreen(() => setFocusedWidget(null)) }
-        else            { enterFullscreen(); setFocusedWidget(id)  }
+        else            { enterFullscreen(); setFocusedWidget(id) }
+      } else if (tapCount.current === 2) {
+        setActive((a) => !a)
+        tapTimer.current = setTimeout(() => { tapCount.current = 0 }, 400)
       } else {
         tapTimer.current = setTimeout(() => { tapCount.current = 0 }, 400)
       }
@@ -340,15 +351,9 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   const hasPrefs    = !!(preferences && preferences.length > 0)
   const hasSettings = !!(settingsContent || hasPrefs)
   const isActive    = active || showSettings || fullscreen
-  const openRight   = pos.x + size.width + PANEL_WIDTH + 12 < window.innerWidth
-  const panelMaxH   = Math.min(Math.max(size.height, 320), window.innerHeight - 40)
-  const panelTop    = Math.min(0, window.innerHeight - 12 - pos.y - panelMaxH)
-  const panelLeft   = openRight ? size.width + 8 : -(PANEL_WIDTH + 8)
-  const animClass   = isClosing
-    ? (openRight ? 'settings-close-right' : 'settings-close-left')
-    : (openRight ? 'settings-open-right'  : 'settings-open-left')
   const renderW = fullscreen && fsExpanded ? window.innerWidth  : size.width
   const renderH = fullscreen && fsExpanded ? window.innerHeight : size.height
+  const isSplit     = renderW >= 520
   const scale = refSize ? Math.min(renderW / refSize.width, renderH / refSize.height) : 1
   // When dragging a slot-assigned widget, shrink it to a target footprint for slot-swap UX
   const DRAG_TARGET_W = 260
@@ -380,6 +385,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         transformOrigin: dragging ? dragOrigin : 'center',
         transition:  dragging ? 'transform 0.15s ease' : 'transform 0.2s ease',
         opacity:     dragging ? 0.85 : 1,
+        animation:   removing ? 'wt-remove 0.35s cubic-bezier(0.4, 0, 1, 1) forwards' : undefined,
       }
 
   return (
@@ -396,15 +402,13 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
           bodyDrag.current = null
         }
       }}
-      onMouseEnter={() => setActive(true)}
-      onMouseLeave={() => { if (!showSettings && !dragging) setActive(false) }}
       onTouchStart={onContainerTouchStart}
       onTouchMove={onContainerTouchMove}
       onTouchEnd={onContainerTouchEnd}
     >
       {/* Widget frame — content fills the entire frame, no overlapping header */}
       <div
-        className="wt-widget-frame w-full h-full overflow-hidden border"
+        className={`wt-widget-frame w-full h-full overflow-hidden border${frameAnim === 'entrance' ? ' wt-widget-entrance' : frameAnim === 'settle' ? ' wt-widget-settle' : ''}`}
         style={{
           borderRadius:    fullscreen && fsExpanded ? 0 : '1rem',
           transition:      `border-radius 0.3s ${FS_EASE}, border-color 0.15s, box-shadow 0.15s`,
@@ -418,7 +422,15 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
             : `0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm)`,
         }}
       >
-        <div className={`w-full h-full overflow-hidden${refSize ? ' flex items-center justify-center' : ''}`}>
+        <div
+          className={refSize ? 'flex items-center justify-center overflow-hidden' : 'wt-content-fade'}
+          style={{
+            width:      (showSettings || isClosing) && isSplit ? `calc(100% - ${SETTINGS_W}px)` : '100%',
+            height:     '100%',
+            transition: 'width 0.25s ease',
+            flexShrink: 0,
+          }}
+        >
           <div style={{
             width:           refSize ? refSize.width  : '100%',
             height:          refSize ? refSize.height : '100%',
@@ -429,48 +441,150 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
             {children}
           </div>
         </div>
+
+        {/* Settings panel — slides in from right inside the frame */}
+        {(showSettings || isClosing) && hasSettings && (
+          <div
+            onPointerDown={(e) => e.stopPropagation()}
+            style={{
+              position:      'absolute',
+              top:           0, right: 0, bottom: 0,
+              width:         isSplit ? SETTINGS_W : '100%',
+              display:       'flex',
+              flexDirection: 'column',
+              overflow:      'hidden',
+              zIndex:        5,
+              background:    'var(--wt-settings-bg)',
+              borderLeft:    isSplit ? '1px solid var(--wt-settings-divider)' : undefined,
+              animation:     isClosing
+                ? 'wt-settings-out 0.13s ease forwards'
+                : 'wt-settings-in 0.25s cubic-bezier(0.34, 1.2, 0.64, 1) forwards',
+            }}
+          >
+            <div
+              className="flex items-center justify-between px-4 py-3 flex-shrink-0"
+              style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}
+            >
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--wt-settings-label)' }}>
+                Settings
+              </span>
+              <IconButton icon="X" size="sm" variant="ghost" onClick={closeSettings} />
+            </div>
+            <div className="flex-1 settings-scroll overflow-y-auto px-4 py-4 space-y-4">
+              {hasPrefs && <PreferenceFields widgetId={id} preferences={preferences!} />}
+              {hasPrefs && settingsContent && (
+                <div style={{ borderTop: '1px solid var(--wt-settings-divider)' }} className="pt-4">
+                  {settingsContent}
+                </div>
+              )}
+              {!hasPrefs && settingsContent}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Corner action buttons — top-right overlay */}
+      {/* Bottom action dock */}
       <div
-        className="absolute flex flex-row gap-1 p-1 rounded-xl transition-opacity duration-100"
+        className="wt-pill flex flex-row items-center gap-1 p-1.5"
         style={{
-          top: 8, right: 8, zIndex: 20,
-          backgroundColor: 'var(--wt-action-bg)',
-          border:          '1px solid var(--wt-action-border)',
-          boxShadow:       'var(--wt-shadow-md)',
-          opacity:         isActive ? 1 : 0,
-          pointerEvents:   isActive ? 'auto' : 'none',
+          position:     'absolute',
+          bottom:       10,
+          left:         '50%',
+          transform:    isActive ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(6px)',
+          transition:   'opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
+          opacity:      isActive ? 1 : 0,
+          pointerEvents: isActive ? 'auto' : 'none',
+          zIndex:       20,
+          borderRadius: 14,
+          whiteSpace:   'nowrap',
         }}
         onPointerDown={(e) => e.stopPropagation()}
       >
         {hasSettings && (
-          <IconButton icon="GearSix" size="sm" onClick={toggleSettings} />
+          <IconButton icon="GearSix" size="md" variant={showSettings ? 'active' : 'default'} onClick={toggleSettings} />
         )}
         <IconButton
           icon={fullscreen ? 'ArrowsInSimple' : 'ArrowsOutSimple'}
-          size="sm"
+          size="md"
           onClick={() => {
             if (fullscreen) { exitFullscreen(() => setFocusedWidget(null)) }
-            else            { enterFullscreen(); setFocusedWidget(id)  }
+            else            { enterFullscreen(); setFocusedWidget(id) }
           }}
         />
+        <div style={{ width: 1, height: 18, background: 'var(--wt-border)', margin: '0 2px' }} />
         <button
-          className="wt-action-btn wt-action-btn-danger"
-          style={confirmDelete ? { background: '#ef4444', color: '#fff', paddingLeft: 6, paddingRight: 6, borderRadius: 6 } : undefined}
+          className="wt-ibtn rounded-md p-1.5"
+          style={{
+            color:           '#fff',
+            backgroundColor: 'var(--wt-danger)',
+            boxShadow:       '0 3px 0 rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
+            transform:       'translateY(-2px)',
+          }}
           onClick={() => {
-            if (confirmDelete) {
-              if (deleteTimer.current) clearTimeout(deleteTimer.current)
-              removeWidget(id)
-            } else {
-              setConfirmDelete(true)
-              deleteTimer.current = setTimeout(() => setConfirmDelete(false), 3000)
-            }
+            setConfirmDelete(true)
+            if (deleteTimer.current) clearTimeout(deleteTimer.current)
+            deleteTimer.current = setTimeout(() => setConfirmDelete(false), 3000)
           }}
         >
-          {confirmDelete ? <span style={{ fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap' }}>Remove?</span> : <Icon icon="X" size={13} />}
+          <Icon icon="Trash" size={14} />
         </button>
       </div>
+
+      {/* Delete confirmation popup */}
+      {confirmDelete && (
+        <div
+          style={{
+            position:        'absolute',
+            top:             '50%',
+            left:            '50%',
+            transform:       'translate(-50%, -50%)',
+            zIndex:          21,
+            borderRadius:    14,
+            whiteSpace:      'nowrap',
+            display:         'flex',
+            flexDirection:   'column',
+            alignItems:      'center',
+            gap:             8,
+            padding:         12,
+            background:      'var(--wt-bg)',
+            border:          '1px solid var(--wt-border)',
+            backdropFilter:  'var(--wt-backdrop)',
+            boxShadow:       '0 5px 0 rgba(0,0,0,0.18), 0 8px 20px rgba(0,0,0,0.12)',
+            animation:       'wt-entrance 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--wt-text)' }}>Remove widget?</span>
+          <div className="flex gap-2">
+            <button
+              className="wt-ibtn rounded-md px-3 py-1"
+              style={{ fontSize: 12, fontWeight: 500 }}
+              onClick={() => { setConfirmDelete(false) }}
+            >
+              Cancel
+            </button>
+            <button
+              className="wt-ibtn rounded-md px-3 py-1"
+              style={{
+                fontSize:        12,
+                fontWeight:      600,
+                color:           '#fff',
+                backgroundColor: 'var(--wt-danger)',
+                boxShadow:       '0 3px 0 rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
+                transform:       'translateY(-2px)',
+              }}
+              onClick={() => {
+                if (deleteTimer.current) clearTimeout(deleteTimer.current)
+                setConfirmDelete(false)
+                setRemoving(true)
+                setTimeout(() => removeWidget(id), 340)
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Resize corner + edge handles — free-floating only */}
       {!slotAssigned && isActive && !dragging && !fullscreen && !(focusedWidgetId && focusedWidgetId !== id) && (
@@ -527,41 +641,6 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         </>
       )}
 
-      {/* Settings panel */}
-      {showSettings && hasSettings && (
-        <div
-          ref={panelRef}
-          onPointerDown={(e) => e.stopPropagation()}
-          className={`absolute rounded-2xl flex flex-col overflow-hidden wt-settings-panel ${animClass}`}
-          style={{
-            width: PANEL_WIDTH, maxHeight: panelMaxH, top: panelTop, left: panelLeft,
-            border:     '1px solid var(--wt-settings-border)',
-            boxShadow:  'var(--wt-shadow-lg)',
-            backdropFilter: 'var(--wt-backdrop)',
-          }}
-        >
-          <div
-            className="flex items-center justify-between px-4 py-3 flex-shrink-0 wt-settings-divider"
-            style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}
-          >
-            <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--wt-settings-label)' }}>
-              Settings
-            </span>
-            <button className="wt-action-btn" style={{ width: '1.25rem', height: '1.25rem', borderRadius: '9999px' }} onClick={closeSettings}>
-              <Icon icon="X" size={11} />
-            </button>
-          </div>
-          <div className="flex-1 settings-scroll overflow-y-auto px-4 py-4 space-y-4">
-            {hasPrefs && <PreferenceFields widgetId={id} preferences={preferences!} />}
-            {hasPrefs && settingsContent && (
-              <div style={{ borderTop: '1px solid var(--wt-settings-divider)' }} className="pt-4">
-                {settingsContent}
-              </div>
-            )}
-            {!hasPrefs && settingsContent}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

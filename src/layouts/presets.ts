@@ -9,6 +9,11 @@ export const LAYOUT_PRESETS: Layout[] = [
     slots: [],
   },
   {
+    id:    'custom',
+    name:  'Custom (AI)',
+    slots: [], // slots are stored on the board itself
+  },
+  {
     id: 'focus',
     name: 'Focus',
     slots: [

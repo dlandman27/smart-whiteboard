@@ -7,7 +7,7 @@ interface Props {
 
 export function SettingsPanel({ onClose }: Props) {
   return (
-    <Panel width={340} onClose={onClose}>
+    <Panel width={432} onClose={onClose}>
       <PanelHeader title="Theme" onClose={onClose} />
       <div className="px-3 py-3">
         <ThemePicker />

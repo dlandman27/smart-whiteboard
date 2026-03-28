@@ -44,9 +44,14 @@ export function useLayout() {
   const boards        = useWhiteboardStore((s) => s.boards)
   const activeBoardId = useWhiteboardStore((s) => s.activeBoardId)
   const activeBoard   = boards.find((b) => b.id === activeBoardId)
-  const layout        = getLayoutPreset(activeBoard?.layoutId ?? 'dashboard')
   const slotGap       = activeBoard?.slotGap ?? DEFAULT_SLOT_GAP
   const slotPad       = activeBoard?.slotPad ?? DEFAULT_SLOT_PAD
+
+  const layoutId = activeBoard?.layoutId ?? 'dashboard'
+  const preset   = getLayoutPreset(layoutId)
+  const layout   = layoutId === 'custom' && activeBoard?.customSlots
+    ? { ...preset, slots: activeBoard.customSlots }
+    : preset
 
   const [canvas, setCanvas] = useState(getWindowCanvas)
 
