@@ -7,7 +7,7 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "mcp": "tsx mcp/server.ts",
     "start:kiosk": "concurrently \"npm run server\" \"npm run client\" \"node scripts/kiosk.js\"",
-    "client": "vite",
+    "client": "vite --host",
     "server": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
@@ -15,6 +15,7 @@
     "build-storybook": "storybook build"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
     "@modelcontextprotocol/sdk": "^1.28.0",
     "@notionhq/client": "^2.2.15",
     "@phosphor-icons/react": "^2.1.10",
@@ -28,6 +29,7 @@
     "express": "^4.19.2",
     "googleapis": "^144.0.0",
     "lucide-react": "^0.400.0",
+    "openai": "^6.33.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-rnd": "^10.4.1",
@@ -43,6 +45,7 @@
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",

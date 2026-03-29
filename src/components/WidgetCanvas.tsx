@@ -21,7 +21,8 @@ export function WidgetCanvas({ slideDir, activeTool, pendingWidget, onClearPendi
   const { slotMap, layout } = useLayout()
 
   const activeIndex = boards.findIndex((b) => b.id === activeBoardId)
-  const widgets     = boards[activeIndex]?.widgets ?? []
+  const rawWidgets  = boards[activeIndex]?.widgets ?? []
+  const widgets     = rawWidgets.filter((w, i, arr) => arr.findIndex((x) => x.id === w.id) === i)
   const isFreeform  = layout.slots.length === 0
 
   // Track which widget is being dragged and which slot is hovered
@@ -136,14 +137,6 @@ export function WidgetCanvas({ slideDir, activeTool, pendingWidget, onClearPendi
       className={`absolute inset-0 ${slideDir === 'right' ? 'board-slide-right' : 'board-slide-left'}`}
       onClick={handleCanvasClick}
     >
-      {widgets.length === 0 && activeTool === 'pointer' && !pendingWidget && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <Text variant="body" color="muted">This board is empty</Text>
-          <Text variant="body" size="medium" color="muted" className="mt-1">
-            Draw freely, or click <Text as="span" variant="label" color="muted">Add Widget</Text> to pin content
-          </Text>
-        </div>
-      )}
 
       {/* Slot zones — visible when adding a widget or dragging */}
       <LayoutSlots

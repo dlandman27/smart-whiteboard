@@ -2,6 +2,7 @@ import type { PluginPreference } from '@whiteboard/sdk'
 import { ClockWidget } from './ClockWidget'
 import { ClockSettings } from './ClockSettings'
 import { WeatherWidget } from './WeatherWidget'
+import { WeatherSettings } from './WeatherSettings'
 import { WeightWidget } from './WeightWidget'
 import { WeightSettings } from './WeightSettings'
 import { TasksWidget } from './TasksWidget'
@@ -17,6 +18,10 @@ import { NFLWidget, NBAWidget } from './SportsWidget'
 import { NFLSettings, NBASettings } from './SportsSettings'
 import { NoteWidget } from './NoteWidget'
 import { PomodoroWidget, PomodoroSettings } from './PomodoroWidget'
+
+import { GroceryWidget, GrocerySettings } from './GroceryWidget'
+import { YouTubeWidget, YouTubeSettings } from './YouTubeWidget'
+import { WorldcupWidget } from './WorldcupWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 
@@ -105,14 +110,15 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     settingsComponent: RoutinesSettings,
   },
   {
-    type:        '@whiteboard/weather',
-    label:       'Weather',
-    Icon:        'Sun',
-    iconBg:      'bg-amber-50',
-    iconClass:   'text-amber-500',
-    keywords:    ['weather', 'temperature', 'forecast', 'rain', 'sun'],
-    defaultSize: { width: 300, height: 220 },
-    component:   WeatherWidget,
+    type:              '@whiteboard/weather',
+    label:             'Weather',
+    Icon:              'Sun',
+    iconBg:            'bg-amber-50',
+    iconClass:         'text-amber-500',
+    keywords:          ['weather', 'temperature', 'forecast', 'rain', 'sun'],
+    defaultSize:       { width: 300, height: 220 },
+    component:         WeatherWidget,
+    settingsComponent: WeatherSettings,
   },
   {
     type:             '@whiteboard/nfl',
@@ -166,6 +172,38 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     keywords:    ['html', 'custom', 'code', 'embed', 'dynamic'],
     defaultSize: { width: 400, height: 300 },
     component:   HtmlWidget,
+  },
+  {
+    type:              '@whiteboard/grocery',
+    label:             'Grocery List',
+    Icon:              'ShoppingCart',
+    iconBg:            'bg-green-50',
+    iconClass:         'text-green-600',
+    keywords:          ["grocery","shopping","list","food","store"],
+    defaultSize:       { width: 340, height: 520 },
+    component:         GroceryWidget,
+    settingsComponent: GrocerySettings,
+  },
+  {
+    type:              '@whiteboard/youtube',
+    label:             'YouTube',
+    Icon:              'YoutubeLogo',
+    iconBg:            'bg-red-50',
+    iconClass:         'text-red-500',
+    keywords:          ['youtube', 'video', 'watch', 'stream', 'music', 'embed'],
+    defaultSize:       { width: 560, height: 360 },
+    component:         YouTubeWidget,
+    settingsComponent: YouTubeSettings,
+  },
+  {
+    type:              '@whiteboard/worldcup',
+    label:             'World Cup 2026',
+    Icon:              'Trophy',
+    iconBg:            'bg-yellow-50',
+    iconClass:         'text-yellow-500',
+    keywords:          ["world cup","fifa","soccer","football","scores","espn","2026"],
+    defaultSize:       { width: 380, height: 540 },
+    component:         WorldcupWidget,
   },
 ]
 

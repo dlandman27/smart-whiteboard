@@ -28,8 +28,9 @@ export const fontSize = {
 } as const
 
 export const fontFamily = {
-  base: "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
-  mono: 'JetBrains Mono, ui-monospace, SFMono-Regular, monospace',
+  base:    "'Plus Jakarta Sans', system-ui, -apple-system, sans-serif",
+  mono:    'JetBrains Mono, ui-monospace, SFMono-Regular, monospace',
+  display: "'Lora', Georgia, 'Times New Roman', serif",
 } as const
 
 export const fontWeight = {

@@ -4,7 +4,12 @@
       "Bash(cat:*)",
       "Bash(node -e \"import\\(''''@modelcontextprotocol/sdk/server/mcp.js''''\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\)\")",
       "Bash(node -e \"import\\(''''@modelcontextprotocol/sdk/server/stdio.js''''\\).then\\(m => console.log\\(Object.keys\\(m\\)\\)\\)\")",
-      "Bash(node -e \":*)"
+      "Bash(node -e \":*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm install:*)",
+      "Bash(find C:UsersdylanDocumentsprojectssmart-whiteboardnode_modules@picovoiceporcupine-web -name *.pv)",
+      "Bash(find C:/Users/dylan/Documents/projects/smart-whiteboard/node_modules/@picovoice/porcupine-web -name *.pv -o -name *params*)",
+      "Bash(curl -L \"https://github.com/Picovoice/porcupine/raw/master/lib/common/porcupine_params.pv\" -o \"C:/Users/dylan/Documents/projects/smart-whiteboard/public/models/porcupine_params.pv\")"
     ]
   }
 }

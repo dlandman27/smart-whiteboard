@@ -27,7 +27,7 @@ export const useThemeStore = create<ThemeStore>()(
 
       setTheme: (id) => {
         const theme = THEME_MAP[id]
-        set({ activeThemeId: id, customOverrides: {}, customTheme: null, ...(theme ? { background: theme.background } : {}) })
+        set({ activeThemeId: id, customOverrides: {}, customTheme: null })
         if (theme) applyThemeVars(theme.vars)
       },
 

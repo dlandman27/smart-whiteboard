@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { Icon, IconButton, Panel, PanelHeader, Input, Button, Text } from '../ui/web'
+import { BoardThumbnail } from './BoardThumbnail'
 
 interface Props {
   onClose:  () => void
@@ -72,16 +73,23 @@ export function BoardMenu({ onClose, onSlide }: Props) {
               <button
                 onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => !isActive && switchBoard(board.id)}
-                className="flex-1 flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-colors"
+                className="flex-1 flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors"
                 style={{
                   background: isActive ? 'color-mix(in srgb, var(--wt-accent) 10%, transparent)' : 'transparent',
                   cursor:     isActive ? 'default' : 'pointer',
                 }}
               >
+                {/* Board thumbnail */}
                 <div
-                  className="w-1.5 h-1.5 rounded-full flex-shrink-0 transition-all"
-                  style={{ background: isActive ? 'var(--wt-accent)' : 'var(--wt-border)' }}
-                />
+                  className="flex-shrink-0 rounded-lg overflow-hidden transition-all"
+                  style={{
+                    boxShadow: isActive
+                      ? `0 0 0 1.5px var(--wt-accent)`
+                      : `0 0 0 1px var(--wt-border)`,
+                  }}
+                >
+                  <BoardThumbnail board={board} width={60} height={40} />
+                </div>
                 <Text variant="body" size="small" style={{ flex: 1 }}>{board.name}</Text>
                 {isActive && <Icon icon="Check" size={12} style={{ color: 'var(--wt-accent)', opacity: 0.7 }} />}
               </button>

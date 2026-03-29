@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
+import { useUndoStore } from '../store/undo'
 import { Icon, IconButton, Input } from '../ui/web'
 import type { PluginPreference } from '@whiteboard/sdk'
 
@@ -577,7 +578,15 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
                 if (deleteTimer.current) clearTimeout(deleteTimer.current)
                 setConfirmDelete(false)
                 setRemoving(true)
-                setTimeout(() => removeWidget(id), 340)
+                // Snapshot widget before removal so it can be restored
+                const state      = useWhiteboardStore.getState()
+                const snapshot   = state.boards
+                  .find((b) => b.id === state.activeBoardId)
+                  ?.widgets.find((w) => w.id === id)
+                setTimeout(() => {
+                  removeWidget(id)
+                  if (snapshot) useUndoStore.getState().push('Widget removed', snapshot)
+                }, 340)
               }}
             >
               Remove

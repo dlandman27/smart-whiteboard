@@ -7,6 +7,7 @@ import { createServer } from 'http'
 import { WebSocketServer, WebSocket } from 'ws'
 import { Client } from '@notionhq/client'
 import { google } from 'googleapis'
+import Anthropic from '@anthropic-ai/sdk'
 
 dotenv.config()
 
@@ -126,6 +127,27 @@ app.post('/api/canvas/board/:id/activate', (req, res) => {
   res.json({ ok: true })
 })
 
+// ── YouTube search proxy ──────────────────────────────────────────────────────
+
+app.get('/api/youtube/search', async (req, res) => {
+  const query  = req.query.q as string
+  const apiKey = process.env.YOUTUBE_API_KEY
+  if (!query)  return res.status(400).json({ error: 'Missing q param' })
+  if (!apiKey) return res.status(500).json({ error: 'YOUTUBE_API_KEY not set' })
+  try {
+    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=1&q=${encodeURIComponent(query)}&key=${apiKey}`
+    const data = await fetch(url).then((r) => r.json()) as any
+    const item = data.items?.[0]
+    if (!item) return res.json({ videoId: null })
+    res.json({
+      videoId: item.id.videoId,
+      title:   item.snippet.title,
+    })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
+})
+
 // ── Sports (ESPN proxy) ───────────────────────────────────────────────────────
 
 const ESPN_URLS: Record<string, string> = {
@@ -215,9 +237,34 @@ app.delete('/api/pages/:id', async (req, res) => {
   }
 })
 
+// Stored parent page for AI-created databases — configured once via MCP
+app.get('/api/notion/workspace-page', (_req, res) => {
+  const tokens = loadTokens()
+  const pageId = tokens?.notion_parent_page_id ?? process.env.NOTION_PARENT_PAGE_ID ?? null
+  res.json({ pageId })
+})
+
+app.post('/api/notion/workspace-page', (req, res) => {
+  const { pageId } = req.body
+  if (!pageId) return res.status(400).json({ error: 'pageId required' })
+  saveTokens({ notion_parent_page_id: pageId })
+  res.json({ ok: true })
+})
+
 app.post('/api/notion/databases', async (req, res) => {
   try {
-    const { parentPageId, title, properties } = req.body
+    const tokens = loadTokens()
+    const { title, properties } = req.body
+    const parentPageId = req.body.parentPageId
+      ?? tokens?.notion_parent_page_id
+      ?? process.env.NOTION_PARENT_PAGE_ID
+
+    if (!parentPageId) {
+      return res.status(400).json({
+        error: 'No Notion parent page configured. Use set_notion_workspace_page to set one.',
+      })
+    }
+
     const db = await notion.databases.create({
       parent:     { type: 'page_id', page_id: parentPageId },
       title:      [{ type: 'text', text: { content: title } }],
@@ -476,6 +523,377 @@ app.get('/api/spotify/now-playing', async (_req, res) => {
       externalUrl: data.item.external_urls?.spotify ?? '',
     })
   } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// ── Voice assistant ───────────────────────────────────────────────────────────
+
+const VOICE_THEMES = ['minimal','slate','paper','amber','rose','glass','sage','midnight','stark','forest','ocean','terminal','carbon','dusk','espresso','slate-dark']
+
+// Internal fetch — calls the same Express routes that the MCP server uses,
+// so tool implementations live in one place.
+async function canvasApi(method: string, path: string, body?: unknown): Promise<any> {
+  const port = Number(process.env.PORT) || 3001
+  const res  = await fetch(`http://localhost:${port}${path}`, {
+    method,
+    headers: body ? { 'Content-Type': 'application/json' } : {},
+    body:    body ? JSON.stringify(body) : undefined,
+  })
+  return res.json().catch(() => ({}))
+}
+
+const VOICE_TOOLS: Anthropic.Tool[] = [
+  {
+    name:        'get_board_state',
+    description: 'Get all widgets on the active board plus all boards. Always call this first when the user references a widget, list, or board by name.',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name:        'add_notion_item',
+    description: 'Add an item to a Notion-backed widget (tasks, grocery list, etc.). Use get_board_state first to find the databaseId in the widget settings.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        databaseId: { type: 'string', description: 'Notion database ID from widget settings' },
+        title:      { type: 'string', description: 'Item text to add' },
+      },
+      required: ['databaseId', 'title'],
+    },
+  },
+  {
+    name:        'check_off_item',
+    description: 'Mark a Notion task or item as done.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        pageId: { type: 'string', description: 'Notion page ID of the item' },
+      },
+      required: ['pageId'],
+    },
+  },
+  {
+    name:        'create_widget',
+    description: 'Add a new widget to the board. Available types: @whiteboard/clock, @whiteboard/weather, @whiteboard/tasks, @whiteboard/note, @whiteboard/pomodoro, @whiteboard/countdown, @whiteboard/quote, @whiteboard/routines, @whiteboard/nfl, @whiteboard/nba, @whiteboard/html.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        widgetType: { type: 'string' },
+        x:          { type: 'number', description: 'Horizontal position in pixels' },
+        y:          { type: 'number', description: 'Vertical position in pixels' },
+        width:      { type: 'number' },
+        height:     { type: 'number' },
+        settings:   { type: 'object' },
+      },
+      required: ['widgetType'],
+    },
+  },
+  {
+    name:        'update_widget',
+    description: 'Move, resize, or change settings on a widget. Use get_board_state to find the widget ID.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        id:       { type: 'string' },
+        x:        { type: 'number' },
+        y:        { type: 'number' },
+        width:    { type: 'number' },
+        height:   { type: 'number' },
+        settings: { type: 'object' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name:        'delete_widget',
+    description: 'Remove a widget from the board. Use get_board_state to find the widget ID.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name:        'focus_widget',
+    description: 'Expand a widget to fullscreen. Use get_board_state to find the widget ID. Call unfocus_widget to exit.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name:         'unfocus_widget',
+    description:  'Exit fullscreen and return the widget to its normal size.',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name:        'set_theme',
+    description: `Change the whiteboard theme. Available: ${VOICE_THEMES.join(', ')}`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        themeId: { type: 'string', enum: VOICE_THEMES },
+      },
+      required: ['themeId'],
+    },
+  },
+  {
+    name:        'list_boards',
+    description: 'List all boards and which one is active.',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name:        'create_board',
+    description: 'Create a new board.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        name: { type: 'string' },
+      },
+      required: ['name'],
+    },
+  },
+  {
+    name:        'switch_board',
+    description: 'Switch to a different board. Use get_board_state or list_boards to find board IDs.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name:        'rename_board',
+    description: 'Rename an existing board.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        id:   { type: 'string' },
+        name: { type: 'string' },
+      },
+      required: ['id', 'name'],
+    },
+  },
+  {
+    name:        'delete_board',
+    description: 'Delete a board. Cannot delete the last board.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        id: { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name:        'start_timer',
+    description: 'Start a pomodoro focus session on an existing Pomodoro widget.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        widgetId: { type: 'string' },
+      },
+      required: ['widgetId'],
+    },
+  },
+  {
+    name:        'search_youtube',
+    description: 'Search YouTube for a video and display it in a YouTube widget. Use get_board_state first to find an existing YouTube widget ID, or create one if none exists.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query:    { type: 'string', description: 'Search query, e.g. "lofi hip hop" or "how to make pasta"' },
+        widgetId: { type: 'string', description: 'YouTube widget ID to update. If omitted, a new widget is created.' },
+      },
+      required: ['query'],
+    },
+  },
+]
+
+async function executeVoiceTool(name: string, input: Record<string, any>): Promise<string> {
+  switch (name) {
+
+    case 'get_board_state': {
+      const [widgetData, boardData] = await Promise.all([
+        canvasApi('GET', '/api/canvas/widgets'),
+        canvasApi('GET', '/api/canvas/boards'),
+      ])
+      return JSON.stringify({
+        activeBoardId:   boardData.activeBoardId,
+        activeBoardName: (boardData.boards ?? []).find((b: any) => b.id === boardData.activeBoardId)?.name ?? 'Unknown',
+        boards:          (boardData.boards ?? []).map((b: any) => ({ id: b.id, name: b.name })),
+        canvas:          widgetData.canvas,
+        widgets:         widgetData.widgets,
+      })
+    }
+
+    case 'add_notion_item': {
+      const { databaseId, title } = input as { databaseId: string; title: string }
+      await notion.pages.create({
+        parent:     { database_id: databaseId },
+        properties: { Name: { title: [{ text: { content: title } }] } },
+      })
+      return `Added "${title}"`
+    }
+
+    case 'check_off_item': {
+      await notion.pages.update({
+        page_id:    input.pageId,
+        properties: { Status: { status: { name: 'Done' } } },
+      })
+      return `Checked off item ${input.pageId}`
+    }
+
+    case 'create_widget': {
+      const { id } = await canvasApi('POST', '/api/canvas/widget', input)
+      return `Created ${input.widgetType} widget (id: ${id})`
+    }
+
+    case 'update_widget': {
+      const { id, ...rest } = input
+      await canvasApi('PATCH', `/api/canvas/widget/${id}`, rest)
+      return `Updated widget ${id}`
+    }
+
+    case 'delete_widget': {
+      await canvasApi('DELETE', `/api/canvas/widget/${input.id}`)
+      return `Deleted widget ${input.id}`
+    }
+
+    case 'focus_widget': {
+      await canvasApi('POST', '/api/canvas/focus-widget', { id: input.id })
+      return `Widget ${input.id} fullscreened`
+    }
+
+    case 'unfocus_widget': {
+      await canvasApi('POST', '/api/canvas/focus-widget', {})
+      return 'Fullscreen exited'
+    }
+
+    case 'set_theme': {
+      await canvasApi('POST', '/api/canvas/theme', { themeId: input.themeId })
+      return `Theme set to ${input.themeId}`
+    }
+
+    case 'list_boards': {
+      const data = await canvasApi('GET', '/api/canvas/boards')
+      return JSON.stringify(data)
+    }
+
+    case 'create_board': {
+      const { id } = await canvasApi('POST', '/api/canvas/board', { name: input.name })
+      return `Created board "${input.name}" (id: ${id})`
+    }
+
+    case 'switch_board': {
+      await canvasApi('POST', `/api/canvas/board/${input.id}/activate`)
+      return `Switched to board ${input.id}`
+    }
+
+    case 'rename_board': {
+      await canvasApi('PATCH', `/api/canvas/board/${input.id}`, { name: input.name })
+      return `Renamed board to "${input.name}"`
+    }
+
+    case 'delete_board': {
+      await canvasApi('DELETE', `/api/canvas/board/${input.id}`)
+      return `Deleted board ${input.id}`
+    }
+
+    case 'start_timer': {
+      broadcast({ type: 'widget_event', widgetId: input.widgetId, event: 'start' })
+      return 'Timer started'
+    }
+
+    case 'search_youtube': {
+      const port   = Number(process.env.PORT) || 3001
+      const result = await fetch(`http://localhost:${port}/api/youtube/search?q=${encodeURIComponent(input.query)}`)
+        .then((r) => r.json()) as { videoId?: string; title?: string; error?: string }
+      if (result.error) return `YouTube search failed: ${result.error}`
+      if (!result.videoId) return `No video found for "${input.query}"`
+
+      const settings = { videoId: result.videoId, title: result.title ?? '' }
+
+      if (input.widgetId) {
+        await canvasApi('PATCH', `/api/canvas/widget/${input.widgetId}`, { settings })
+        return `Now playing: ${result.title}`
+      }
+
+      const { id } = await canvasApi('POST', '/api/canvas/widget', {
+        widgetType: '@whiteboard/youtube',
+        width: 560, height: 360,
+        label: 'YouTube',
+        settings,
+      })
+      return `Created YouTube widget playing: ${result.title} (id: ${id})`
+    }
+
+    default:
+      return `Unknown tool: ${name}`
+  }
+}
+
+app.post('/api/voice', async (req, res) => {
+  const { text } = req.body as { text?: string }
+  if (!text?.trim()) return res.json({ response: '' })
+
+  const apiKey = process.env.VITE_ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set' })
+
+  try {
+    const anthropic = new Anthropic({ apiKey })
+    const messages: Anthropic.MessageParam[] = [
+      { role: 'user', content: text.trim() },
+    ]
+
+    let finalText = 'Done.'
+
+    // Agentic loop — up to 5 turns to handle multi-step commands
+    for (let turn = 0; turn < 5; turn++) {
+      const response = await anthropic.messages.create({
+        model:      'claude-haiku-4-5-20251001',
+        max_tokens: 512,
+        system: [
+          'You are a voice assistant for a smart whiteboard wall display.',
+          'The user speaks commands and you execute them using tools.',
+          'Always use get_board_state first if you need to find a widget ID or database ID.',
+          'Reply with ONE short sentence (max 8 words) confirming what you did.',
+          'Do not explain, just confirm. Example: "Added milk to your grocery list."',
+          `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.`,
+        ].join(' '),
+        tools:    VOICE_TOOLS,
+        messages,
+      })
+
+      if (response.stop_reason === 'end_turn') {
+        const textBlock = response.content.find((b) => b.type === 'text')
+        finalText = (textBlock as Anthropic.TextBlock)?.text ?? 'Done.'
+        break
+      }
+
+      if (response.stop_reason === 'tool_use') {
+        const toolResults: Anthropic.ToolResultBlockParam[] = []
+        for (const block of response.content) {
+          if (block.type === 'tool_use') {
+            const result = await executeVoiceTool(block.name, block.input as Record<string, any>)
+            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result })
+          }
+        }
+        messages.push({ role: 'assistant', content: response.content })
+        messages.push({ role: 'user',      content: toolResults })
+      }
+    }
+
+    res.json({ response: finalText })
+  } catch (error: any) {
+    console.error('Voice API error:', error.message)
     res.status(500).json({ error: error.message })
   }
 })

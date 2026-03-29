@@ -1518,7 +1518,9 @@ export const CSS_VAR_MAP: Record<keyof ThemeVars, string> = {
 
 export function applyThemeVars(vars: ThemeVars) {
   const root = document.documentElement
+  root.classList.add('theme-transitioning')
   for (const [key, cssVar] of Object.entries(CSS_VAR_MAP)) {
     root.style.setProperty(cssVar, vars[key as keyof ThemeVars])
   }
+  setTimeout(() => root.classList.remove('theme-transitioning'), 450)
 }

@@ -93,11 +93,12 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
 
       addWidget: (widget) =>
         set((s) => ({
-          boards: s.boards.map((b) =>
-            b.id === s.activeBoardId
-              ? { ...b, widgets: [...b.widgets, { ...widget, id: (widget as any).id ?? crypto.randomUUID() }] }
-              : b
-          ),
+          boards: s.boards.map((b) => {
+            if (b.id !== s.activeBoardId) return b
+            const id = (widget as any).id ?? crypto.randomUUID()
+            if (b.widgets.some((w) => w.id === id)) return b  // dedup
+            return { ...b, widgets: [...b.widgets, { ...widget, id }] }
+          }),
         })),
 
       updateLayout: (id, updates) =>

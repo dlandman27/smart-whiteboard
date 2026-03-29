@@ -1,6 +1,12 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
+import { promises as fs } from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const SRC_WIDGETS_DIR = path.join(__dirname, '../src/components/widgets')
 
 const BASE_URL = process.env.WHITEBOARD_URL ?? 'http://localhost:3001'
 
@@ -13,7 +19,139 @@ const WIDGET_DEFAULTS: Record<string, { width: number; height: number; label: st
   '@whiteboard/countdown': { width: 300, height: 240, label: 'Countdown' },
   '@whiteboard/quote':     { width: 360, height: 260, label: 'Quote of the Day' },
   '@whiteboard/routines':  { width: 320, height: 480, label: 'Routines' },
+  '@whiteboard/note':      { width: 320, height: 200, label: 'Note' },
+  '@whiteboard/pomodoro':  { width: 280, height: 340, label: 'Pomodoro Timer' },
+  '@whiteboard/nfl':       { width: 340, height: 420, label: 'NFL Scores' },
+  '@whiteboard/nba':       { width: 340, height: 420, label: 'NBA Scores' },
   '@whiteboard/html':      { width: 400, height: 300, label: 'Custom' },
+}
+
+// ── Widget settings schemas ────────────────────────────────────────────────────
+// Describes every configurable setting for each widget type.
+// Used by describe_widget_type and referenced in create_widget / update_widget.
+
+interface FieldSchema {
+  type:        string
+  description: string
+  default?:    unknown
+  enum?:       string[]
+  min?:        number
+  max?:        number
+}
+
+const WIDGET_SETTINGS_SCHEMAS: Record<string, {
+  description: string
+  settings:    Record<string, FieldSchema>
+}> = {
+  '@whiteboard/clock': {
+    description: 'Displays the current time. Supports digital and analog modes with timezone support.',
+    settings: {
+      display:         { type: 'string',  enum: ['digital', 'analog'], description: 'Clock face style', default: 'digital' },
+      use24h:          { type: 'boolean', description: 'Use 24-hour format (digital only)', default: false },
+      showSeconds:     { type: 'boolean', description: 'Show seconds (digital only)', default: true },
+      showDate:        { type: 'boolean', description: 'Show date below the clock', default: true },
+      font:            { type: 'string',  enum: ['thin', 'mono', 'serif'], description: 'Font style (digital only): thin = sans-serif, mono = monospace, serif = Lora serif', default: 'thin' },
+      timezone:        { type: 'string',  description: 'IANA timezone string e.g. "America/New_York", "Europe/London", "Asia/Tokyo". Empty string = local system time', default: '' },
+      showTimezone:    { type: 'boolean', description: 'Show timezone abbreviation label beneath the clock', default: false },
+      showHourNumbers: { type: 'boolean', description: 'Show 12/3/6/9 numerals on the analog clock face', default: false },
+    },
+  },
+
+  '@whiteboard/weather': {
+    description: 'Shows current weather conditions. Uses GPS by default or a named city.',
+    settings: {
+      unit:          { type: 'string',  enum: ['fahrenheit', 'celsius'], description: 'Temperature unit', default: 'fahrenheit' },
+      windUnit:      { type: 'string',  enum: ['mph', 'kmh', 'ms'], description: 'Wind speed unit: mph, kmh (km/h), or ms (m/s)', default: 'mph' },
+      locationQuery: { type: 'string',  description: 'City name to use instead of GPS, e.g. "Tokyo" or "New York". Empty string = use browser GPS', default: '' },
+      showFeelsLike: { type: 'boolean', description: 'Show "feels like" temperature', default: true },
+      showHumidity:  { type: 'boolean', description: 'Show humidity percentage', default: true },
+      showWind:      { type: 'boolean', description: 'Show wind speed', default: true },
+    },
+  },
+
+  '@whiteboard/weight': {
+    description: 'Tracks weight progress from a Notion database. Shows stats and/or a chart.',
+    settings: {
+      databaseId: { type: 'string',  description: 'Notion database ID. Database must have a "Date" (date) and "Weight" (number) property', default: '' },
+      goalWeight: { type: 'number',  description: 'Target goal weight (same unit as logged entries)', default: 170 },
+      view:       { type: 'string',  enum: ['stats', 'chart', 'both'], description: 'Display mode: stats only, chart only, or both', default: 'both' },
+      goalStep:   { type: 'number',  description: 'Milestone interval (e.g. 5 for every 5 lbs). Set to 0 to disable milestones', default: 0, min: 0 },
+      weeklyGoal: { type: 'number',  description: 'Weekly weight loss target. Set to 0 to disable', default: 0, min: 0 },
+    },
+  },
+
+  '@whiteboard/tasks': {
+    description: 'To-do list backed by a Notion database. Items can be checked off directly on the board.',
+    settings: {
+      databaseId: { type: 'string', description: 'Notion database ID. Database must have a "Name" (title) and "Status" (status with "Done" option) property', default: '' },
+    },
+  },
+
+  '@whiteboard/countdown': {
+    description: 'Counts down to a future date. Shows days remaining and optionally a live H:M:S timer.',
+    settings: {
+      title:      { type: 'string',  description: 'Label shown above the countdown, e.g. "Christmas" or "Vacation"', default: 'Countdown' },
+      targetDate: { type: 'string',  description: 'ISO date string in YYYY-MM-DD format, e.g. "2025-12-25"', default: '' },
+      showTime:   { type: 'boolean', description: 'Show live hours:minutes:seconds beneath the day count', default: true },
+    },
+  },
+
+  '@whiteboard/quote': {
+    description: 'Displays a quote of the day fetched from an external API. Refreshes once per day.',
+    settings: {
+      showRefresh: { type: 'boolean', description: 'Show a manual refresh button to fetch a new quote', default: true },
+      fontSize:    { type: 'string',  enum: ['sm', 'md', 'lg'], description: 'Quote text size', default: 'md' },
+      align:       { type: 'string',  enum: ['left', 'center'], description: 'Text alignment', default: 'center' },
+    },
+  },
+
+  '@whiteboard/routines': {
+    description: 'Daily routine checklist backed by a Notion database. Each day is a page with to-do blocks.',
+    settings: {
+      databaseId: { type: 'string', description: 'Notion database ID. Each page title should be a date (e.g. "Monday, March 4"). Pages contain heading and to_do blocks.', default: '' },
+    },
+  },
+
+  '@whiteboard/note': {
+    description: 'A freeform sticky note. Double-click the widget to edit. Supports font size and alignment.',
+    settings: {
+      content:  { type: 'string',  description: 'Note text content', default: '' },
+      fontSize: { type: 'number',  description: 'Font size in pixels (e.g. 16, 24, 32)', default: 24, min: 8, max: 96 },
+      align:    { type: 'string',  enum: ['left', 'center', 'right'], description: 'Text alignment', default: 'left' },
+    },
+  },
+
+  '@whiteboard/pomodoro': {
+    description: 'Pomodoro focus timer with work sessions, short breaks, and long breaks. Sends notifications when phases complete.',
+    settings: {
+      workMinutes:           { type: 'number', description: 'Duration of a focus/work session in minutes', default: 25, min: 1, max: 120 },
+      breakMinutes:          { type: 'number', description: 'Duration of a short break in minutes', default: 5, min: 1, max: 60 },
+      longBreakMinutes:      { type: 'number', description: 'Duration of a long break in minutes', default: 15, min: 1, max: 60 },
+      cyclesBeforeLongBreak: { type: 'number', description: 'Number of work cycles to complete before triggering a long break', default: 4, min: 1, max: 10 },
+    },
+  },
+
+  '@whiteboard/nfl': {
+    description: 'Shows today\'s NFL game scores. Live games update in real time.',
+    settings: {
+      favoriteTeam: { type: 'string', description: 'Team abbreviation to highlight, e.g. "KC", "SF", "DAL". Leave empty for no highlight', default: '' },
+    },
+  },
+
+  '@whiteboard/nba': {
+    description: 'Shows today\'s NBA game scores. Live games update in real time.',
+    settings: {
+      favoriteTeam: { type: 'string', description: 'Team abbreviation to highlight, e.g. "LAL", "GSW", "BOS". Leave empty for no highlight', default: '' },
+    },
+  },
+
+  '@whiteboard/html': {
+    description: 'Fully custom widget rendered as an iframe. Provide raw HTML/CSS/JS. Use create_html_widget to create one with proper layout guidance.',
+    settings: {
+      html:  { type: 'string', description: 'Complete HTML content. Can include inline <style> and <script>. Will be wrapped in a full HTML document if not already.', default: '' },
+      title: { type: 'string', description: 'Optional label shown in the widget header', default: '' },
+    },
+  },
 }
 
 async function api(method: string, path: string, body?: unknown) {
@@ -32,6 +170,48 @@ const server = new McpServer({
 })
 
 // ── Tools ─────────────────────────────────────────────────────────────────────
+
+server.registerTool(
+  'describe_widget_type',
+  {
+    description: [
+      'Get the full settings schema for a widget type — all configurable fields, their types, valid values, and defaults.',
+      'Use this before create_widget or update_widget when you need to know what settings a widget supports.',
+      `Available types: ${Object.keys(WIDGET_SETTINGS_SCHEMAS).join(', ')}`,
+    ].join(' '),
+    inputSchema: z.object({
+      widgetType: z.string().describe('Widget type, e.g. "@whiteboard/clock"'),
+    }),
+  },
+  async ({ widgetType }) => {
+    const schema = WIDGET_SETTINGS_SCHEMAS[widgetType]
+    if (!schema) {
+      return {
+        content: [{
+          type: 'text',
+          text: `Unknown widget type: "${widgetType}". Available types: ${Object.keys(WIDGET_SETTINGS_SCHEMAS).join(', ')}`,
+        }],
+      }
+    }
+    const lines = [
+      `Widget type: ${widgetType}`,
+      `Description: ${schema.description}`,
+      '',
+      'Settings:',
+      ...Object.entries(schema.settings).map(([key, field]) => {
+        const parts = [`  ${key} (${field.type})`]
+        if (field.enum)    parts.push(`  valid values: ${field.enum.join(' | ')}`)
+        if (field.min !== undefined || field.max !== undefined) {
+          parts.push(`  range: ${field.min ?? '–'}–${field.max ?? '–'}`)
+        }
+        parts.push(`  default: ${JSON.stringify(field.default)}`)
+        parts.push(`  ${field.description}`)
+        return parts.join('\n')
+      }),
+    ]
+    return { content: [{ type: 'text', text: lines.join('\n') }] }
+  }
+)
 
 server.registerTool(
   'list_widgets',
@@ -68,11 +248,11 @@ server.registerTool(
   {
     description: [
       'Add a new widget to the whiteboard.',
-      'Available widget types: @whiteboard/clock, @whiteboard/weather, @whiteboard/weight,',
-      '@whiteboard/tasks, @whiteboard/countdown, @whiteboard/quote, @whiteboard/routines.',
+      `Available widget types: ${Object.keys(WIDGET_DEFAULTS).join(', ')}.`,
       'Position (x, y) is in pixels from the top-left of the canvas.',
       'Width and height default to the widget\'s standard size if omitted.',
-      'Notion-connected widgets (@whiteboard/tasks, @whiteboard/routines) accept settings: { databaseId: "notion-db-id" } to link to a Notion database immediately on creation.',
+      'Use describe_widget_type to discover all available settings for a widget type before setting them.',
+      'Notion-connected widgets (@whiteboard/tasks, @whiteboard/routines, @whiteboard/weight) accept settings: { databaseId: "notion-db-id" } to link to a Notion database immediately on creation.',
     ].join(' '),
     inputSchema: z.object({
       widgetType: z.string().describe('Widget type, e.g. "@whiteboard/clock"'),
@@ -118,7 +298,7 @@ server.registerTool(
 server.registerTool(
   'update_widget',
   {
-    description: 'Move, resize, or change settings on an existing widget. Use list_widgets first to get the widget ID.',
+    description: 'Move, resize, or change settings on an existing widget. Use list_widgets first to get the widget ID. Use describe_widget_type to see all available settings fields for a widget type.',
     inputSchema: z.object({
       id:       z.string().describe('Widget ID from list_widgets'),
       x:        z.number().optional().describe('New horizontal position in pixels'),
@@ -676,6 +856,370 @@ server.registerTool(
   async ({ id }) => {
     await api('DELETE', `/api/canvas/board/${id}`)
     return { content: [{ type: 'text', text: `Deleted board ${id}` }] }
+  }
+)
+
+// ── Widget code generation ────────────────────────────────────────────────────
+
+server.registerTool(
+  'set_notion_workspace_page',
+  {
+    description: [
+      'Configure the default Notion page where AI-created databases will be placed.',
+      'This is a one-time setup. After setting this, create_widget_component will automatically',
+      'create Notion databases with no manual steps ever again.',
+      '',
+      'To find your page ID: open the page in Notion, click Share, then Copy link.',
+      'The ID is the 32-character string at the end of the URL (with or without hyphens).',
+      'Example URL: notion.so/My-Page-abc123def456... → pageId is "abc123def456..."',
+      '',
+      'The page must already be shared with your Notion integration.',
+      'To share: open the page → Share → Invite → select your integration.',
+    ].join('\n'),
+    inputSchema: z.object({
+      pageId: z.string().describe('Notion page ID where new databases will be created'),
+    }),
+  },
+  async ({ pageId }) => {
+    // Normalize: remove hyphens if user pasted a UUID-style ID
+    const clean = pageId.replace(/-/g, '').trim()
+    // Validate the page is accessible
+    try {
+      await api('GET', `/api/databases/${clean}`)
+    } catch {
+      // Page might not be a database — try a broader check via workspace page list
+    }
+    await api('POST', '/api/notion/workspace-page', { pageId: clean })
+    return {
+      content: [{
+        type: 'text',
+        text: `Workspace page set to ${clean}.\n\nAll future AI-created Notion databases will go here automatically. You never need to manually connect a widget to Notion again.`,
+      }],
+    }
+  }
+)
+
+const DESIGN_SYSTEM_DOCS = `
+# Smart Whiteboard — Widget Design System
+
+## File conventions
+- Widget file:    src/components/widgets/XxxWidget.tsx
+- One file contains BOTH the widget component AND the settings component (export both from same file)
+- Widget type:    '@whiteboard/xxx' (kebab-case)
+- Component name: XxxWidget / XxxSettings (PascalCase from widget type slug)
+
+## Widget component template
+\`\`\`tsx
+import { useWidgetSettings } from '@whiteboard/sdk'
+import { FlexCol, FlexRow, Center, Box, ScrollArea } from '../../ui/layouts'
+import { Text, Icon } from '../../ui/web'
+import { SettingsSection, Toggle, SegmentedControl, Input } from '../../ui/web'
+import type { WidgetProps } from './registry'
+
+// ── Settings type ─────────────────────────────────────────────────────────────
+
+export interface XxxSettings {
+  databaseId: string
+  // ... other settings
+}
+
+export const XXX_DEFAULTS: XxxSettings = {
+  databaseId: '',
+  // ... defaults
+}
+
+// ── Widget ────────────────────────────────────────────────────────────────────
+
+export function XxxWidget({ widgetId }: WidgetProps) {
+  const [settings] = useWidgetSettings<XxxSettings>(widgetId, XXX_DEFAULTS)
+  // ...
+  return (
+    <FlexCol fullHeight style={{ padding: '12px 14px' }}>
+      {/* content */}
+    </FlexCol>
+  )
+}
+
+// ── Settings ──────────────────────────────────────────────────────────────────
+
+export function XxxSettings({ widgetId }: WidgetProps) {
+  const [settings, set] = useWidgetSettings<XxxSettings>(widgetId, XXX_DEFAULTS)
+  return (
+    <FlexCol className="gap-5" fullWidth>
+      <SettingsSection label="...">
+        {/* controls */}
+      </SettingsSection>
+    </FlexCol>
+  )
+}
+\`\`\`
+
+## Layout components  import from '../../ui/layouts'
+- FlexCol   — vertical flex div. Props: align, justify, fullHeight, fullWidth, noSelect, className, style
+- FlexRow   — horizontal flex div. Same props.
+- Center    — centers children both axes. Props: fullHeight, fullWidth, className, style
+- Box       — plain div. Props: style, className
+- ScrollArea — overflow-y: auto container. Props: style, className
+
+## UI components  import from '../../ui/web'
+- Text       — styled text. Props: variant('label'|'body'|'caption'), size('small'|'base'), color('default'|'muted'|'danger'), align, textTransform, style, className
+- Icon       — Phosphor icon. Props: icon(string), size(number), weight('regular'|'bold'|'fill'|'duotone'|'thin'|'light'), style
+- Input      — text/number input. Props: label, type, size('sm'|'md'), value, onChange, placeholder
+- Toggle     — boolean switch. Props: label, value(boolean), onChange((v:boolean)=>void)
+- SegmentedControl — multi-option pill picker. Props: value(string), options([{value,label}]), onChange((v:string)=>void)
+- SettingsSection  — labeled group for settings panel. Props: label(string), children
+
+## SDK hook  import from '@whiteboard/sdk'
+useWidgetSettings<T>(widgetId: string, defaults: T): [T, (partial: Partial<T>) => void]
+  - First call returns [settings, setSettings]
+  - setSettings merges partial — you don't need to spread existing state
+
+## Notion hooks  import from '../../hooks/useNotion'
+useNotionPages(databaseId: string)
+  → { data: any[], isLoading: boolean, error: any }
+  → data is an array of Notion page objects
+
+useCreatePage(databaseId: string)
+  → TanStack mutation. Call: .mutate({ properties: { ... } })
+
+useUpdatePage(databaseId: string)
+  → TanStack mutation. Call: .mutate({ pageId: string, properties: { ... } })
+
+useArchivePage(databaseId: string)
+  → TanStack mutation. Call: .mutate(pageId: string)
+
+## Accessing Notion page properties
+Given a page object p from useNotionPages:
+  Title:    p.properties.Name?.title?.map((t:any) => t.plain_text).join('') ?? ''
+  Checkbox: p.properties.Done?.checkbox ?? false
+  Number:   p.properties.Amount?.number ?? 0
+  Date:     p.properties.Date?.date?.start ?? ''
+  Text:     p.properties.Notes?.rich_text?.[0]?.plain_text ?? ''
+  Select:   p.properties.Category?.select?.name ?? ''
+  Status:   p.properties.Status?.status?.name ?? ''
+
+## Notion property schemas  (for notion.properties in create_widget_component)
+  Title:    { "Name":     { "title": {} } }
+  Checkbox: { "Done":     { "checkbox": {} } }
+  Number:   { "Amount":   { "number": {} } }
+  Date:     { "Date":     { "date": {} } }
+  Text:     { "Notes":    { "rich_text": {} } }
+  Select:   { "Category": { "select": { "options": [{ "name": "Food", "color": "green" }] } } }
+  Status:   { "Status":   { "status": { "options": [{ "name": "Todo" }, { "name": "Done" }] } } }
+
+## Creating pages in Notion
+useCreatePage mutation properties format:
+  Title:    { Name:     { title: [{ text: { content: 'My item' } }] } }
+  Checkbox: { Done:     { checkbox: true } }
+  Number:   { Amount:   { number: 42 } }
+  Date:     { Date:     { date: { start: '2025-01-15' } } }
+  Select:   { Category: { select: { name: 'Food' } } }
+
+## CSS custom properties (always use these — never hardcode hex colors)
+  var(--wt-text)           primary text
+  var(--wt-text-muted)     secondary / placeholder text
+  var(--wt-bg)             canvas background
+  var(--wt-surface)        widget card background
+  var(--wt-surface-subtle) faint tint for hover/selected rows
+  var(--wt-surface-hover)  row hover background
+  var(--wt-border)         border color
+  var(--wt-accent)         brand highlight (buttons, focus rings)
+  var(--wt-accent-text)    text drawn on accent fills (usually white)
+  var(--wt-danger)         error/destructive
+
+## Phosphor icon names (common)
+ShoppingCart, CheckSquare, ListChecks, BookOpen, Trophy, Clock, Sun, Heart, Star,
+Note, Tag, Archive, Trash, Plus, X, Check, PencilSimple, ArrowRight, CalendarBlank,
+Scales, Timer, Quotes, Code, User, House, Gear, Barbell, Fork, MusicNote,
+CurrencyDollar, ChartLine, Airplane, Car, Coffee, Package, Shirt
+
+## Layout rules
+1. Never use fixed pixel heights on containers — use flex: 1 or fullHeight
+2. Wrap lists in ScrollArea so they don't overflow the widget bounds
+3. Use var(--wt-*) for ALL colors
+4. Check for !settings.databaseId and show a prompt: "Set your Notion database in settings"
+5. Check isLoading and error states from useNotionPages
+
+## Empty state pattern (for Notion widgets)
+\`\`\`tsx
+if (!settings.databaseId) return (
+  <Center fullHeight>
+    <Text variant="caption" color="muted">Connect a Notion database in settings</Text>
+  </Center>
+)
+if (isLoading) return <Center fullHeight><Text variant="caption" color="muted">Loading…</Text></Center>
+if (error)     return <Center fullHeight><Text variant="caption" color="danger">{(error as Error).message}</Text></Center>
+\`\`\`
+`.trim()
+
+server.registerTool(
+  'describe_design_system',
+  {
+    description: 'Get the full design system reference for writing widget components. Call this before create_widget_component so you know all available components, hooks, and patterns.',
+    inputSchema: z.object({}),
+  },
+  async () => ({
+    content: [{ type: 'text', text: DESIGN_SYSTEM_DOCS }],
+  })
+)
+
+server.registerTool(
+  'get_widget_source',
+  {
+    description: 'Read the source code of an existing widget to use as a reference when writing a new one.',
+    inputSchema: z.object({
+      widgetType: z.string().describe('Widget type, e.g. "@whiteboard/tasks". Reads XxxWidget.tsx.'),
+    }),
+  },
+  async ({ widgetType }) => {
+    const slug   = widgetType.replace('@whiteboard/', '')
+    const pascal = slug.charAt(0).toUpperCase() + slug.slice(1).replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
+    const file   = path.join(SRC_WIDGETS_DIR, `${pascal}Widget.tsx`)
+    try {
+      const source = await fs.readFile(file, 'utf-8')
+      return { content: [{ type: 'text', text: `// ${file}\n\n${source}` }] }
+    } catch {
+      return { content: [{ type: 'text', text: `File not found: ${file}` }] }
+    }
+  }
+)
+
+function toPascal(slug: string): string {
+  return slug.charAt(0).toUpperCase()
+    + slug.slice(1).replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
+}
+
+async function patchRegistry(params: {
+  widgetType:    string
+  pascal:        string
+  label:         string
+  icon:          string
+  iconBg:        string
+  iconClass:     string
+  keywords:      string[]
+  defaultWidth:  number
+  defaultHeight: number
+  hasSettings:   boolean
+}) {
+  const registryPath = path.join(SRC_WIDGETS_DIR, 'registry.tsx')
+  let content = await fs.readFile(registryPath, 'utf-8')
+
+  const { pascal, widgetType, label, icon, iconBg, iconClass, keywords, defaultWidth, defaultHeight, hasSettings } = params
+
+  // Add import before "export type { WidgetProps }"
+  const importLine = hasSettings
+    ? `import { ${pascal}Widget, ${pascal}Settings } from './${pascal}Widget'`
+    : `import { ${pascal}Widget } from './${pascal}Widget'`
+
+  content = content.replace(
+    '\nexport type { WidgetProps }',
+    `\n${importLine}\n\nexport type { WidgetProps }`
+  )
+
+  // Build the widget entry
+  const entry = [
+    `  {`,
+    `    type:              '${widgetType}',`,
+    `    label:             '${label}',`,
+    `    Icon:              '${icon}',`,
+    `    iconBg:            '${iconBg}',`,
+    `    iconClass:         '${iconClass}',`,
+    `    keywords:          ${JSON.stringify(keywords)},`,
+    `    defaultSize:       { width: ${defaultWidth}, height: ${defaultHeight} },`,
+    `    component:         ${pascal}Widget,`,
+    hasSettings ? `    settingsComponent: ${pascal}Settings,` : null,
+    `  },`,
+  ].filter(Boolean).join('\n')
+
+  // Insert before the closing ] of BUILTIN_WIDGETS
+  content = content.replace(
+    '\n]\n\n// ── Plugin registry',
+    `\n${entry}\n]\n\n// ── Plugin registry`
+  )
+
+  await fs.writeFile(registryPath, content, 'utf-8')
+}
+
+server.registerTool(
+  'create_widget_component',
+  {
+    description: [
+      'Generate a new native widget by writing React/TypeScript code to disk and registering it.',
+      'The widget appears in the "Add widget" menu immediately (Vite hot-reloads).',
+      '',
+      'WORKFLOW:',
+      '  1. Call describe_design_system to learn the component API and patterns.',
+      '  2. Call get_widget_source("@whiteboard/tasks") to see a Notion-backed widget example.',
+      '  3. Write the widget code following the design system docs.',
+      '  4. Call this tool — it writes the file, patches the registry, and creates the Notion database.',
+      '  5. Call create_widget with the returned widgetType and settings: { databaseId } to place it.',
+      '',
+      'CODE RULES:',
+      '  - The code param must be a complete .tsx file with both XxxWidget and XxxSettings exported.',
+      '  - Widget and settings components must accept { widgetId }: WidgetProps.',
+      '  - Use useWidgetSettings for all persistent state.',
+      '  - For Notion widgets, read settings.databaseId — do NOT hardcode the database ID in the code.',
+      '  - Always show an empty state when databaseId is empty.',
+      '  - Import paths: ../../ui/layouts, ../../ui/web, @whiteboard/sdk, ../../hooks/useNotion',
+    ].join('\n'),
+    inputSchema: z.object({
+      widgetType:    z.string().describe('Unique widget type slug, e.g. "@whiteboard/grocery-list"'),
+      label:         z.string().describe('Display name shown in the add-widget menu, e.g. "Grocery List"'),
+      icon:          z.string().describe('Phosphor icon name, e.g. "ShoppingCart"'),
+      iconBg:        z.string().describe('Tailwind bg class for icon background, e.g. "bg-green-50"'),
+      iconClass:     z.string().describe('Tailwind text class for icon color, e.g. "text-green-500"'),
+      keywords:      z.array(z.string()).describe('Search keywords for the add-widget menu'),
+      defaultWidth:  z.number().optional().describe('Default widget width in pixels (default 320)'),
+      defaultHeight: z.number().optional().describe('Default widget height in pixels (default 400)'),
+      code:          z.string().describe('Complete .tsx source file containing both XxxWidget and XxxSettings exports'),
+      hasSettings:   z.boolean().optional().describe('Whether the code exports a settings component (default true)'),
+      notion: z.object({
+        title:      z.string().describe('Name for the new Notion database'),
+        properties: z.record(z.unknown()).describe('Notion property schema — must include at least one title field'),
+      }).optional().describe('If provided, a Notion database is created automatically and its ID is returned'),
+    }),
+  },
+  async ({ widgetType, label, icon, iconBg, iconClass, keywords, defaultWidth = 320, defaultHeight = 400, code, hasSettings = true, notion }) => {
+    const slug   = widgetType.replace('@whiteboard/', '')
+    const pascal = toPascal(slug)
+    const file   = path.join(SRC_WIDGETS_DIR, `${pascal}Widget.tsx`)
+
+    // Check for name collision
+    try {
+      await fs.access(file)
+      return { content: [{ type: 'text', text: `Error: ${file} already exists. Choose a different widgetType or use get_widget_source to read it.` }] }
+    } catch { /* file doesn't exist — good */ }
+
+    // Create Notion database if requested
+    let databaseId: string | undefined
+    if (notion) {
+      const res = await api('POST', '/api/notion/databases', {
+        title:      notion.title,
+        properties: notion.properties,
+      })
+      databaseId = res.id
+    }
+
+    // Write widget file
+    await fs.writeFile(file, code, 'utf-8')
+
+    // Patch registry.tsx
+    await patchRegistry({ widgetType, pascal, label, icon, iconBg, iconClass, keywords, defaultWidth, defaultHeight, hasSettings })
+
+    const lines = [
+      `Widget "${label}" created successfully.`,
+      `File: src/components/widgets/${pascal}Widget.tsx`,
+      `Type: ${widgetType}`,
+      databaseId ? `Notion database ID: ${databaseId}` : null,
+      '',
+      databaseId
+        ? `Next: call create_widget with widgetType "${widgetType}" and settings: { databaseId: "${databaseId}" }`
+        : `Next: call create_widget with widgetType "${widgetType}" to place it on the board.`,
+      '',
+      'The app will hot-reload — the widget is now available in the add-widget menu.',
+    ].filter((l) => l !== null).join('\n')
+
+    return { content: [{ type: 'text', text: lines }] }
   }
 )
 
