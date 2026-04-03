@@ -38,6 +38,26 @@ export function useNotionPages(databaseId: string) {
   })
 }
 
+export function useNotionView(
+  databaseId: string,
+  opts?: { sortBy?: string; sortDir?: 'ascending' | 'descending'; limit?: number },
+) {
+  return useQuery({
+    queryKey: ['notion-view', databaseId, opts],
+    queryFn: () =>
+      apiFetch<{ results: any[] }>(`/api/databases/${databaseId}/query`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sorts:     opts?.sortBy ? [{ property: opts.sortBy, direction: opts.sortDir ?? 'ascending' }] : [],
+          page_size: opts?.limit ?? 100,
+        }),
+      }),
+    enabled:        !!databaseId,
+    refetchInterval: 30_000,
+  })
+}
+
 export function useWeightLog(databaseId: string) {
   return useQuery({
     queryKey: ['weight-log', databaseId],

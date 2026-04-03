@@ -11,6 +11,43 @@ import Anthropic from '@anthropic-ai/sdk'
 
 dotenv.config()
 
+// ── Persistent memory ─────────────────────────────────────────────────────────
+
+const MEMORY_PATH = path.join(process.cwd(), 'server/memory.json')
+
+interface WalliMemory {
+  name:        string
+  location:    string
+  preferences: string[]
+  facts:       string[]
+  databases:   Record<string, string>
+}
+
+let _memory: WalliMemory | null = null
+
+function loadMemory(): WalliMemory {
+  if (_memory) return _memory
+  try { _memory = JSON.parse(fs.readFileSync(MEMORY_PATH, 'utf-8')) }
+  catch { _memory = { name: '', location: '', preferences: [], facts: [], databases: {} } }
+  return _memory!
+}
+
+function saveMemory(mem: WalliMemory) {
+  _memory = mem
+  fs.writeFileSync(MEMORY_PATH, JSON.stringify(mem, null, 2))
+}
+
+function memoryToPrompt(mem: WalliMemory): string {
+  const lines: string[] = []
+  if (mem.name)                lines.push(`User's name: ${mem.name}`)
+  if (mem.location)            lines.push(`User's location: ${mem.location}`)
+  if (mem.preferences.length)  lines.push(`Preferences: ${mem.preferences.join(', ')}`)
+  if (mem.facts.length)        lines.push(`Known facts: ${mem.facts.join(', ')}`)
+  const dbs = Object.entries(mem.databases)
+  if (dbs.length)              lines.push(`Known databases: ${dbs.map(([k, v]) => `${k} (${v})`).join(', ')}`)
+  return lines.length ? `\nWhat you know about the user:\n${lines.join('\n')}` : ''
+}
+
 const app = express()
 app.use(cors())
 app.use(express.json())
@@ -151,9 +188,48 @@ app.get('/api/youtube/search', async (req, res) => {
 // ── Sports (ESPN proxy) ───────────────────────────────────────────────────────
 
 const ESPN_URLS: Record<string, string> = {
-  nfl: 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard',
-  nba: 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard',
+  nfl:        'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard',
+  nba:        'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard',
+  premierleague: 'https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/scoreboard',
+  laliga:     'https://site.api.espn.com/apis/site/v2/sports/soccer/esp.1/scoreboard',
+  ucl:        'https://site.api.espn.com/apis/site/v2/sports/soccer/uefa.champions/scoreboard',
+  mlb:        'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard',
+  nhl:        'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard',
 }
+
+const ESPN_STANDINGS_IDS: Record<string, string> = {
+  premierleague: 'eng.1',
+  epl:           'eng.1',
+  laliga:        'esp.1',
+  ucl:           'uefa.champions',
+  bundesliga:    'ger.1',
+  seriea:        'ita.1',
+  ligue1:        'fra.1',
+  mls:           'usa.1',
+}
+
+app.get('/api/standings/:league', async (req, res) => {
+  const leagueId = ESPN_STANDINGS_IDS[req.params.league]
+  if (!leagueId) return res.status(400).json({ error: 'Unknown league' })
+  try {
+    const r = await fetch(`https://site.web.api.espn.com/apis/v2/sports/soccer/${leagueId}/standings`)
+    const d = await r.json() as any
+    const entries = d?.children?.[0]?.standings?.entries ?? []
+    const table = entries.map((e: any, i: number) => ({
+      pos:    i + 1,
+      team:   e.team?.displayName ?? '',
+      gp:     e.stats?.find((s: any) => s.abbreviation === 'GP')?.displayValue ?? '-',
+      w:      e.stats?.find((s: any) => s.abbreviation === 'W')?.displayValue  ?? '-',
+      d:      e.stats?.find((s: any) => s.abbreviation === 'D')?.displayValue  ?? '-',
+      l:      e.stats?.find((s: any) => s.abbreviation === 'L')?.displayValue  ?? '-',
+      gd:     e.stats?.find((s: any) => s.abbreviation === 'GD')?.displayValue ?? '-',
+      pts:    e.stats?.find((s: any) => s.abbreviation === 'P')?.displayValue  ?? '-',
+    }))
+    res.json({ league: req.params.league, table })
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
 
 app.get('/api/sports/:league', async (req, res) => {
   const url = ESPN_URLS[req.params.league]
@@ -216,6 +292,37 @@ app.post('/api/databases/:id/pages', async (req, res) => {
       parent: { database_id: req.params.id },
       properties: req.body.properties,
     }))
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+// Smart entry: accepts plain key-value pairs, auto-maps to Notion property format
+app.post('/api/databases/:id/smart-entry', async (req, res) => {
+  try {
+    const db   = await notion.databases.retrieve({ database_id: req.params.id })
+    const data = req.body.data as Record<string, any>
+    const props: Record<string, any> = {}
+
+    for (const [key, value] of Object.entries(data)) {
+      const prop = (db.properties as any)[key]
+      if (!prop) continue
+      switch (prop.type) {
+        case 'title':        props[key] = { title:        [{ text: { content: String(value) } }] }; break
+        case 'rich_text':    props[key] = { rich_text:    [{ text: { content: String(value) } }] }; break
+        case 'number':       props[key] = { number:       Number(value) };                           break
+        case 'checkbox':     props[key] = { checkbox:     Boolean(value) };                          break
+        case 'date':         props[key] = { date:         { start: String(value) } };                break
+        case 'select':       props[key] = { select:       { name: String(value) } };                 break
+        case 'status':       props[key] = { status:       { name: String(value) } };                 break
+        case 'multi_select': props[key] = { multi_select: (Array.isArray(value) ? value : [value]).map((v: any) => ({ name: String(v) })) }; break
+        case 'url':          props[key] = { url:          String(value) };                           break
+        case 'email':        props[key] = { email:        String(value) };                           break
+        case 'phone_number': props[key] = { phone_number: String(value) };                           break
+      }
+    }
+
+    res.json(await notion.pages.create({ parent: { database_id: req.params.id }, properties: props }))
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
@@ -395,7 +502,7 @@ app.get('/api/gcal/events', async (req, res) => {
 // Credentials come from the widget's preferences (stored in the browser),
 // not from .env — no server-side config required.
 
-const SPOTIFY_SCOPES = 'user-read-currently-playing user-read-playback-state'
+const SPOTIFY_SCOPES = 'user-read-currently-playing user-read-playback-state user-modify-playback-state'
 
 // Holds credentials for the duration of the OAuth handshake only
 let pendingSpotifyAuth: { clientId: string; clientSecret: string; redirectUri: string } | null = null
@@ -525,6 +632,49 @@ app.get('/api/spotify/now-playing', async (_req, res) => {
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
+})
+
+// Playback control helper
+async function spotifyControl(method: string, endpoint: string, body?: object): Promise<{ ok: boolean; error?: string }> {
+  const accessToken = await getSpotifyAccessToken()
+  if (!accessToken) return { ok: false, error: 'Not authenticated' }
+  const res = await fetch(`https://api.spotify.com/v1/me/player${endpoint}`, {
+    method,
+    headers: {
+      'Authorization': `Bearer ${accessToken}`,
+      ...(body ? { 'Content-Type': 'application/json' } : {}),
+    },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  if (res.status === 204 || res.status === 200) return { ok: true }
+  const text = await res.text().catch(() => '')
+  return { ok: false, error: `Spotify ${res.status}: ${text.slice(0, 100)}` }
+}
+
+app.post('/api/spotify/play', async (_req, res) => {
+  const r = await spotifyControl('PUT', '/play')
+  r.ok ? res.json({ ok: true }) : res.status(400).json(r)
+})
+
+app.post('/api/spotify/pause', async (_req, res) => {
+  const r = await spotifyControl('PUT', '/pause')
+  r.ok ? res.json({ ok: true }) : res.status(400).json(r)
+})
+
+app.post('/api/spotify/next', async (_req, res) => {
+  const r = await spotifyControl('POST', '/next')
+  r.ok ? res.json({ ok: true }) : res.status(400).json(r)
+})
+
+app.post('/api/spotify/previous', async (_req, res) => {
+  const r = await spotifyControl('POST', '/previous')
+  r.ok ? res.json({ ok: true }) : res.status(400).json(r)
+})
+
+app.post('/api/spotify/volume', async (req, res) => {
+  const volume = Math.max(0, Math.min(100, Number(req.body.volume ?? 50)))
+  const r = await spotifyControl('PUT', `/volume?volume_percent=${volume}`)
+  r.ok ? res.json({ ok: true }) : res.status(400).json(r)
 })
 
 // ── Voice assistant ───────────────────────────────────────────────────────────
@@ -704,6 +854,170 @@ const VOICE_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name:        'list_notion_databases',
+    description: 'List all Notion databases accessible to this integration.',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name:        'get_notion_database',
+    description: 'Get the schema (properties and their types) of a specific Notion database.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        databaseId: { type: 'string' },
+      },
+      required: ['databaseId'],
+    },
+  },
+  {
+    name:        'create_notion_database',
+    description: 'Create a new Notion database with a custom schema. Returns the database ID.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        title:      { type: 'string', description: 'Database name' },
+        properties: {
+          type: 'object',
+          description: 'Notion property definitions. Always include a "Name" title property. Example: { "Name": { "title": {} }, "Date": { "date": {} }, "Amount": { "number": {} }, "Status": { "select": { "options": [{ "name": "Todo", "color": "red" }, { "name": "Done", "color": "green" }] } } }',
+        },
+      },
+      required: ['title', 'properties'],
+    },
+  },
+  {
+    name:        'add_notion_entry',
+    description: 'Add an entry to any Notion database using plain key-value pairs. The server automatically maps values to the correct Notion property format based on the database schema.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        databaseId: { type: 'string' },
+        data: {
+          type: 'object',
+          description: 'Plain key-value pairs matching the database property names. E.g. { "Name": "Bench Press", "Date": "2026-03-30", "Sets": 3, "Reps": 10, "Weight": 135 }',
+        },
+      },
+      required: ['databaseId', 'data'],
+    },
+  },
+  {
+    name:        'create_notion_view_widget',
+    description: `Create a @whiteboard/notion-view widget connected to a Notion database. Choose the best template for the data:
+- metric-chart: Single numeric value tracked over time with line/bar chart. fieldMap: { value: "PropName", date: "PropName" }. options: { goal?, unit?, label?, chartType?: "line"|"bar" }
+- data-table: All rows as a scrollable table. fieldMap: { columns: ["Prop1","Prop2",...] }. options: { sortBy?, sortDir?: "ascending"|"descending", limit? }
+- stat-cards: Aggregate stats (count/sum/avg/latest/min/max). fieldMap: { value: "PropName" }. options: { unit?, stats?: ["count","sum","avg","latest","min","max"] }
+- habit-grid: Daily checkbox completion grid. fieldMap: { date: "PropName", done: "PropName" }. options: { weeks? }
+- kanban: Cards grouped by a select/status field. fieldMap: { title: "PropName", group: "PropName", subtitle?: "PropName" }. options: { columns?: ["Status1","Status2"] }
+- timeline: Date-sorted event list. fieldMap: { title: "PropName", date: "PropName", subtitle?: "PropName", status?: "PropName" }. options: { limit?, sort?: "asc"|"desc" }`,
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        databaseId: { type: 'string' },
+        template:   { type: 'string', enum: ['metric-chart', 'data-table', 'stat-cards', 'habit-grid', 'kanban', 'timeline'] },
+        title:      { type: 'string', description: 'Widget header label' },
+        fieldMap:   { type: 'object', description: 'Template field → Notion property name mapping' },
+        options:    { type: 'object', description: 'Template-specific display options' },
+        x:          { type: 'number' },
+        y:          { type: 'number' },
+        width:      { type: 'number' },
+        height:     { type: 'number' },
+      },
+      required: ['databaseId', 'template', 'fieldMap'],
+    },
+  },
+  {
+    name:        'update_memory',
+    description: 'Save something you learned about the user so you remember it in future conversations. Call this whenever you learn the user\'s name, location, a preference, a useful fact, or a Notion database they use often.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        field: {
+          type: 'string',
+          enum: ['name', 'location', 'preference', 'fact', 'database'],
+          description: 'What kind of thing you\'re remembering',
+        },
+        value: { type: 'string', description: 'The value to remember' },
+        databaseKey: { type: 'string', description: 'Short label for the database (only used when field is "database")' },
+      },
+      required: ['field', 'value'],
+    },
+  },
+  {
+    name:        'get_standings',
+    description: 'Get the current league standings/table for a football (soccer) league. Use this for any question about league positions, points, or tables. Supported leagues: premierleague, laliga, bundesliga, seriea, ligue1, ucl, mls.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        league:  { type: 'string', description: 'League key, e.g. "premierleague", "laliga"' },
+        team:    { type: 'string', description: 'Optional: filter to a specific team name to answer positional questions' },
+        display: { type: 'boolean', description: 'If true, create an HTML widget showing the full table. If false, just return the data to answer a spoken question.' },
+      },
+      required: ['league'],
+    },
+  },
+  {
+    name:        'web_search',
+    description: 'Search the internet via Brave Search for current information — scores, standings, news, weather, facts, prices, etc. Use this when you need live data or when the user asks about something you may not know. Returns titles, snippets, and URLs from the top results.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        query: { type: 'string', description: 'Search query, e.g. "Premier League table 2025" or "Manchester United next match"' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name:        'fetch_page',
+    description: 'Fetch the text content of a webpage. Use this after web_search to read the actual content of a result URL and extract useful information from it.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url: { type: 'string', description: 'Full URL to fetch' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name:        'open_url',
+    description: 'Create or update a Website widget that embeds a URL in an iframe. Use this when the user asks to "show me", "open", or "display" a website. Pick the best URL for what they want — e.g. "show me the Premier League table" → "https://www.premierleague.com/tables". Use get_board_state first to find an existing url widget to reuse.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        url:      { type: 'string', description: 'Full URL including https://' },
+        title:    { type: 'string', description: 'Short label shown above the widget' },
+        widgetId: { type: 'string', description: 'Existing @whiteboard/url widget ID to update. Omit to create a new one.' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name:        'spotify_control',
+    description: 'Control Spotify playback. Use this when the user says play, pause, skip, next, previous, or asks what\'s playing.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        action: {
+          type: 'string',
+          enum: ['play', 'pause', 'next', 'previous', 'now_playing'],
+          description: 'play=resume, pause=pause, next=skip, previous=go back, now_playing=read what\'s currently on',
+        },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name:        'read_notion_items',
+    description: 'Fetch and read out items from a Notion database — tasks, grocery list, habits, etc. Returns a spoken-friendly list of the open/pending items. Filter to only incomplete items unless the user asks for all.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        databaseId:   { type: 'string', description: 'Notion database ID' },
+        statusFilter: { type: 'string', description: 'Optional: only return items with this status, e.g. "Not started" or "In progress". Omit to get all non-done items.' },
+        limit:        { type: 'number', description: 'Max items to return (default 10)' },
+      },
+      required: ['databaseId'],
+    },
+  },
+  {
     name:        'search_youtube',
     description: 'Search YouTube for a video and display it in a YouTube widget. Use get_board_state first to find an existing YouTube widget ID, or create one if none exists.',
     input_schema: {
@@ -716,6 +1030,74 @@ const VOICE_TOOLS: Anthropic.Tool[] = [
     },
   },
 ]
+
+// ── Notion schema cache ───────────────────────────────────────────────────────
+
+const schemaCache = new Map<string, { props: any[]; ts: number }>()
+const SCHEMA_TTL  = 5 * 60 * 1000 // 5 min
+
+async function getCachedSchema(databaseId: string) {
+  const hit = schemaCache.get(databaseId)
+  if (hit && Date.now() - hit.ts < SCHEMA_TTL) return hit.props
+  const db    = await notion.databases.retrieve({ database_id: databaseId })
+  const props = Object.entries(db.properties as any).map(([name, p]: [string, any]) => ({
+    name, type: p.type,
+    ...(p.select       ? { options: p.select.options.map((o: any) => o.name) }       : {}),
+    ...(p.multi_select ? { options: p.multi_select.options.map((o: any) => o.name) } : {}),
+    ...(p.status       ? { options: p.status.options.map((o: any) => o.name) }       : {}),
+  }))
+  schemaCache.set(databaseId, { props, ts: Date.now() })
+  return props
+}
+
+// ── Board state snapshot for system prompt ────────────────────────────────────
+
+// Scan all boards for widgets that have a databaseId and auto-save any new ones to memory
+function autoSaveDatabases() {
+  if (!cachedBoards.length) return
+  const mem = loadMemory()
+  const knownIds = new Set(Object.values(mem.databases))
+  let changed = false
+  for (const board of cachedBoards) {
+    for (const w of (board.widgets ?? []) as any[]) {
+      const dbId = w.settings?.databaseId as string | undefined
+      if (!dbId || knownIds.has(dbId)) continue
+      // Use the widget's display title, then settings.title, then type as the key
+      const label: string = w.databaseTitle ?? w.settings?.title ?? w.settings?.label ?? w.type ?? dbId
+      mem.databases[label] = dbId
+      knownIds.add(dbId)
+      changed = true
+      console.log(`[memory] auto-saved database "${label}" → ${dbId}`)
+    }
+  }
+  if (changed) saveMemory(mem)
+}
+
+function getBoardSnapshot(): string {
+  autoSaveDatabases()
+  const board = (cachedBoards ?? []).find((b: any) => b.id === cachedActiveBoardId)
+  if (!board) return ''
+  const widgets = (board.widgets ?? []).map((w: any) =>
+    `  - id:${w.id} type:${w.type}${w.settings?.databaseId ? ` databaseId:${w.settings.databaseId}` : ''}${w.settings?.title ? ` title:"${w.settings.title}"` : ''}${w.databaseTitle ? ` label:"${w.databaseTitle}"` : ''}`
+  ).join('\n')
+  return `\nCurrent board: "${board.name}" (id:${board.id})\nWidgets on board:\n${widgets || '  (none)'}`
+}
+
+function ordinal(n: number): string {
+  const s = ['th','st','nd','rd']
+  const v = n % 100
+  return (s[(v - 20) % 10] ?? s[v] ?? s[0])
+}
+
+function leagueLabel(key: string): string {
+  const labels: Record<string, string> = {
+    premierleague: 'Premier League', epl: 'Premier League',
+    laliga: 'La Liga', bundesliga: 'Bundesliga',
+    seriea: 'Serie A', ligue1: 'Ligue 1',
+    ucl: 'Champions League', mls: 'MLS',
+  }
+  return labels[key] ?? key
+}
 
 async function executeVoiceTool(name: string, input: Record<string, any>): Promise<string> {
   switch (name) {
@@ -812,6 +1194,235 @@ async function executeVoiceTool(name: string, input: Record<string, any>): Promi
       return 'Timer started'
     }
 
+    case 'list_notion_databases': {
+      const response = await notion.search({ filter: { value: 'database', property: 'object' } })
+      return JSON.stringify((response.results as any[]).map((db: any) => ({
+        id:    db.id,
+        title: db.title?.[0]?.plain_text ?? 'Untitled',
+      })))
+    }
+
+    case 'get_notion_database': {
+      const props = await getCachedSchema(input.databaseId)
+      return JSON.stringify({ id: input.databaseId, properties: props })
+    }
+
+    case 'create_notion_database': {
+      const port     = Number(process.env.PORT) || 3001
+      const result   = await fetch(`http://localhost:${port}/api/notion/databases`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ title: input.title, properties: input.properties }),
+      }).then((r) => r.json()) as { id?: string; error?: string }
+      if (result.error) return `Failed to create database: ${result.error}`
+      return `Created database "${input.title}" (id: ${result.id})`
+    }
+
+    case 'add_notion_entry': {
+      const port   = Number(process.env.PORT) || 3001
+      const result = await fetch(`http://localhost:${port}/api/databases/${input.databaseId}/smart-entry`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ data: input.data }),
+      }).then((r) => r.json()) as { id?: string; error?: string }
+      if (result.error) return `Failed to add entry: ${result.error}`
+      return `Added entry to database`
+    }
+
+    case 'create_notion_view_widget': {
+      const { databaseId, template, title, fieldMap, options, x, y, width, height } = input
+      const { id } = await canvasApi('POST', '/api/canvas/widget', {
+        widgetType: '@whiteboard/notion-view',
+        x, y,
+        width:    width  ?? 400,
+        height:   height ?? 320,
+        settings: { databaseId, template, title, fieldMap, options: options ?? {} },
+      })
+      return `Created ${template} widget for database (id: ${id})`
+    }
+
+    case 'update_memory': {
+      const mem = loadMemory()
+      const { field, value, databaseKey } = input as { field: string; value: string; databaseKey?: string }
+      if (field === 'name')        mem.name = value
+      else if (field === 'location')    mem.location = value
+      else if (field === 'preference')  { if (!mem.preferences.includes(value)) mem.preferences.push(value) }
+      else if (field === 'fact')        { if (!mem.facts.includes(value)) mem.facts.push(value) }
+      else if (field === 'database')    mem.databases[databaseKey ?? value] = value
+      saveMemory(mem)
+      return `Remembered: ${field} = ${value}`
+    }
+
+    case 'get_standings': {
+      const { league, team, display } = input as { league: string; team?: string; display?: boolean }
+      const port = Number(process.env.PORT) || 3001
+      const r    = await fetch(`http://localhost:${port}/api/standings/${league}`)
+      if (!r.ok) return `Could not fetch standings for ${league}`
+      const { table } = await r.json() as { table: any[] }
+
+      if (team) {
+        const row = table.find((t) => t.team.toLowerCase().includes(team.toLowerCase()))
+        if (!row) return `${team} not found in ${league} standings`
+        return `${row.team} are ${row.pos}${ordinal(row.pos)} with ${row.pts} points from ${row.gp} games (${row.w}W ${row.d}D ${row.l}L, GD ${row.gd})`
+      }
+
+      if (display) {
+        const rows = table.map((t) =>
+          `<tr><td>${t.pos}</td><td class="team">${t.team}</td><td>${t.gp}</td><td>${t.w}</td><td>${t.d}</td><td>${t.l}</td><td>${t.gd}</td><td class="pts">${t.pts}</td></tr>`
+        ).join('')
+        const html = `<style>
+          body{font-family:system-ui,sans-serif;padding:12px;background:transparent;color:#e2e8f0}
+          table{width:100%;border-collapse:collapse;font-size:13px}
+          th{text-align:center;padding:6px 4px;border-bottom:2px solid #334155;color:#94a3b8;font-weight:600;font-size:11px;text-transform:uppercase}
+          th.team-h{text-align:left}
+          td{text-align:center;padding:5px 4px;border-bottom:1px solid #1e293b}
+          td.team{text-align:left;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:140px}
+          td.pts{font-weight:700;color:#38bdf8}
+          tr:hover td{background:#1e293b}
+        </style>
+        <table>
+          <thead><tr><th>#</th><th class="team-h">Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>GD</th><th>Pts</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`
+        const { id } = await canvasApi('POST', '/api/canvas/widget', {
+          widgetType: '@whiteboard/html',
+          width: 480, height: 600,
+          label: leagueLabel(league),
+          settings: { html, title: leagueLabel(league) },
+        })
+        return `Displayed ${leagueLabel(league)} table (widget id: ${id})`
+      }
+
+      return JSON.stringify(table)
+    }
+
+    case 'web_search': {
+      const braveKey = process.env.VITE_BRAVE_SEARCH_API_KEY ?? process.env.BRAVE_SEARCH_API_KEY
+                    ?? process.env.VITE_BING_SEARCH_API_KEY  ?? process.env.BING_SEARCH_API_KEY
+      if (!braveKey) return 'Web search unavailable: BRAVE_SEARCH_API_KEY not set'
+      const r = await fetch(
+        `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(input.query)}&count=5`,
+        { headers: { 'Accept': 'application/json', 'X-Subscription-Token': braveKey } },
+      )
+      const body = await r.text()
+      console.log(`[brave] status=${r.status} body=${body.slice(0, 300)}`)
+      if (!r.ok) return `Search failed: ${r.status} — ${body.slice(0, 200)}`
+      const data = JSON.parse(body) as any
+      const results = (data.web?.results ?? []).map((v: any) => ({
+        title:   v.title,
+        snippet: v.description,
+        url:     v.url,
+      }))
+      return JSON.stringify(results)
+    }
+
+    case 'fetch_page': {
+      try {
+        const r = await fetch(input.url, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Walli/1.0)' },
+        })
+        if (!r.ok) return `Failed to fetch page: ${r.status}`
+        const html = await r.text()
+        // Strip tags, collapse whitespace, truncate to ~4000 chars
+        const raw = html
+          .replace(/<script[\s\S]*?<\/script>/gi, '')
+          .replace(/<style[\s\S]*?<\/style>/gi, '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+        // Cut at last sentence boundary within 5000 chars
+        const limit = 5000
+        const text = raw.length <= limit ? raw : raw.slice(0, limit).replace(/[^.!?]*$/, '')
+        return text
+      } catch (e) {
+        return `Could not fetch page: ${String(e)}`
+      }
+    }
+
+    case 'open_url': {
+      const { url, title, widgetId } = input as { url: string; title?: string; widgetId?: string }
+      const settings = { url, title: title ?? '' }
+      if (widgetId) {
+        await canvasApi('PATCH', `/api/canvas/widget/${widgetId}`, { settings })
+        return `Updated website widget to ${url}`
+      }
+      const { id } = await canvasApi('POST', '/api/canvas/widget', {
+        widgetType: '@whiteboard/url',
+        width: 800, height: 540,
+        label: title ?? 'Website',
+        settings,
+      })
+      return `Created website widget for ${url} (id: ${id})`
+    }
+
+    case 'spotify_control': {
+      const { action } = input as { action: string }
+      const port = Number(process.env.PORT) || 3001
+
+      if (action === 'now_playing') {
+        const token = await getSpotifyAccessToken()
+        if (!token) return 'Spotify is not connected.'
+        const r = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        })
+        if (r.status === 204) return 'Nothing is currently playing on Spotify.'
+        const data = await r.json() as any
+        if (!data?.item) return 'Nothing is currently playing.'
+        return `${data.item.name} by ${data.item.artists?.map((a: any) => a.name).join(', ')}, ${data.is_playing ? 'playing' : 'paused'}.`
+      }
+
+      const r = await fetch(`http://localhost:${port}/api/spotify/${action}`, { method: 'POST' })
+      if (!r.ok) {
+        const err = await r.json().catch(() => ({})) as any
+        if (r.status === 401) return 'Spotify is not connected. Open the Spotify widget settings to connect.'
+        return `Spotify error: ${err.error ?? r.status}`
+      }
+      const labels: Record<string, string> = { play: 'Resuming.', pause: 'Paused.', next: 'Skipped.', previous: 'Going back.' }
+      return labels[action] ?? 'Done.'
+    }
+
+    case 'read_notion_items': {
+      const { databaseId, statusFilter, limit = 10 } = input as { databaseId: string; statusFilter?: string; limit?: number }
+      try {
+        // Fetch the schema to find the title and status/checkbox fields
+        const props = await getCachedSchema(databaseId)
+        const titleProp    = props.find((p) => p.type === 'title')
+        const statusProp   = props.find((p) => p.type === 'status' || p.type === 'select')
+        const checkboxProp = props.find((p) => p.type === 'checkbox')
+
+        // Build a filter to exclude done/completed items
+        let filter: any = undefined
+        if (statusFilter && statusProp) {
+          filter = { property: statusProp.name, [statusProp.type]: { equals: statusFilter } }
+        } else if (statusProp) {
+          const doneOptions = ['Done', 'Completed', 'Complete', 'Closed', 'Archived']
+          const doneOption  = (statusProp.options ?? []).find((o: string) => doneOptions.includes(o))
+          if (doneOption) {
+            filter = { property: statusProp.name, [statusProp.type]: { does_not_equal: doneOption } }
+          }
+        } else if (checkboxProp) {
+          filter = { property: checkboxProp.name, checkbox: { equals: false } }
+        }
+
+        const response = await notion.databases.query({
+          database_id: databaseId,
+          filter,
+          page_size: limit,
+        })
+
+        const titleKey = titleProp?.name ?? 'Name'
+        const items = (response.results as any[]).map((page: any) => {
+          const titleArr = page.properties?.[titleKey]?.title as any[]
+          return titleArr?.map((t: any) => t.plain_text).join('') ?? '(untitled)'
+        }).filter(Boolean)
+
+        if (!items.length) return 'No items found.'
+        return items.map((t, i) => `${i + 1}. ${t}`).join('. ')
+      } catch (e: any) {
+        return `Failed to read items: ${e.message}`
+      }
+    }
+
     case 'search_youtube': {
       const port   = Number(process.env.PORT) || 3001
       const result = await fetch(`http://localhost:${port}/api/youtube/search?q=${encodeURIComponent(input.query)}`)
@@ -841,7 +1452,7 @@ async function executeVoiceTool(name: string, input: Record<string, any>): Promi
 }
 
 app.post('/api/voice', async (req, res) => {
-  const { text } = req.body as { text?: string }
+  const { text, history = [] } = req.body as { text?: string; history?: { role: string; content: string }[] }
   if (!text?.trim()) return res.json({ response: '' })
 
   const apiKey = process.env.VITE_ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY
@@ -849,23 +1460,35 @@ app.post('/api/voice', async (req, res) => {
 
   try {
     const anthropic = new Anthropic({ apiKey })
+
+    // Build messages from conversation history + current turn.
+    // History alternates user/assistant — Anthropic requires strict alternation.
+    const priorMessages: Anthropic.MessageParam[] = history
+      .filter((h) => h.role === 'user' || h.role === 'assistant')
+      .map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content }))
+
     const messages: Anthropic.MessageParam[] = [
+      ...priorMessages,
       { role: 'user', content: text.trim() },
     ]
 
     let finalText = 'Done.'
 
-    // Agentic loop — up to 5 turns to handle multi-step commands
-    for (let turn = 0; turn < 5; turn++) {
+    // Agentic loop — up to 8 turns to handle multi-step commands
+    for (let turn = 0; turn < 8; turn++) {
       const response = await anthropic.messages.create({
         model:      'claude-haiku-4-5-20251001',
-        max_tokens: 512,
+        max_tokens: 1024,
         system: [
-          'You are a voice assistant for a smart whiteboard wall display.',
-          'The user speaks commands and you execute them using tools.',
-          'Always use get_board_state first if you need to find a widget ID or database ID.',
-          'Reply with ONE short sentence (max 8 words) confirming what you did.',
-          'Do not explain, just confirm. Example: "Added milk to your grocery list."',
+          `You are Walli, an intelligent voice assistant for a smart whiteboard wall display. Your responses are spoken aloud.${memoryToPrompt(loadMemory())}${getBoardSnapshot()}`,
+          'You can control the whiteboard AND answer general questions, look up live information, and help with anything the user asks. When you learn something new about the user (name, location, preference, or a Notion database they use), call update_memory immediately to remember it for future conversations.',
+          'For league standings and table positions always use get_standings — it returns live data directly from ESPN. For other live data (news, weather, scores, etc.) use web_search to find relevant URLs, then fetch_page on the best result to read the actual content before answering.',
+          'Always use get_board_state first if you need to find a widget ID or database ID. Notion view widgets (type @whiteboard/notion-view) store their database ID at widget.settings.databaseId — read it directly from the board state instead of calling list_notion_databases. Known databases are also listed in your memory above, so if the user references a database by name you may already have its ID. When the user says "read me my tasks", "what\'s on my list", or similar, use read_notion_items with the tasks database ID from memory or board state.',
+          'For Spotify: use spotify_control for play/pause/skip/previous/now_playing. Spotify must be actively playing on a device for controls to work — if it fails, tell the user to open Spotify on their device first.',
+          'When the user asks to "show" something, use open_url with the best URL from your search results or knowledge. Prefer sites known to allow embedding (e.g. flashscore.com, bbc.co.uk, wikipedia.org). Avoid sites that block iframes (google.com, twitter.com, premierleague.com).',
+          'When you need more information to complete a task, ask ONE short clarifying question (max 10 words, ending with "?"). The user will answer and you can then complete the task.',
+          'When answering a question, summarise the key facts in 1-2 spoken sentences. When confirming an action, ONE short sentence (max 8 words).',
+          'Never use markdown, bullet points, or long explanations — responses are spoken aloud.',
           `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.`,
         ].join(' '),
         tools:    VOICE_TOOLS,
@@ -895,6 +1518,44 @@ app.post('/api/voice', async (req, res) => {
   } catch (error: any) {
     console.error('Voice API error:', error.message)
     res.status(500).json({ error: error.message })
+  }
+})
+
+// ── ElevenLabs TTS ────────────────────────────────────────────────────────────
+
+app.post('/api/tts', async (req, res) => {
+  const { text } = req.body as { text?: string }
+  if (!text?.trim()) return res.status(400).json({ error: 'No text' })
+
+  const apiKey = process.env.VITE_ELEVENLABS_API_KEY ?? process.env.ELEVENLABS_API_KEY
+  if (!apiKey) return res.status(503).json({ error: 'ELEVENLABS_API_KEY not set' })
+
+  const voiceId = process.env.VITE_ELEVENLABS_VOICE_ID ?? process.env.ELEVENLABS_VOICE_ID ?? 'SOYHLrjzK2X1ezoPC6cr'
+
+  try {
+    const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
+      method: 'POST',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg',
+      },
+      body: JSON.stringify({
+        text: text.trim(),
+        model_id: 'eleven_turbo_v2',
+        voice_settings: { stability: 0.85, similarity_boost: 0.6, style: 0, use_speaker_boost: true },
+      }),
+    })
+    if (!r.ok) {
+      const err = await r.text()
+      return res.status(r.status).json({ error: err })
+    }
+    res.setHeader('Content-Type', 'audio/mpeg')
+    res.setHeader('Transfer-Encoding', 'chunked')
+    const { Readable } = await import('stream')
+    Readable.fromWeb(r.body as any).pipe(res)
+  } catch (e) {
+    res.status(500).json({ error: String(e) })
   }
 })
 

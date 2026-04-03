@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '../ui/web'
 import { useNotificationStore, type Notification } from '../store/notifications'
+import { soundAlert } from '../lib/sounds'
 
 const TOAST_DURATION = 4500
 
@@ -16,6 +17,7 @@ export function NotificationToast() {
     notifications.forEach((n) => {
       if (seenIds.current.has(n.id)) return
       seenIds.current.add(n.id)
+      soundAlert()
       setVisibleIds((prev) => [...prev, n.id])
       setTimeout(() => {
         setVisibleIds((prev) => prev.filter((id) => id !== n.id))

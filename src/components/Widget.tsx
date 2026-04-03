@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { soundWidgetRemoved } from '../lib/sounds'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 import { useUndoStore } from '../store/undo'
@@ -386,7 +387,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         transformOrigin: dragging ? dragOrigin : 'center',
         transition:  dragging ? 'transform 0.15s ease' : 'transform 0.2s ease',
         opacity:     dragging ? 0.85 : 1,
-        animation:   removing ? 'wt-remove 0.35s cubic-bezier(0.4, 0, 1, 1) forwards' : undefined,
+        animation:   removing ? 'wt-remove 0.15s cubic-bezier(0.4, 0, 1, 1) forwards' : undefined,
       }
 
   return (
@@ -583,10 +584,11 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
                 const snapshot   = state.boards
                   .find((b) => b.id === state.activeBoardId)
                   ?.widgets.find((w) => w.id === id)
+                soundWidgetRemoved()
                 setTimeout(() => {
                   removeWidget(id)
                   if (snapshot) useUndoStore.getState().push('Widget removed', snapshot)
-                }, 340)
+                }, 150)
               }}
             >
               Remove

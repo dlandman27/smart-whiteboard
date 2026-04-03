@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { soundPanelOpen, soundSwipe, soundClick } from '../lib/sounds'
 import { Icon, IconButton } from '../ui/web'
 import { DEFAULT_COLOR, DEFAULT_STROKE, DEFAULT_ERASER_SIZE } from '../constants/drawing'
 import { useWhiteboardStore } from '../store/whiteboard'
@@ -33,7 +34,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
   const pillRef                       = useRef<HTMLDivElement>(null)
 
   function togglePanel(panel: Exclude<ActivePanel, null>) {
-    setActivePanel((p) => p === panel ? null : panel)
+    setActivePanel((p) => (p !== panel ? panel : null))
   }
 
   const activeBoard = boards.find((b) => b.id === activeBoardId)
@@ -46,6 +47,33 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
     const delta = e.changedTouches[0].clientY - touchStartY.current
     if (delta > 20) { setHidden(true); setActivePanel(null) }
   }
+
+  // Play click sound on press AND release for every button inside the pill
+  useEffect(() => {
+    const pill = pillRef.current
+    if (!pill) return
+    function onDown(e: PointerEvent) {
+      const btn = (e.target as HTMLElement).closest('button')
+      if (btn && !btn.hasAttribute('data-no-click-sound')) soundClick()
+    }
+    function onUp(e: PointerEvent) {
+      const btn = (e.target as HTMLElement).closest('button')
+      if (btn && !btn.hasAttribute('data-no-click-sound')) soundClick()
+    }
+    pill.addEventListener('pointerdown', onDown)
+    pill.addEventListener('pointerup',   onUp)
+    return () => {
+      pill.removeEventListener('pointerdown', onDown)
+      pill.removeEventListener('pointerup',   onUp)
+    }
+  }, [])
+
+  const mountedRef = useRef(false)
+  useEffect(() => {
+    if (!mountedRef.current) { mountedRef.current = true; return }
+    if (hidden) soundSwipe()
+    else soundPanelOpen()
+  }, [hidden])
 
   useEffect(() => {
     if (!hidden) return
@@ -117,9 +145,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
           variant={activePanel === 'layout' ? 'active' : 'default'}
           onClick={() => togglePanel('layout')}
           title="Layout"
-
         />
-
 
         {/* Board picker */}
         <button
@@ -135,7 +161,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
           {activeBoard?.name ?? 'Board'}
         </button>
 
-
         {/* Add widget */}
         <IconButton
           icon="Plus"
@@ -150,6 +175,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
 
         {/* Hide tab — sits on top of the pill */}
         <button
+          data-no-click-sound
           onClick={() => { setHidden(true); setActivePanel(null) }}
           style={{
             position:        'absolute',

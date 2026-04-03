@@ -1,0 +1,12 @@
+{
+  "name": "Dylan",
+  "location": "Jersey City",
+  "preferences": [
+    "favorite soccer team is Manchester United",
+    "favorite hockey team is the Islanders"
+  ],
+  "facts": [],
+  "databases": {
+    "notion-view": "325b3daa-10f0-805f-b7f1-d1e230ee477f"
+  }
+}

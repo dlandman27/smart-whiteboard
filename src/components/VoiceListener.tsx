@@ -18,7 +18,7 @@ export function VoiceListener() {
   if (state === 'unsupported') return null
 
   const isActive    = state === 'listening' || state === 'processing' || state === 'responding'
-  const displayText = error ?? (state === 'responding' ? response : transcript)
+  const displayText = error ?? (state === 'responding' ? response : null)
 
   return (
     <>
@@ -69,12 +69,11 @@ export function VoiceListener() {
             border:         '1px solid var(--wt-border)',
             borderRadius:   24,
             padding:        '8px 20px',
-            fontSize:       14,
-            color:          state === 'responding' ? 'var(--wt-accent)' : 'var(--wt-text)',
-            whiteSpace:     'nowrap',
-            maxWidth:       '60vw',
-            overflow:       'hidden',
-            textOverflow:   'ellipsis',
+            fontSize:       15,
+            lineHeight:     1.5,
+            color:          'var(--wt-accent)',
+            maxWidth:       '70vw',
+            textAlign:      'center',
             animation:      'fadeIn 0.2s ease',
           }}
         >

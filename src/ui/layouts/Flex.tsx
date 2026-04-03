@@ -101,10 +101,10 @@ export function Flex({
   )
 }
 
-export function FlexRow(props: Omit<FlexProps, 'dir'>) {
-  return <Flex {...props} dir="row" />
+export function FlexRow({ fullWidth = true, ...props }: Omit<FlexProps, 'dir'>) {
+  return <Flex {...props} dir="row" fullWidth={fullWidth} />
 }
 
-export function FlexCol(props: Omit<FlexProps, 'dir'>) {
-  return <Flex {...props} dir="col" />
+export function FlexCol({ fullWidth = true, align = 'stretch', ...props }: Omit<FlexProps, 'dir'>) {
+  return <Flex {...props} dir="col" fullWidth={fullWidth} align={align} />
 }

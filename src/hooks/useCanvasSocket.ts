@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 import { useThemeStore } from '../store/theme'
+import { soundWidgetAdded, soundWidgetRemoved } from '../lib/sounds'
 
 const WS_URL = 'ws://localhost:3001'
 
@@ -48,6 +49,7 @@ export function useCanvasSocket() {
         const { setTheme, setCustomTheme } = useThemeStore.getState()
 
         if (msg.type === 'create_widget') {
+          soundWidgetAdded()
           addWidget({
             id:            msg.id,
             type:          msg.widgetType,
@@ -72,6 +74,7 @@ export function useCanvasSocket() {
             updateSettings(msg.id, msg.settings)
           }
         } else if (msg.type === 'delete_widget') {
+          soundWidgetRemoved()
           removeWidget(msg.id)
         } else if (msg.type === 'clear_widgets') {
           clearWidgets()

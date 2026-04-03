@@ -3,25 +3,21 @@ import { ClockWidget } from './ClockWidget'
 import { ClockSettings } from './ClockSettings'
 import { WeatherWidget } from './WeatherWidget'
 import { WeatherSettings } from './WeatherSettings'
-import { WeightWidget } from './WeightWidget'
-import { WeightSettings } from './WeightSettings'
-import { TasksWidget } from './TasksWidget'
 import { CountdownWidget } from './CountdownWidget'
 import { CountdownSettings } from './CountdownSettings'
 import { QuoteWidget } from './QuoteWidget'
 import { QuoteSettings } from './QuoteSettings'
-import { RoutinesWidget } from './RoutinesWidget'
-import { RoutinesSettings } from './RoutinesSettings'
-import { TasksSettings } from './TasksSettings'
 import { HtmlWidget } from './HtmlWidget'
 import { NFLWidget, NBAWidget } from './SportsWidget'
 import { NFLSettings, NBASettings } from './SportsSettings'
 import { NoteWidget } from './NoteWidget'
 import { PomodoroWidget, PomodoroSettings } from './PomodoroWidget'
 
-import { GroceryWidget, GrocerySettings } from './GroceryWidget'
 import { YouTubeWidget, YouTubeSettings } from './YouTubeWidget'
+import { SpotifyWidget, SpotifySettings } from './SpotifyWidget'
 import { WorldcupWidget } from './WorldcupWidget'
+import { NotionViewWidget } from './notion-view'
+import { UrlWidget, UrlSettings } from './UrlWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 
@@ -54,28 +50,6 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     settingsComponent:  ClockSettings,
   },
   {
-    type:              '@whiteboard/weight',
-    label:             'Weight Progress',
-    Icon:              'Scales',
-    iconBg:            'bg-green-50',
-    iconClass:         'text-green-500',
-    keywords:          ['weight', 'fitness', 'health', 'progress', 'goal'],
-    defaultSize:       { width: 340, height: 200 },
-    component:         WeightWidget,
-    settingsComponent: WeightSettings,
-  },
-  {
-    type:              '@whiteboard/tasks',
-    label:             'Tasks',
-    Icon:              'CheckSquare',
-    iconBg:            'bg-blue-50',
-    iconClass:         'text-blue-500',
-    keywords:          ['tasks', 'todo', 'checklist', 'list'],
-    defaultSize:       { width: 320, height: 400 },
-    component:         TasksWidget,
-    settingsComponent: TasksSettings,
-  },
-  {
     type:              '@whiteboard/countdown',
     label:             'Countdown',
     Icon:              'Timer',
@@ -96,18 +70,6 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     defaultSize:       { width: 360, height: 260 },
     component:         QuoteWidget,
     settingsComponent: QuoteSettings,
-  },
-  {
-    type:              '@whiteboard/routines',
-    label:             'Routines',
-    Icon:              'ListChecks',
-    iconBg:            'bg-emerald-50',
-    iconClass:         'text-emerald-500',
-    keywords:          ['routines', 'habits', 'daily', 'checklist', 'morning', 'evening'],
-    defaultSize:       { width: 320, height: 480 },
-    scalable:          false,
-    component:         RoutinesWidget,
-    settingsComponent: RoutinesSettings,
   },
   {
     type:              '@whiteboard/weather',
@@ -174,17 +136,6 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     component:   HtmlWidget,
   },
   {
-    type:              '@whiteboard/grocery',
-    label:             'Grocery List',
-    Icon:              'ShoppingCart',
-    iconBg:            'bg-green-50',
-    iconClass:         'text-green-600',
-    keywords:          ["grocery","shopping","list","food","store"],
-    defaultSize:       { width: 340, height: 520 },
-    component:         GroceryWidget,
-    settingsComponent: GrocerySettings,
-  },
-  {
     type:              '@whiteboard/youtube',
     label:             'YouTube',
     Icon:              'YoutubeLogo',
@@ -194,6 +145,38 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     defaultSize:       { width: 560, height: 360 },
     component:         YouTubeWidget,
     settingsComponent: YouTubeSettings,
+  },
+  {
+    type:        '@whiteboard/notion-view',
+    label:       'Notion View',
+    Icon:        'Database',
+    iconBg:      'bg-purple-50',
+    iconClass:   'text-purple-500',
+    keywords:    ['notion', 'database', 'tracker', 'table', 'kanban', 'chart', 'habit', 'timeline', 'stats'],
+    defaultSize: { width: 400, height: 320 },
+    component:   NotionViewWidget,
+  },
+  {
+    type:              '@whiteboard/url',
+    label:             'Website',
+    Icon:              'Globe',
+    iconBg:            'bg-sky-50',
+    iconClass:         'text-sky-500',
+    keywords:          ['url', 'website', 'iframe', 'embed', 'browser', 'web', 'link'],
+    defaultSize:       { width: 800, height: 540 },
+    component:         UrlWidget,
+    settingsComponent: UrlSettings,
+  },
+  {
+    type:              '@whiteboard/spotify',
+    label:             'Spotify',
+    Icon:              'MusicNote',
+    iconBg:            'bg-green-50',
+    iconClass:         'text-green-500',
+    keywords:          ['spotify', 'music', 'now playing', 'player', 'audio'],
+    defaultSize:       { width: 300, height: 340 },
+    component:         SpotifyWidget,
+    settingsComponent: SpotifySettings,
   },
   {
     type:              '@whiteboard/worldcup',
