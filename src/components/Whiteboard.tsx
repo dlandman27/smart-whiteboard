@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useThemeStore } from '../store/theme'
 import { useUIStore } from '../store/ui'
 import { WhiteboardBackground } from './WhiteboardBackground'
-import { WalliChatButton, WalliChatPanel } from './WalliChat'
+import { WalliChatButton } from './WalliChat'
 import { BottomToolbar } from './BottomToolbar'
 import { WidgetCanvas } from './WidgetCanvas'
 import { NotificationToast } from './NotificationToast'
@@ -41,7 +41,6 @@ export function Whiteboard() {
         <WalliChatButton />
       </div>
 
-      <WalliChatPanel />
 
       <NotificationToast />
       <UndoToast />

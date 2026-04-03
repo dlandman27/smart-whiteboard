@@ -4,14 +4,14 @@ import { useBriefingStore } from '../store/briefing'
 import { useChatStore } from '../store/chat'
 import { soundSuccess } from '../lib/sounds'
 
-// ── Walli avatar ──────────────────────────────────────────────────────────────
+// ── Shared avatar ─────────────────────────────────────────────────────────────
 
-function WalliAvatar({ pulse }: { pulse?: boolean }) {
+function WalliAvatar({ size = 36, pulse }: { size?: number; pulse?: boolean }) {
   return (
     <div
       style={{
-        width:          36,
-        height:         36,
+        width:          size,
+        height:         size,
         borderRadius:   '50%',
         background:     'linear-gradient(135deg, #3b82f6 0%, #a855f7 100%)',
         display:        'flex',
@@ -22,9 +22,11 @@ function WalliAvatar({ pulse }: { pulse?: boolean }) {
           ? '0 0 0 4px rgba(59,130,246,0.25), 0 2px 8px rgba(59,130,246,0.4)'
           : '0 2px 8px rgba(59,130,246,0.3)',
         transition:     'box-shadow 0.3s ease',
+        fontSize:       size * 0.44,
+        lineHeight:     1,
       }}
     >
-      <span style={{ fontSize: 16, lineHeight: 1 }}>✦</span>
+      ✦
     </div>
   )
 }
@@ -38,11 +40,11 @@ function TypingDots() {
         <div
           key={i}
           style={{
-            width:           8,
-            height:          8,
-            borderRadius:    '50%',
-            background:      'var(--wt-text-muted)',
-            animation:       `walli-typing 1.2s ease-in-out ${i * 0.2}s infinite`,
+            width:      8,
+            height:     8,
+            borderRadius: '50%',
+            background: 'var(--wt-text-muted)',
+            animation:  `walli-typing 1.2s ease-in-out ${i * 0.2}s infinite`,
           }}
         />
       ))}
@@ -53,40 +55,51 @@ function TypingDots() {
 // ── Bubble ────────────────────────────────────────────────────────────────────
 
 function Bubble({
-  text,
+  children,
   side,
   dim,
+  animate = true,
 }: {
-  text: React.ReactNode
+  children: React.ReactNode
   side: 'user' | 'walli'
   dim?: boolean
+  animate?: boolean
 }) {
   const isUser = side === 'user'
   return (
     <div
       style={{
-        maxWidth:        '68vw',
-        padding:         '10px 14px',
-        borderRadius:    isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-        background:      isUser
+        maxWidth:       '80%',
+        padding:        '10px 14px',
+        borderRadius:   isUser ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+        background:     isUser
           ? 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)'
           : 'color-mix(in srgb, var(--wt-surface) 94%, transparent)',
-        backdropFilter:  isUser ? 'none' : 'blur(20px)',
-        border:          isUser ? 'none' : '1px solid var(--wt-border)',
-        color:           isUser ? '#fff' : 'var(--wt-text)',
-        fontSize:        15,
-        lineHeight:      1.55,
-        fontWeight:      isUser ? 500 : 400,
-        boxShadow:       isUser
+        backdropFilter: isUser ? 'none' : 'blur(20px)',
+        border:         isUser ? 'none' : '1px solid var(--wt-border)',
+        color:          isUser ? '#fff' : 'var(--wt-text)',
+        fontSize:       15,
+        lineHeight:     1.55,
+        fontWeight:     isUser ? 500 : 400,
+        boxShadow:      isUser
           ? '0 4px 16px rgba(59,130,246,0.35)'
           : '0 4px 16px rgba(0,0,0,0.12)',
-        opacity:         dim ? 0.55 : 1,
-        transition:      'opacity 0.3s ease',
-        animation:       'walli-bubble-in 0.25s cubic-bezier(0.34,1.56,0.64,1) both',
-        wordBreak:       'break-word',
+        opacity:        dim ? 0.5 : 1,
+        transition:     'opacity 0.3s ease',
+        animation:      animate ? 'walli-bubble-in 0.25s cubic-bezier(0.34,1.56,0.64,1) both' : 'none',
+        wordBreak:      'break-word',
       }}
     >
-      {text}
+      {children}
+    </div>
+  )
+}
+
+function BubbleRow({ side, children, pulse }: { side: 'user' | 'walli'; children: React.ReactNode; pulse?: boolean }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: side === 'user' ? 'flex-end' : 'flex-start', alignItems: 'flex-end', gap: 8 }}>
+      {side === 'walli' && <WalliAvatar pulse={pulse} />}
+      {children}
     </div>
   )
 }
@@ -98,7 +111,12 @@ export function VoiceListener() {
   const briefingText  = useBriefingStore((s) => s.text)
   const clearBriefing = useBriefingStore((s) => s.clear)
   const addMessage    = useChatStore((s) => s.addMessage)
+  const messages      = useChatStore((s) => s.messages)
+  const isOpen        = useChatStore((s) => s.isOpen)
+  const close         = useChatStore((s) => s.close)
+  const scrollRef     = useRef<HTMLDivElement>(null)
 
+  // ── Briefing (agent-triggered speech) ────────────────────────────────────
   const [briefingResponse, setBriefingResponse] = useState<string | null>(null)
   useEffect(() => {
     if (!briefingText) return
@@ -137,9 +155,9 @@ export function VoiceListener() {
     }).catch(() => setBriefingResponse(null))
   }, [briefingText])
 
-  // ── Persist messages to chat store ───────────────────────────────────────
-  const lastTranscriptRef  = useRef('')
-  const lastResponseRef    = useRef('')
+  // ── Persist voice messages to store ──────────────────────────────────────
+  const lastTranscriptRef = useRef('')
+  const lastResponseRef   = useRef('')
 
   useEffect(() => {
     if (state === 'processing' && transcript && transcript !== lastTranscriptRef.current) {
@@ -155,9 +173,16 @@ export function VoiceListener() {
     }
   }, [state, response])
 
+  // ── Auto-scroll history to bottom ────────────────────────────────────────
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' }), 50)
+    }
+  }, [messages, isOpen])
+
+  // ── Wake-word blip ────────────────────────────────────────────────────────
   const [blip, setBlip] = useState(false)
   const prevState       = useRef(state)
-
   useEffect(() => {
     if (prevState.current === 'idle' && state === 'listening') {
       setBlip(true)
@@ -168,83 +193,116 @@ export function VoiceListener() {
 
   if (state === 'unsupported') return null
 
-  const isActive     = state === 'listening' || state === 'processing' || state === 'responding' || !!briefingResponse
-  const walliText    = error ?? briefingResponse ?? (state === 'responding' ? response : null)
-  const showTyping   = state === 'processing'
-  const showTranscript = !!transcript && (state === 'listening' || state === 'processing' || state === 'responding')
+  const isVoiceActive   = state === 'listening' || state === 'processing' || state === 'responding' || !!briefingResponse
+  const walliText       = error ?? briefingResponse ?? (state === 'responding' ? response : null)
+  const showTyping      = state === 'processing'
+  const showTranscript  = !!transcript && (state === 'listening' || state === 'processing' || state === 'responding')
+  const dimUser         = state === 'responding' || !!briefingResponse
 
-  // Dim the user bubble once walli is speaking
-  const dimUser = state === 'responding' || !!briefingResponse
+  // ── Overlay width ─────────────────────────────────────────────────────────
+  const overlayStyle = {
+    position:  'fixed' as const,
+    bottom:    56,
+    left:      32,
+    zIndex:    9999,
+    width:     'min(480px, calc(50vw - 48px))',
+  }
 
   return (
     <>
-      {/* Edge glow overlay */}
-      <div
-        style={{
-          position:      'fixed',
-          inset:         0,
-          pointerEvents: 'none',
-          zIndex:        9998,
-          opacity:       isActive ? 1 : 0,
-          transition:    'opacity 0.5s ease',
-          animation:     isActive
-            ? (state === 'processing'
-                ? 'siriProcess 1.2s ease-in-out infinite'
-                : 'siriEdge 3s linear infinite')
-            : 'none',
-        }}
-      />
+      {/* Edge glow */}
+      <div style={{
+        position:      'fixed',
+        inset:         0,
+        pointerEvents: 'none',
+        zIndex:        9998,
+        opacity:       isVoiceActive ? 1 : 0,
+        transition:    'opacity 0.5s ease',
+        animation:     isVoiceActive
+          ? (state === 'processing' ? 'siriProcess 1.2s ease-in-out infinite' : 'siriEdge 3s linear infinite')
+          : 'none',
+      }} />
 
-      {/* Wake-word blip */}
+      {/* Wake blip */}
       {blip && (
-        <div
-          style={{
-            position:      'fixed',
-            inset:         0,
-            pointerEvents: 'none',
-            zIndex:        9997,
-            background:    'radial-gradient(ellipse at center, rgba(59,130,246,0.25) 0%, transparent 70%)',
-            animation:     'siriBlip 0.7s ease-out forwards',
-          }}
-        />
+        <div style={{
+          position:   'fixed',
+          inset:      0,
+          pointerEvents: 'none',
+          zIndex:     9997,
+          background: 'radial-gradient(ellipse at center, rgba(59,130,246,0.25) 0%, transparent 70%)',
+          animation:  'siriBlip 0.7s ease-out forwards',
+        }} />
       )}
 
-      {/* Chat overlay — bottom-left, clear of center toolbar */}
-      {isActive && (
+      {/* ── History overlay (logo-triggered) ─────────────────────────────── */}
+      {isOpen && (
+        <>
+        {/* Click-outside backdrop */}
         <div
-          style={{
-            position:       'fixed',
-            bottom:         32,
-            left:           32,
-            zIndex:         9999,
-            pointerEvents:  'none',
-            width:          'min(480px, calc(50vw - 48px))',
-            display:        'flex',
-            flexDirection:  'column',
-            gap:            10,
-          }}
-        >
-          {/* User transcript bubble */}
+          onPointerDown={() => close()}
+          style={{ position: 'fixed', inset: 0, zIndex: 9989, pointerEvents: 'auto' }}
+        />
+        <div onPointerDown={(e) => e.stopPropagation()} style={{ ...overlayStyle, pointerEvents: 'auto' }}>
+          {/* Scroll container */}
+          <div
+            ref={scrollRef}
+            style={{
+              maxHeight:     '65vh',
+              overflowY:     'auto',
+              display:       'flex',
+              flexDirection: 'column',
+              gap:           10,
+              paddingBottom: 4,
+              // Fade top edge so it looks like bubbles float in from above
+              maskImage:     'linear-gradient(to bottom, transparent 0%, black 18%)',
+              WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 18%)',
+              // Hide scrollbar but keep scrollable
+              scrollbarWidth: 'none',
+            }}
+          >
+            {messages.length === 0 ? (
+              <div style={{ textAlign: 'center', color: 'var(--wt-text-muted)', fontSize: 13, padding: '32px 0' }}>
+                No conversation yet — say "Hey Walli"
+              </div>
+            ) : (
+              messages.map((msg) => (
+                <BubbleRow key={msg.id} side={msg.role === 'user' ? 'user' : 'walli'}>
+                  <Bubble side={msg.role === 'user' ? 'user' : 'walli'} animate={false}>
+                    {msg.text}
+                  </Bubble>
+                </BubbleRow>
+              ))
+            )}
+
+            {/* Live typing indicator appended to history when active */}
+            {showTyping && (
+              <BubbleRow side="walli" pulse>
+                <Bubble side="walli"><TypingDots /></Bubble>
+              </BubbleRow>
+            )}
+          </div>
+        </div>
+        </>
+      )}
+
+      {/* ── Live overlay (voice active, history closed) ───────────────────── */}
+      {isVoiceActive && !isOpen && (
+        <div style={{ ...overlayStyle, pointerEvents: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {showTranscript && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <Bubble text={transcript} side="user" dim={dimUser} />
-            </div>
+            <BubbleRow side="user">
+              <Bubble side="user" dim={dimUser}>{transcript}</Bubble>
+            </BubbleRow>
           )}
-
-          {/* Walli typing indicator */}
           {showTyping && (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-              <WalliAvatar pulse />
-              <Bubble text={<TypingDots />} side="walli" />
-            </div>
+            <BubbleRow side="walli" pulse>
+              <Bubble side="walli"><TypingDots /></Bubble>
+            </BubbleRow>
           )}
-
-          {/* Walli response bubble */}
           {!showTyping && walliText && (
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10 }}>
-              <WalliAvatar />
-              <Bubble text={walliText} side="walli" />
-            </div>
+            <BubbleRow side="walli">
+              <Bubble side="walli">{walliText}</Bubble>
+            </BubbleRow>
           )}
         </div>
       )}
