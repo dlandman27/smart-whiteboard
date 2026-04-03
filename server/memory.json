@@ -7,6 +7,14 @@
   ],
   "facts": [],
   "databases": {
-    "notion-view": "325b3daa-10f0-805f-b7f1-d1e230ee477f"
+    "notion-view": "325b3daa-10f0-80a0-819c-c8c9dc4098a8",
+    "shopping-list": "Shopping List",
+    "routines": "337b3daa-10f0-8125-8b9a-ea2c08617fa5",
+    "weight-tracking": "Weight Tracking",
+    "tasks": "337b3daa-10f0-8178-b26f-fb88de05a7ba",
+    "weight-log": "337b3daa-10f0-81a0-bc79-cb30715be0e4",
+    "goals": "337b3daa-10f0-81ee-88fe-c22d71dd0ba7",
+    "Tasks": "337b3daa-10f0-809d-a5ad-e885ffc1aab1",
+    "Routines": "337b3daa-10f0-8177-9318-d7e63bcbaed0"
   }
 }

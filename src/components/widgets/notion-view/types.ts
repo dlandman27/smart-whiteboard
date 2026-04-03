@@ -5,6 +5,7 @@ export type TemplateType =
   | 'habit-grid'
   | 'kanban'
   | 'timeline'
+  | 'todo-list'
 
 export interface NotionViewSettings {
   databaseId: string

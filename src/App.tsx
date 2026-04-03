@@ -4,7 +4,7 @@ import { Whiteboard } from './components/Whiteboard'
 import { KioskGuard } from './components/KioskGuard'
 import { useThemeStore } from './store/theme'
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry: 1,

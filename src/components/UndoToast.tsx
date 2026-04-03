@@ -61,8 +61,8 @@ export function UndoToast() {
       className="fixed z-[9999] pointer-events-auto"
       style={{
         bottom:    28,
-        left:      '50%',
-        transform: `translateX(-50%) translateY(${visible ? 0 : 12}px)`,
+        right:     28,
+        transform: `translateY(${visible ? 0 : 12}px)`,
         opacity:   visible ? 1 : 0,
         transition: 'opacity 0.2s ease, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
       }}

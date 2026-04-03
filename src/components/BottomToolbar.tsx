@@ -68,11 +68,13 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
     }
   }, [])
 
+  const [openKey, setOpenKey] = useState(0)
+
   const mountedRef = useRef(false)
   useEffect(() => {
     if (!mountedRef.current) { mountedRef.current = true; return }
     if (hidden) soundSwipe()
-    else soundPanelOpen()
+    else { soundPanelOpen(); setOpenKey((k) => k + 1) }
   }, [hidden])
 
   useEffect(() => {
@@ -130,48 +132,57 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
         onTouchEnd={onToolbarTouchEnd}
       >
         {/* Theme */}
-        <IconButton
-          icon="Palette"
-          size="xl"
-          variant={activePanel === 'theme' ? 'active' : 'default'}
-          onClick={() => togglePanel('theme')}
-          title="Theme"
-        />
+        <div key={`theme-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '0ms' }}>
+          <IconButton
+            icon="Palette"
+            size="xl"
+            variant={activePanel === 'theme' ? 'active' : 'default'}
+            onClick={() => togglePanel('theme')}
+            title="Theme"
+          />
+        </div>
 
         {/* Layout picker */}
-        <IconButton
-          icon="SquaresFour"
-          size="xl"
-          variant={activePanel === 'layout' ? 'active' : 'default'}
-          onClick={() => togglePanel('layout')}
-          title="Layout"
-        />
+        <div key={`layout-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '55ms' }}>
+          <IconButton
+            icon="SquaresFour"
+            size="xl"
+            variant={activePanel === 'layout' ? 'active' : 'default'}
+            onClick={() => togglePanel('layout')}
+            title="Layout"
+          />
+        </div>
 
         {/* Board picker */}
-        <button
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => togglePanel('board')}
-          className="wt-nav-btn px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
-          style={{
-            color:      activePanel === 'board' ? 'var(--wt-accent)' : 'var(--wt-text)',
-            background: activePanel === 'board' ? 'color-mix(in srgb, var(--wt-accent) 10%, transparent)' : 'transparent',
-          }}
-          title="Boards & Layout"
-        >
-          {activeBoard?.name ?? 'Board'}
-        </button>
+        <div>
+          <button
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => togglePanel('board')}
+            className="wt-nav-btn px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
+            style={{
+              color:      activePanel === 'board' ? 'var(--wt-accent)' : 'var(--wt-text)',
+              background: activePanel === 'board' ? 'color-mix(in srgb, var(--wt-accent) 10%, transparent)' : 'transparent',
+            }}
+            title="Boards & Layout"
+          >
+            {activeBoard?.name ?? 'Board'}
+          </button>
+        </div>
 
         {/* Add widget */}
-        <IconButton
-          icon="Plus"
-          size="xl"
-          variant={activePanel === 'picker' ? 'active' : 'default'}
-          onClick={() => { selectTool('pointer'); togglePanel('picker') }}
-          title="Add Widget"
-        />
+        <div key={`plus-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '165ms' }}>
+          <IconButton
+            icon="Plus"
+            size="xl"
+            variant={activePanel === 'picker' ? 'active' : 'default'}
+            onClick={() => { selectTool('pointer'); togglePanel('picker') }}
+            title="Add Widget"
+          />
+        </div>
 
-
-        <NotificationCenter />
+        <div key={`notif-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '220ms' }}>
+          <NotificationCenter />
+        </div>
 
         {/* Hide tab — sits on top of the pill */}
         <button

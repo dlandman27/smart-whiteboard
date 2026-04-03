@@ -19,9 +19,9 @@ function ctx(): AudioContext {
   return new (window.AudioContext ?? (window as any).webkitAudioContext)()
 }
 
-function playFile(path: string, volume = 1.0, durationMs?: number, playbackRate = 1.0) {
+function playFile(path: string, volume = 1.0, durationMs?: number, playbackRate = 1.0, offsetMs = 0) {
   try {
-    if (durationMs !== undefined || playbackRate !== 1.0) {
+    if (durationMs !== undefined || playbackRate !== 1.0 || offsetMs > 0) {
       // Use Web Audio API for trim or speed control
       fetch(path)
         .then((r) => r.arrayBuffer())
@@ -35,7 +35,8 @@ function playFile(path: string, volume = 1.0, durationMs?: number, playbackRate 
             gain.gain.value     = volume
             source.connect(gain)
             gain.connect(ac.destination)
-            source.start(0)
+            const offsetSec = offsetMs / 1000
+            source.start(0, offsetSec)
             if (durationMs !== undefined) {
               source.stop(ac.currentTime + durationMs / 1000 / playbackRate)
             }
@@ -55,7 +56,7 @@ function playFile(path: string, volume = 1.0, durationMs?: number, playbackRate 
 // ─── 0. Panel / Button click (file-based) ─────────────────────────────────────
 
 export function soundPanelOpen() {
-  playFile('/assets/sounds/open.wav', 0.4, undefined, 1.5)
+  playFile('/assets/sounds/whoof.wav', 0.4, undefined, 1.5, 600)
 }
 
 export function soundSwipe() {
@@ -75,11 +76,11 @@ export function soundWidgetRemoved() {
 }
 
 export function soundWidgetDrop() {
-  playFile('/assets/sounds/soft_bump.wav', 0.3)
+  playFile('/assets/sounds/dropped.wav', 0.3, 120, 1.6)
 }
 
 export function soundWidgetPickup() {
-  playFile('/assets/sounds/whoosh.wav', 0.5, 150)
+  playFile('/assets/sounds/grab.wav', 0.5, 150)
 }
 
 // ─── 1. Widget Added ──────────────────────────────────────────────────────────

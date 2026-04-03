@@ -176,7 +176,7 @@ export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
           kind: 'widget', id: `notion-${db.id}`,
           icon: <Icon icon="Database" size={15} className="text-blue-500" />,
           iconBg: 'bg-blue-500/10', name: dbTitle(db), source: 'Notion', added,
-          onAdd: () => selectWidget({ type: 'database', databaseId: db.id, databaseTitle: dbTitle(db), width: 500, height: 380 }),
+          onAdd: () => selectWidget({ type: '@whiteboard/notion-view', databaseId: db.id, databaseTitle: dbTitle(db), width: 500, height: 420, settings: { databaseId: db.id, template: 'todo-list', fieldMap: { title: 'Name', status: 'Status', priority: 'Priority', due: 'Due' }, options: { statusDone: 'Done' } } }),
         })
       }
     }
@@ -286,13 +286,13 @@ export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
   const selectedItem = selectableItems[selectedIdx]
 
   return (
-    <Panel width={580} style={{ height: 560 }} onClose={onClose}>
+    <Panel width={580} style={{ height: 560, display: 'flex', flexDirection: 'column' }} onClose={onClose}>
       {setup ? (
         setup === 'gcal'
           ? <GCalSetup    onBack={() => setSetup(null)} />
           : <SpotifySetup onBack={() => setSetup(null)} />
       ) : (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
           {/* MagnifyingGlass */}
           <div className="flex items-center gap-2 px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}>
             <Icon icon="MagnifyingGlass" size={15} style={{ color: 'var(--wt-text-muted)', flexShrink: 0 }} />
@@ -366,7 +366,7 @@ export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
               Close
             </Text>
           </div>
-        </>
+        </div>
       )}
     </Panel>
   )

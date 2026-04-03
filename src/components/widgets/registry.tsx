@@ -16,8 +16,9 @@ import { PomodoroWidget, PomodoroSettings } from './PomodoroWidget'
 import { YouTubeWidget, YouTubeSettings } from './YouTubeWidget'
 import { SpotifyWidget, SpotifySettings } from './SpotifyWidget'
 import { WorldcupWidget } from './WorldcupWidget'
-import { NotionViewWidget } from './notion-view'
+import { NotionViewWidget, NotionViewSettingsPanel } from './notion-view'
 import { UrlWidget, UrlSettings } from './UrlWidget'
+import { RoutinesWidget, RoutinesSettings } from './RoutinesWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 
@@ -147,14 +148,15 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     settingsComponent: YouTubeSettings,
   },
   {
-    type:        '@whiteboard/notion-view',
-    label:       'Notion View',
-    Icon:        'Database',
-    iconBg:      'bg-purple-50',
-    iconClass:   'text-purple-500',
-    keywords:    ['notion', 'database', 'tracker', 'table', 'kanban', 'chart', 'habit', 'timeline', 'stats'],
-    defaultSize: { width: 400, height: 320 },
-    component:   NotionViewWidget,
+    type:              '@whiteboard/notion-view',
+    label:             'Notion View',
+    Icon:              'Database',
+    iconBg:            'bg-purple-50',
+    iconClass:         'text-purple-500',
+    keywords:          ['notion', 'database', 'tracker', 'table', 'kanban', 'chart', 'habit', 'timeline', 'stats'],
+    defaultSize:       { width: 400, height: 320 },
+    component:         NotionViewWidget,
+    settingsComponent: NotionViewSettingsPanel,
   },
   {
     type:              '@whiteboard/url',
@@ -166,6 +168,17 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     defaultSize:       { width: 800, height: 540 },
     component:         UrlWidget,
     settingsComponent: UrlSettings,
+  },
+  {
+    type:              '@whiteboard/routines',
+    label:             'Routines',
+    Icon:              'CheckSquare',
+    iconBg:            'bg-emerald-50',
+    iconClass:         'text-emerald-500',
+    keywords:          ['routines', 'habits', 'morning', 'evening', 'checklist', 'daily'],
+    defaultSize:       { width: 300, height: 420 },
+    component:         RoutinesWidget,
+    settingsComponent: RoutinesSettings,
   },
   {
     type:              '@whiteboard/spotify',

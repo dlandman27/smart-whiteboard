@@ -520,6 +520,219 @@ function TimelineTemplate({ pages, fieldMap, options }: TemplateProps) {
   )
 }
 
+// ── Template: todo-list ───────────────────────────────────────────────────────
+// fieldMap: { title: "Name", status: "Status", priority?: "Priority", due?: "Due" }
+// options:  { statusDone?: "Done", hideCompleted?: true, groupByPriority?: false }
+
+const PRIORITY_COLOR: Record<string, string> = {
+  High:   '#ef4444',
+  Medium: '#f59e0b',
+  Low:    '#6b7280',
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  'Not started': '#6b7280',
+  'In progress': '#3b82f6',
+  'Done':        '#22c55e',
+}
+
+function TodoListTemplate({ pages, fieldMap, options }: TemplateProps) {
+  const [filter,    setFilter]   = useState<'all' | 'active' | 'done'>('active')
+  const [toggling,  setToggling] = useState<Set<string>>(new Set())
+  const [overrides, setOverrides] = useState<Record<string, boolean>>({})
+
+  const titleField    = fieldMap.title    as string
+  const statusField   = fieldMap.status   as string | undefined
+  const priorityField = fieldMap.priority as string | undefined
+  const dueField      = fieldMap.due      as string | undefined
+  const statusDone    = (options.statusDone   as string) ?? 'Done'
+  const statusActive  = (options.statusActive as string) ?? 'Not started'
+
+  const today = new Date().toISOString().slice(0, 10)
+
+  const items = pages.map((p) => {
+    const rawDone = statusField ? getProp(p, statusField) === statusDone : false
+    const done    = p.id in overrides ? overrides[p.id] : rawDone
+    return {
+      id:       p.id,
+      title:    formatValue(getProp(p, titleField)),
+      status:   statusField   ? (getProp(p, statusField) as string | null) : null,
+      priority: priorityField ? (getProp(p, priorityField) as string | null) : null,
+      due:      dueField      ? (getProp(p, dueField) as string | null) : null,
+      done,
+    }
+  })
+
+  async function toggle(id: string, currentDone: boolean) {
+    if (toggling.has(id) || !statusField) return
+    setToggling((s) => new Set([...s, id]))
+    setOverrides((o) => ({ ...o, [id]: !currentDone }))
+    try {
+      const newStatus = currentDone ? statusActive : statusDone
+      const prop = pages.find((p) => p.id === id)?.properties[statusField]
+      const isCheckbox = prop?.type === 'checkbox'
+      await fetch(`/api/pages/${id}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          properties: isCheckbox
+            ? { [statusField]: { checkbox: !currentDone } }
+            : { [statusField]: { status: { name: newStatus } } },
+        }),
+      })
+    } catch {
+      setOverrides((o) => ({ ...o, [id]: currentDone }))
+    } finally {
+      setToggling((s) => { const n = new Set(s); n.delete(id); return n })
+    }
+  }
+
+  const filtered = items.filter((i) => {
+    if (filter === 'active') return !i.done
+    if (filter === 'done')   return i.done
+    return true
+  })
+
+  // Sort: overdue first, then by priority, then by due date
+  const priorityOrder: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
+  filtered.sort((a, b) => {
+    const aOverdue = a.due && a.due < today && !a.done
+    const bOverdue = b.due && b.due < today && !b.done
+    if (aOverdue && !bOverdue) return -1
+    if (!aOverdue && bOverdue) return 1
+    const ap = priorityOrder[a.priority ?? ''] ?? 3
+    const bp = priorityOrder[b.priority ?? ''] ?? 3
+    if (ap !== bp) return ap - bp
+    if (a.due && b.due) return a.due.localeCompare(b.due)
+    if (a.due) return -1
+    if (b.due) return 1
+    return 0
+  })
+
+  const activeCount = items.filter((i) => !i.done).length
+  const doneCount   = items.filter((i) =>  i.done).length
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* Filter tabs */}
+      <div style={{ display: 'flex', gap: 4, padding: '10px 14px 8px', flexShrink: 0, alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 4 }}>
+          {(['active', 'all', 'done'] as const).map((f) => (
+            <button
+              key={f}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => setFilter(f)}
+              style={{
+                fontSize: 10, fontWeight: 500, padding: '3px 10px',
+                borderRadius: 20, border: 'none', cursor: 'pointer',
+                background: filter === f ? 'var(--wt-accent)' : 'var(--wt-surface)',
+                color:      filter === f ? 'var(--wt-accent-text)' : 'var(--wt-text-muted)',
+              }}
+            >
+              {f === 'active' ? `Active (${activeCount})` : f === 'done' ? `Done (${doneCount})` : 'All'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* List */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 10px 10px' }}>
+        {filtered.length === 0 && (
+          <div style={{ textAlign: 'center', paddingTop: 24, color: 'var(--wt-text-muted)', fontSize: 12 }}>
+            {filter === 'active' ? 'All caught up!' : 'Nothing here'}
+          </div>
+        )}
+        {filtered.map((item) => {
+          const isOverdue = item.due && item.due < today && !item.done
+          return (
+            <button
+              key={item.id}
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => toggle(item.id, item.done)}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10,
+                padding: '8px 10px', marginBottom: 4,
+                borderRadius: 10, textAlign: 'left',
+                border: `1px solid ${isOverdue ? 'rgba(239,68,68,0.3)' : 'var(--wt-border)'}`,
+                background: item.done
+                  ? 'transparent'
+                  : isOverdue
+                    ? 'rgba(239,68,68,0.04)'
+                    : 'var(--wt-surface)',
+                cursor: 'pointer',
+                opacity: toggling.has(item.id) ? 0.6 : 1,
+                transition: 'opacity 0.15s',
+              }}
+            >
+              {/* Status dot */}
+              <div style={{
+                width: 16, height: 16, borderRadius: '50%', flexShrink: 0, marginTop: 1,
+                border: item.done ? 'none' : '1.5px solid var(--wt-border)',
+                background: item.done
+                  ? '#22c55e'
+                  : item.status
+                    ? (STATUS_COLOR[item.status] ?? 'transparent')
+                    : 'transparent',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                {item.done && (
+                  <svg width={9} height={9} viewBox="0 0 12 12" fill="none">
+                    <path d="M2 6l3 3 5-5" stroke="white" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </div>
+
+              {/* Content */}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 12, fontWeight: 500, lineHeight: 1.35,
+                  color: 'var(--wt-text)',
+                  textDecoration: item.done ? 'line-through' : 'none',
+                  opacity: item.done ? 0.4 : 1,
+                }}>
+                  {item.title}
+                </div>
+                {/* Meta row */}
+                {(item.priority || item.due || item.status) && (
+                  <div style={{ display: 'flex', gap: 6, marginTop: 4, flexWrap: 'wrap', alignItems: 'center' }}>
+                    {item.priority && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 600, padding: '1px 6px', borderRadius: 4,
+                        background: `${PRIORITY_COLOR[item.priority] ?? '#6b7280'}20`,
+                        color: PRIORITY_COLOR[item.priority] ?? '#6b7280',
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>
+                        {item.priority}
+                      </span>
+                    )}
+                    {item.status && !item.done && (
+                      <span style={{
+                        fontSize: 9, fontWeight: 500, padding: '1px 6px', borderRadius: 4,
+                        background: 'var(--wt-border)',
+                        color: STATUS_COLOR[item.status] ?? 'var(--wt-text-muted)',
+                      }}>
+                        {item.status}
+                      </span>
+                    )}
+                    {item.due && (
+                      <span style={{
+                        fontSize: 9, color: isOverdue ? '#ef4444' : 'var(--wt-text-muted)',
+                        fontWeight: isOverdue ? 600 : 400,
+                      }}>
+                        {isOverdue ? '⚠ ' : ''}{formatDate(item.due)}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ── Main widget ───────────────────────────────────────────────────────────────
 
 const TEMPLATE_MAP = {
@@ -529,6 +742,7 @@ const TEMPLATE_MAP = {
   'habit-grid':   HabitGridTemplate,
   'kanban':       KanbanTemplate,
   'timeline':     TimelineTemplate,
+  'todo-list':    TodoListTemplate,
 }
 
 export function NotionViewWidget({ widgetId }: { widgetId: string }) {
@@ -566,3 +780,5 @@ export function NotionViewWidget({ widgetId }: { widgetId: string }) {
     </Box>
   )
 }
+
+export { NotionViewSettingsPanel } from './NotionViewSettings'

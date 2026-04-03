@@ -213,6 +213,16 @@
 .wt-widget-entrance { animation: wt-entrance 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 .wt-widget-settle   { animation: wt-settle   0.4s  cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
 
+@keyframes toolbar-drop-in {
+  0%   { opacity: 0; transform: translateY(-16px) scale(0.82); }
+  55%  { opacity: 1; transform: translateY(4px)   scale(1.05); }
+  75%  { transform: translateY(-2px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0)     scale(1); }
+}
+.toolbar-drop-in {
+  animation: toolbar-drop-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
 @keyframes wt-settings-in {
   from { transform: translateX(100%); }
   to   { transform: translateX(0); }
@@ -228,6 +238,11 @@
   100% { transform: scale(0.75); opacity: 0; filter: brightness(0.8); }
 }
 
+@keyframes wt-flash {
+  0%, 100% { box-shadow: 0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm); }
+  50%       { box-shadow: 0 0 0 3px var(--wt-danger), 0 0 28px 8px rgba(239,68,68,0.25); }
+}
+
 @keyframes voicePulse {
   0%   { transform: scale(1);    opacity: 0.7; }
   100% { transform: scale(2.4);  opacity: 0;   }
@@ -235,6 +250,14 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0);   }
+}
+@keyframes walli-bubble-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+@keyframes walli-typing {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1;   }
 }
 @keyframes spin {
   to { transform: rotate(360deg); }

@@ -8,6 +8,7 @@ import { WebSocketServer, WebSocket } from 'ws'
 import { Client } from '@notionhq/client'
 import { google } from 'googleapis'
 import Anthropic from '@anthropic-ai/sdk'
+import { createScheduler } from './agents/index.js'
 
 dotenv.config()
 
@@ -245,7 +246,8 @@ app.get('/api/sports/:league', async (req, res) => {
 
 // ── Notion ────────────────────────────────────────────────────────────────────
 
-const notion = new Client({ auth: process.env.NOTION_API_KEY })
+const notion    = new Client({ auth: process.env.NOTION_API_KEY })
+const anthropic = new Anthropic()
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, configured: !!process.env.NOTION_API_KEY })
@@ -339,6 +341,14 @@ app.patch('/api/pages/:id', async (req, res) => {
 app.delete('/api/pages/:id', async (req, res) => {
   try {
     res.json(await notion.pages.update({ page_id: req.params.id, archived: true }))
+  } catch (error: any) {
+    res.status(500).json({ error: error.message })
+  }
+})
+
+app.delete('/api/databases/:id', async (req, res) => {
+  try {
+    res.json(await (notion as any).databases.update({ database_id: req.params.id, archived: true }))
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
@@ -755,6 +765,30 @@ const VOICE_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name:        'manage_agents',
+    description: 'List, enable, disable, or manually trigger background agents (task monitor, calendar alerts, focus switcher, routine reminder).',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        action:  { type: 'string', enum: ['list', 'run', 'enable', 'disable'], description: '"list" shows all agents and their status. "run" triggers one immediately. "enable"/"disable" toggle it on/off.' },
+        agentId: { type: 'string', description: 'Required for run/enable/disable. Agent IDs: task-monitor, calendar-agent, focus-agent, routine-agent' },
+      },
+      required: ['action'],
+    },
+  },
+  {
+    name:        'set_scratch_pad',
+    description: 'Write or append text to the scratch pad note widget on the board. If no note widget exists, creates one. Use mode "replace" to overwrite, "append" to add a new timestamped line, "clear" to wipe it.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        text: { type: 'string', description: 'The text to write' },
+        mode: { type: 'string', enum: ['replace', 'append', 'clear'], description: 'Default: append' },
+      },
+      required: [],
+    },
+  },
+  {
     name:        'delete_widget',
     description: 'Remove a widget from the board. Use get_board_state to find the widget ID.',
     input_schema: {
@@ -854,6 +888,37 @@ const VOICE_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name:        'query_notion_database',
+    description: 'Search for entries in a Notion database by title/name or filter by a property value. Returns matching page IDs and their key properties so you can identify which entry to update or reference.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        databaseId: { type: 'string' },
+        search:     { type: 'string', description: 'Text to search for in the title field (partial match)' },
+        filterProperty: { type: 'string', description: 'Property name to filter by' },
+        filterValue:    { type: 'string', description: 'Value that property must equal' },
+        limit:      { type: 'number', description: 'Max results to return (default 10)' },
+      },
+      required: ['databaseId'],
+    },
+  },
+  {
+    name:        'update_notion_entry',
+    description: 'Update properties of an existing Notion page/entry. Use query_notion_database first to find the page ID. Accepts plain key-value pairs — the server maps them to the correct Notion property format automatically.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        pageId:     { type: 'string', description: 'Notion page ID of the entry to update' },
+        databaseId: { type: 'string', description: 'Database ID (needed to look up the schema for type mapping)' },
+        data: {
+          type: 'object',
+          description: 'Key-value pairs of properties to update. E.g. { "Status": "In progress", "Due": "2026-04-10" }',
+        },
+      },
+      required: ['pageId', 'databaseId', 'data'],
+    },
+  },
+  {
     name:        'list_notion_databases',
     description: 'List all Notion databases accessible to this integration.',
     input_schema: { type: 'object' as const, properties: {} },
@@ -885,6 +950,29 @@ const VOICE_TOOLS: Anthropic.Tool[] = [
     },
   },
   {
+    name:        'delete_notion_page',
+    description: 'Archive (delete) a Notion page/entry by page ID. Use query_notion_database first to find the page ID.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        pageId:     { type: 'string', description: 'The Notion page ID to archive' },
+        databaseId: { type: 'string', description: 'Optional: the parent database ID, used to invalidate the cache after deletion' },
+      },
+      required: ['pageId'],
+    },
+  },
+  {
+    name:        'delete_notion_database',
+    description: 'Archive (delete) an entire Notion database by database ID. This removes the database and all its entries. Use with caution.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        databaseId: { type: 'string', description: 'The Notion database ID to archive' },
+      },
+      required: ['databaseId'],
+    },
+  },
+  {
     name:        'add_notion_entry',
     description: 'Add an entry to any Notion database using plain key-value pairs. The server automatically maps values to the correct Notion property format based on the database schema.',
     input_schema: {
@@ -907,12 +995,13 @@ const VOICE_TOOLS: Anthropic.Tool[] = [
 - stat-cards: Aggregate stats (count/sum/avg/latest/min/max). fieldMap: { value: "PropName" }. options: { unit?, stats?: ["count","sum","avg","latest","min","max"] }
 - habit-grid: Daily checkbox completion grid. fieldMap: { date: "PropName", done: "PropName" }. options: { weeks? }
 - kanban: Cards grouped by a select/status field. fieldMap: { title: "PropName", group: "PropName", subtitle?: "PropName" }. options: { columns?: ["Status1","Status2"] }
-- timeline: Date-sorted event list. fieldMap: { title: "PropName", date: "PropName", subtitle?: "PropName", status?: "PropName" }. options: { limit?, sort?: "asc"|"desc" }`,
+- timeline: Date-sorted event list. fieldMap: { title: "PropName", date: "PropName", subtitle?: "PropName", status?: "PropName" }. options: { limit?, sort?: "asc"|"desc" }
+- todo-list: Clean todo list with checkboxes, priority badges, due dates, and active/done filters. Best for tasks. fieldMap: { title: "PropName", status?: "PropName", priority?: "PropName", due?: "PropName" }. options: { statusDone?: "Done" }`,
     input_schema: {
       type: 'object' as const,
       properties: {
         databaseId: { type: 'string' },
-        template:   { type: 'string', enum: ['metric-chart', 'data-table', 'stat-cards', 'habit-grid', 'kanban', 'timeline'] },
+        template:   { type: 'string', enum: ['metric-chart', 'data-table', 'stat-cards', 'habit-grid', 'kanban', 'timeline', 'todo-list'] },
         title:      { type: 'string', description: 'Widget header label' },
         fieldMap:   { type: 'object', description: 'Template field → Notion property name mapping' },
         options:    { type: 'object', description: 'Template-specific display options' },
@@ -988,6 +1077,22 @@ const VOICE_TOOLS: Anthropic.Tool[] = [
       },
       required: ['url'],
     },
+  },
+  {
+    name:        'set_notion_workspace_page',
+    description: 'Set the Notion parent page where new databases will be created. Ask the user for a Notion page URL or ID if not already configured.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        pageId: { type: 'string', description: 'Notion page ID (32-char hex or full URL)' },
+      },
+      required: ['pageId'],
+    },
+  },
+  {
+    name:        'brief_me',
+    description: 'Give the user a morning briefing: weather, today\'s calendar events, open tasks, and last sports results. Use this when the user says "brief me", "good morning", "what\'s today look like", or similar.',
+    input_schema: { type: 'object' as const, properties: {} },
   },
   {
     name:        'spotify_control',
@@ -1122,6 +1227,7 @@ async function executeVoiceTool(name: string, input: Record<string, any>): Promi
         parent:     { database_id: databaseId },
         properties: { Name: { title: [{ text: { content: title } }] } },
       })
+      broadcast({ type: 'notion_invalidate', databaseId })
       return `Added "${title}"`
     }
 
@@ -1130,7 +1236,63 @@ async function executeVoiceTool(name: string, input: Record<string, any>): Promi
         page_id:    input.pageId,
         properties: { Status: { status: { name: 'Done' } } },
       })
+      broadcast({ type: 'notion_invalidate', databaseId: input.databaseId ?? null })
       return `Checked off item ${input.pageId}`
+    }
+
+    case 'manage_agents': {
+      const port = Number(process.env.PORT) || 3001
+      const { action, agentId } = input as { action: string; agentId?: string }
+      if (action === 'list') {
+        const status = await fetch(`http://localhost:${port}/api/agents`).then((r) => r.json()) as any[]
+        return status.map((a: any) =>
+          `${a.name} (${a.id}): ${a.enabled ? 'enabled' : 'disabled'}, last ran ${a.lastRun ? new Date(a.lastRun).toLocaleTimeString() : 'never'}`
+        ).join('\n')
+      }
+      if (!agentId) return 'agentId required for this action'
+      if (action === 'run') {
+        await fetch(`http://localhost:${port}/api/agents/${agentId}/run`, { method: 'POST' })
+        return `Ran agent ${agentId}`
+      }
+      await fetch(`http://localhost:${port}/api/agents/${agentId}`, {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ enabled: action === 'enable' }),
+      })
+      return `Agent ${agentId} ${action}d`
+    }
+
+    case 'set_scratch_pad': {
+      const mode = (input.mode as string) ?? 'append'
+      const text = (input.text as string) ?? ''
+
+      // Find existing note widget on the active board
+      const state   = cachedBoards.find((b: any) => b.id === cachedActiveBoardId)
+      const noteWidget = (state?.widgets ?? []).find((w: any) => w.type === '@whiteboard/note')
+
+      let newContent = ''
+      if (mode === 'clear') {
+        newContent = ''
+      } else if (mode === 'replace') {
+        newContent = text
+      } else {
+        // append — prefix with time
+        const time = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+        const line = `${time}  ${text}`
+        const existing = (noteWidget?.settings?.content as string) ?? ''
+        newContent = existing ? `${existing}\n${line}` : line
+      }
+
+      if (noteWidget) {
+        await canvasApi('PATCH', `/api/canvas/widget/${noteWidget.id}`, { settings: { content: newContent } })
+      } else {
+        await canvasApi('POST', '/api/canvas/widget', {
+          widgetType: '@whiteboard/note',
+          width: 360, height: 280,
+          settings: { content: newContent, fontSize: 16, align: 'left' },
+        })
+      }
+      return mode === 'clear' ? 'Scratch pad cleared.' : 'Note updated.'
     }
 
     case 'create_widget': {
@@ -1194,6 +1356,86 @@ async function executeVoiceTool(name: string, input: Record<string, any>): Promi
       return 'Timer started'
     }
 
+    case 'query_notion_database': {
+      const { databaseId, search, filterProperty, filterValue, limit = 10 } = input as {
+        databaseId: string; search?: string; filterProperty?: string; filterValue?: string; limit?: number
+      }
+      const filter: any = (() => {
+        if (filterProperty && filterValue) {
+          // Try status, select, then rich_text fallback
+          return {
+            or: [
+              { property: filterProperty, status:    { equals: filterValue } },
+              { property: filterProperty, select:    { equals: filterValue } },
+              { property: filterProperty, rich_text: { contains: filterValue } },
+            ],
+          }
+        }
+        if (search) {
+          return undefined // use Notion's title search below
+        }
+        return undefined
+      })()
+
+      const response = await notion.databases.query({
+        database_id: databaseId,
+        filter,
+        page_size: limit,
+      })
+
+      const props  = await getCachedSchema(databaseId)
+      const titleProp = props.find((p) => p.type === 'title')?.name ?? 'Name'
+
+      const results = (response.results as any[])
+        .map((page: any) => {
+          const titleArr = page.properties?.[titleProp]?.title as any[]
+          const title    = titleArr?.map((t: any) => t.plain_text).join('') ?? '(untitled)'
+          // Include all non-title properties as a flat object
+          const fields: Record<string, string> = {}
+          for (const [key, val] of Object.entries(page.properties as any)) {
+            if (key === titleProp) continue
+            const v = val as any
+            if (v.type === 'status')    fields[key] = v.status?.name ?? ''
+            else if (v.type === 'select')   fields[key] = v.select?.name ?? ''
+            else if (v.type === 'checkbox') fields[key] = String(v.checkbox)
+            else if (v.type === 'date')     fields[key] = v.date?.start ?? ''
+            else if (v.type === 'number')   fields[key] = String(v.number ?? '')
+            else if (v.type === 'rich_text') fields[key] = v.rich_text?.map((r: any) => r.plain_text).join('') ?? ''
+          }
+          return { id: page.id, title, ...fields }
+        })
+        .filter((r) => !search || r.title.toLowerCase().includes(search.toLowerCase()))
+
+      if (!results.length) return 'No matching entries found.'
+      return JSON.stringify(results)
+    }
+
+    case 'update_notion_entry': {
+      const { pageId, databaseId, data } = input as { pageId: string; databaseId: string; data: Record<string, any> }
+      const props = await getCachedSchema(databaseId)
+      const properties: Record<string, any> = {}
+
+      for (const [key, value] of Object.entries(data)) {
+        const prop = props.find((p) => p.name === key)
+        if (!prop) continue
+        switch (prop.type) {
+          case 'title':        properties[key] = { title:        [{ text: { content: String(value) } }] }; break
+          case 'rich_text':    properties[key] = { rich_text:    [{ text: { content: String(value) } }] }; break
+          case 'number':       properties[key] = { number:       Number(value) };                           break
+          case 'checkbox':     properties[key] = { checkbox:     Boolean(value) };                          break
+          case 'date':         properties[key] = { date:         { start: String(value) } };                break
+          case 'select':       properties[key] = { select:       { name: String(value) } };                 break
+          case 'status':       properties[key] = { status:       { name: String(value) } };                 break
+          case 'multi_select': properties[key] = { multi_select: (Array.isArray(value) ? value : [value]).map((v: any) => ({ name: String(v) })) }; break
+          case 'url':          properties[key] = { url:          String(value) };                           break
+        }
+      }
+
+      await notion.pages.update({ page_id: pageId, properties })
+      broadcast({ type: 'notion_invalidate', databaseId })
+      return `Updated entry ${pageId}`
+    }
+
     case 'list_notion_databases': {
       const response = await notion.search({ filter: { value: 'database', property: 'object' } })
       return JSON.stringify((response.results as any[]).map((db: any) => ({
@@ -1218,6 +1460,22 @@ async function executeVoiceTool(name: string, input: Record<string, any>): Promi
       return `Created database "${input.title}" (id: ${result.id})`
     }
 
+    case 'delete_notion_page': {
+      const { pageId, databaseId } = input as { pageId: string; databaseId?: string }
+      const port = Number(process.env.PORT) || 3001
+      await fetch(`http://localhost:${port}/api/pages/${pageId}`, { method: 'DELETE' })
+      if (databaseId) broadcast({ type: 'notion_invalidate', databaseId })
+      return `Deleted page ${pageId}`
+    }
+
+    case 'delete_notion_database': {
+      const { databaseId } = input as { databaseId: string }
+      const port = Number(process.env.PORT) || 3001
+      await fetch(`http://localhost:${port}/api/databases/${databaseId}`, { method: 'DELETE' })
+      broadcast({ type: 'notion_invalidate' })
+      return `Deleted database ${databaseId}`
+    }
+
     case 'add_notion_entry': {
       const port   = Number(process.env.PORT) || 3001
       const result = await fetch(`http://localhost:${port}/api/databases/${input.databaseId}/smart-entry`, {
@@ -1226,6 +1484,7 @@ async function executeVoiceTool(name: string, input: Record<string, any>): Promi
         body:    JSON.stringify({ data: input.data }),
       }).then((r) => r.json()) as { id?: string; error?: string }
       if (result.error) return `Failed to add entry: ${result.error}`
+      broadcast({ type: 'notion_invalidate', databaseId: input.databaseId })
       return `Added entry to database`
     }
 
@@ -1353,6 +1612,25 @@ async function executeVoiceTool(name: string, input: Record<string, any>): Promi
         settings,
       })
       return `Created website widget for ${url} (id: ${id})`
+    }
+
+    case 'set_notion_workspace_page': {
+      // Accept full URL or bare ID
+      const raw    = String(input.pageId).trim()
+      const match  = raw.match(/([a-f0-9]{32}|[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i)
+      const pageId = match ? match[1].replace(/-/g, '') : raw
+      const port   = Number(process.env.PORT) || 3001
+      await fetch(`http://localhost:${port}/api/notion/workspace-page`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ pageId }),
+      })
+      return `Workspace page set to ${pageId}`
+    }
+
+    case 'brief_me': {
+      const text = await compileBriefing()
+      return text
     }
 
     case 'spotify_control': {
@@ -1484,11 +1762,15 @@ app.post('/api/voice', async (req, res) => {
           'You can control the whiteboard AND answer general questions, look up live information, and help with anything the user asks. When you learn something new about the user (name, location, preference, or a Notion database they use), call update_memory immediately to remember it for future conversations.',
           'For league standings and table positions always use get_standings — it returns live data directly from ESPN. For other live data (news, weather, scores, etc.) use web_search to find relevant URLs, then fetch_page on the best result to read the actual content before answering.',
           'Always use get_board_state first if you need to find a widget ID or database ID. Notion view widgets (type @whiteboard/notion-view) store their database ID at widget.settings.databaseId — read it directly from the board state instead of calling list_notion_databases. Known databases are also listed in your memory above, so if the user references a database by name you may already have its ID. When the user says "read me my tasks", "what\'s on my list", or similar, use read_notion_items with the tasks database ID from memory or board state.',
+          'To edit a Notion entry: use query_notion_database to find the page ID by name or filter, then update_notion_entry with the fields to change. E.g. "mark Buy milk as done" → query for "Buy milk" → update its Status to Done.',
+          `When the user says "set up my daily dashboard" or "set up my board": (1) Create these 4 databases in order using create_notion_database — do NOT ask for a page URL, just proceed: "Tasks" with properties {Name:{title:{}},Status:{status:{options:[{name:"Not started",color:"red"},{name:"In progress",color:"yellow"},{name:"Done",color:"green"}]}},Priority:{select:{options:[{name:"High",color:"red"},{name:"Medium",color:"yellow"},{name:"Low",color:"gray"}]}},Due:{date:{}}}, "Routines" with {Name:{title:{}},Done:{checkbox:{}},Category:{select:{options:[{name:"Morning",color:"blue"},{name:"Evening",color:"purple"},{name:"Fitness",color:"green"}]}},Date:{date:{}}}, "Weight Log" with {Date:{date:{}},Weight:{number:{}},Notes:{rich_text:{}},"Name":{title:{}}}, "Goals" with {Name:{title:{}},Status:{select:{options:[{name:"Active",color:"blue"},{name:"Completed",color:"green"},{name:"Paused",color:"gray"}]}},Progress:{number:{}},"Target Date":{date:{}},Notes:{rich_text:{}}}. (4) After each database is created, call update_memory with field "database" to save the ID. (5) Use create_notion_view_widget to place: Tasks as todo-list (fieldMap:{title:"Name",status:"Status",priority:"Priority",due:"Due"} options:{statusDone:"Done"}) at x:20 y:20 w:480 h:520, Routines as habit-grid (fieldMap:{date:"Date",done:"Done"}) at x:520 y:20 w:420 h:250, Weight Log as metric-chart (fieldMap:{value:"Weight",date:"Date"} options:{unit:"lbs",label:"Weight",chartType:"line"}) at x:520 y:290 w:420 h:250, Goals as data-table (fieldMap:{columns:["Name","Status","Progress","Target Date"]}) at x:960 y:20 w:440 h:520, then add_widget for a calendar widget at x:20 y:560 w:480 h:300. (6) Respond "Your dashboard is ready."`,
           'For Spotify: use spotify_control for play/pause/skip/previous/now_playing. Spotify must be actively playing on a device for controls to work — if it fails, tell the user to open Spotify on their device first.',
           'When the user asks to "show" something, use open_url with the best URL from your search results or knowledge. Prefer sites known to allow embedding (e.g. flashscore.com, bbc.co.uk, wikipedia.org). Avoid sites that block iframes (google.com, twitter.com, premierleague.com).',
+          'When the user says "note:", "jot down", "remember this", "write down", or dictates something to save, use set_scratch_pad with mode "append" to add a timestamped line to the note widget. "Clear my note" or "wipe the scratch pad" uses mode "clear".',
           'When you need more information to complete a task, ask ONE short clarifying question (max 10 words, ending with "?"). The user will answer and you can then complete the task.',
           'When answering a question, summarise the key facts in 1-2 spoken sentences. When confirming an action, ONE short sentence (max 8 words).',
           'Never use markdown, bullet points, or long explanations — responses are spoken aloud.',
+          'Never mention database IDs, widget IDs, page IDs, or any raw UUIDs in your spoken responses. Always refer to databases and widgets by their human name (e.g. "your Tasks database", "the Routines widget"). IDs are internal implementation details the user should never hear.',
           `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.`,
         ].join(' '),
         tools:    VOICE_TOOLS,
@@ -1570,6 +1852,191 @@ app.get('/api/quote', (_req, res) => {
   res.json(q)
 })
 
+// ── Morning briefing ──────────────────────────────────────────────────────────
+
+async function compileBriefing(): Promise<string> {
+  const mem  = loadMemory()
+  const now  = new Date()
+  const apiKey = process.env.VITE_ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY
+  if (!apiKey) throw new Error('ANTHROPIC_API_KEY not set')
+
+  const parts: string[] = []
+
+  // Weather — geocode Jersey City via open-meteo
+  try {
+    const loc = mem.location || 'Jersey City'
+    const geo = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(loc)}&count=1`).then(r => r.json()) as any
+    const { latitude, longitude } = geo.results?.[0] ?? { latitude: 40.7178, longitude: -74.0431 }
+    const wx = await fetch(
+      `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+      `&current=temperature_2m,weathercode,windspeed_10m&temperature_unit=fahrenheit&windspeed_unit=mph`
+    ).then(r => r.json()) as any
+    const temp = Math.round(wx.current?.temperature_2m ?? 0)
+    const code = wx.current?.weathercode ?? 0
+    const desc = code <= 1 ? 'clear' : code <= 3 ? 'partly cloudy' : code <= 48 ? 'foggy' : code <= 67 ? 'rainy' : code <= 77 ? 'snowy' : 'stormy'
+    parts.push(`Weather in ${loc}: ${temp}°F and ${desc}.`)
+  } catch { /* skip */ }
+
+  // Google Calendar — today's events
+  try {
+    const client = getGCalClient()
+    if (client) {
+      const cal = google.calendar({ version: 'v3', auth: client as any })
+      const startOfDay = new Date(now); startOfDay.setHours(0, 0, 0, 0)
+      const endOfDay   = new Date(now); endOfDay.setHours(23, 59, 59, 999)
+      const resp = await cal.events.list({
+        calendarId:  'primary',
+        timeMin:     startOfDay.toISOString(),
+        timeMax:     endOfDay.toISOString(),
+        singleEvents: true,
+        orderBy:     'startTime',
+        maxResults:  10,
+      })
+      const events = (resp.data.items ?? []).map((e: any) => {
+        const start = e.start?.dateTime ? new Date(e.start.dateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'all day'
+        return `${start}: ${e.summary}`
+      })
+      if (events.length) parts.push(`Today's calendar: ${events.join(', ')}.`)
+      else               parts.push('No calendar events today.')
+    }
+  } catch { /* skip */ }
+
+  // Notion tasks — use first known database
+  try {
+    const dbEntries = Object.entries(mem.databases)
+    const taskDb    = dbEntries.find(([k]) => /task|todo|to-do/i.test(k)) ?? dbEntries[0]
+    if (taskDb) {
+      const [label, dbId] = taskDb
+      const props      = await getCachedSchema(dbId)
+      const statusProp = props.find(p => p.type === 'status' || p.type === 'select')
+      const titleProp  = props.find(p => p.type === 'title')?.name ?? 'Name'
+      const doneOpts   = ['Done','Completed','Complete','Closed','Archived']
+      const doneOpt    = (statusProp?.options ?? []).find((o: string) => doneOpts.includes(o))
+      const filter     = statusProp && doneOpt
+        ? { property: statusProp.name, [statusProp.type]: { does_not_equal: doneOpt } }
+        : undefined
+      const resp   = await notion.databases.query({ database_id: dbId, filter, page_size: 5 })
+      const titles = (resp.results as any[]).map(p => {
+        const arr = p.properties?.[titleProp]?.title as any[]
+        return arr?.map((t: any) => t.plain_text).join('') ?? ''
+      }).filter(Boolean)
+      if (titles.length) parts.push(`Open ${label} (${titles.length}): ${titles.join(', ')}.`)
+    }
+  } catch { /* skip */ }
+
+  // Sports — Man United + Islanders last result
+  try {
+    const muRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/teams/360/schedule`).then(r => r.json()) as any
+    const lastMU = (muRes.events ?? []).filter((e: any) => e.competitions?.[0]?.status?.type?.completed).slice(-1)[0]
+    if (lastMU) {
+      const comp = lastMU.competitions?.[0]
+      const home = comp?.competitors?.find((c: any) => c.homeAway === 'home')
+      const away = comp?.competitors?.find((c: any) => c.homeAway === 'away')
+      parts.push(`Manchester United last result: ${home?.team?.shortDisplayName} ${home?.score} – ${away?.score} ${away?.team?.shortDisplayName}.`)
+    }
+  } catch { /* skip */ }
+
+  try {
+    const islRes = await fetch(`https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/teams/19/schedule`).then(r => r.json()) as any
+    const lastIsl = (islRes.events ?? []).filter((e: any) => e.competitions?.[0]?.status?.type?.completed).slice(-1)[0]
+    if (lastIsl) {
+      const comp = lastIsl.competitions?.[0]
+      const home = comp?.competitors?.find((c: any) => c.homeAway === 'home')
+      const away = comp?.competitors?.find((c: any) => c.homeAway === 'away')
+      parts.push(`Islanders last result: ${home?.team?.shortDisplayName} ${home?.score} – ${away?.score} ${away?.team?.shortDisplayName}.`)
+    }
+  } catch { /* skip */ }
+
+  // Ask Claude to write a natural spoken briefing
+  const anthropic  = new Anthropic({ apiKey })
+  const dayStr     = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const timeStr    = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+  const name       = mem.name || 'Dylan'
+  const dataBlock  = parts.length ? parts.join('\n') : 'No data available.'
+
+  const resp = await anthropic.messages.create({
+    model:      'claude-haiku-4-5-20251001',
+    max_tokens: 256,
+    system:     'You are Walli, a smart whiteboard assistant. Write a warm, natural, spoken morning briefing — 2 to 4 sentences max. No bullet points, no markdown. Sound like a helpful assistant, not a robot.',
+    messages:   [{
+      role:    'user',
+      content: `Today is ${dayStr}, ${timeStr}. User's name: ${name}.\n\nData:\n${dataBlock}\n\nWrite the morning briefing.`,
+    }],
+  })
+  return (resp.content[0] as Anthropic.TextBlock).text.trim()
+}
+
+app.get('/api/briefing', async (_req, res) => {
+  try {
+    const text = await compileBriefing()
+    res.json({ text })
+  } catch (e: any) {
+    res.status(500).json({ error: e.message })
+  }
+})
+
+app.post('/api/briefing/settings', (req, res) => {
+  const { time } = req.body as { time?: string }
+  saveTokens({ briefing_time: time ?? '' })
+  res.json({ ok: true })
+})
+
+app.get('/api/briefing/settings', (_req, res) => {
+  const tokens = loadTokens()
+  res.json({ time: tokens?.briefing_time ?? '' })
+})
+
+// Cron — check every minute if it's briefing time
+setInterval(async () => {
+  const tokens = loadTokens()
+  const target = tokens?.briefing_time  // e.g. "07:30"
+  if (!target) return
+  const now  = new Date()
+  const hhmm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
+  if (hhmm !== target) return
+  try {
+    const text = await compileBriefing()
+    broadcast({ type: 'speak_briefing', text })
+    console.log('[briefing] fired at', hhmm)
+  } catch (e) {
+    console.error('[briefing] error:', e)
+  }
+}, 60_000)
+
+// ── Agent scheduler ────────────────────────────────────────────────────────────
+// Context uses getters so agents always read the latest board state
+
+const agentScheduler = createScheduler({
+  broadcast: (msg) => broadcast(msg),
+  speak:     (text) => broadcast({ type: 'speak_briefing', text }),
+  notion,
+  anthropic,
+  get gcal()          { return getGCalClient() },
+  get boards()        { return cachedBoards },
+  get activeBoardId() { return cachedActiveBoardId },
+})
+
+// ── Agent management API ───────────────────────────────────────────────────────
+
+app.get('/api/agents', (_req, res) => {
+  res.json(agentScheduler.status())
+})
+
+app.post('/api/agents/:id/run', async (req, res) => {
+  try {
+    await agentScheduler.runNow(req.params.id)
+    res.json({ ok: true })
+  } catch (err: any) {
+    res.status(400).json({ error: err.message })
+  }
+})
+
+app.patch('/api/agents/:id', (req, res) => {
+  const { enabled } = req.body as { enabled?: boolean }
+  if (typeof enabled === 'boolean') agentScheduler.setEnabled(req.params.id, enabled)
+  res.json({ ok: true })
+})
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 const PORT = Number(process.env.PORT) || 3001
@@ -1585,4 +2052,5 @@ httpServer.listen(PORT, () => {
     console.log('✅  Spotify authenticated')
   else
     console.log('   Spotify: connect via the widget settings panel')
+  agentScheduler.start()
 })

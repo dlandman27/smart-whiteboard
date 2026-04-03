@@ -59,7 +59,8 @@ interface Props {
 
 export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
   const { updateLayout, removeWidget } = useWhiteboardStore()
-  const { focusedWidgetId, setFocusedWidget } = useUIStore()
+  const { focusedWidgetId, setFocusedWidget, flashingWidgetId } = useUIStore()
+  const isFlashing = flashingWidgetId === id
 
   const [active,       setActive]       = useState(false)
   const [zOrder,       setZOrder]       = useState(0)
@@ -416,7 +417,8 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
           transition:      `border-radius 0.3s ${FS_EASE}, border-color 0.15s, box-shadow 0.15s`,
           backgroundColor: 'var(--wt-bg)',
           backdropFilter:  'var(--wt-backdrop)',
-          borderColor:     (dragging || isActive) ? 'var(--wt-border-active)' : 'var(--wt-border)',
+          borderColor:     isFlashing ? 'var(--wt-danger)' : (dragging || isActive) ? 'var(--wt-border-active)' : 'var(--wt-border)',
+          animation:       isFlashing ? 'wt-flash 0.5s ease-in-out 4' : undefined,
           boxShadow:       dragging
             ? `0 8px 0 rgba(0,0,0,0.18), var(--wt-shadow-lg)`
             : isActive

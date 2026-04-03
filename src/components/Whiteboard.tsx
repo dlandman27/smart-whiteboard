@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useThemeStore } from '../store/theme'
 import { useUIStore } from '../store/ui'
 import { WhiteboardBackground } from './WhiteboardBackground'
-import { Logo } from './Logo'
+import { WalliChatButton, WalliChatPanel } from './WalliChat'
 import { BottomToolbar } from './BottomToolbar'
 import { WidgetCanvas } from './WidgetCanvas'
 import { NotificationToast } from './NotificationToast'
@@ -37,9 +37,11 @@ export function Whiteboard() {
         onClearPending={() => setPendingWidget(null)}
       />
 
-      <div className="absolute bottom-4 left-4 z-10 pointer-events-none select-none">
-        <Logo size={24} />
+      <div className="absolute bottom-4 left-4 z-[9990] select-none">
+        <WalliChatButton />
       </div>
+
+      <WalliChatPanel />
 
       <NotificationToast />
       <UndoToast />

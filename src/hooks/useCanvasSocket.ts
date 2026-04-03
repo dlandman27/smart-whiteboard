@@ -3,6 +3,8 @@ import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 import { useThemeStore } from '../store/theme'
 import { soundWidgetAdded, soundWidgetRemoved } from '../lib/sounds'
+import { useBriefingStore } from '../store/briefing'
+import { queryClient } from '../App'
 
 const WS_URL = 'ws://localhost:3001'
 
@@ -98,6 +100,18 @@ export function useCanvasSocket() {
         } else if (msg.type === 'set_custom_layout') {
           const boardId = useWhiteboardStore.getState().activeBoardId
           setCustomLayout(boardId, msg.slots ?? [])
+        } else if (msg.type === 'speak_briefing') {
+          useBriefingStore.getState().trigger(msg.text)
+        } else if (msg.type === 'flash_widget') {
+          useUIStore.getState().flashWidget(msg.id)
+        } else if (msg.type === 'notion_invalidate') {
+          if (msg.databaseId) {
+            queryClient.invalidateQueries({ queryKey: ['notion-view', msg.databaseId] })
+            queryClient.invalidateQueries({ queryKey: ['pages', msg.databaseId] })
+          } else {
+            queryClient.invalidateQueries({ queryKey: ['notion-view'] })
+            queryClient.invalidateQueries({ queryKey: ['pages'] })
+          }
         }
       }
 
