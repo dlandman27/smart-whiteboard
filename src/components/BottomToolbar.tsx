@@ -56,15 +56,9 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
       const btn = (e.target as HTMLElement).closest('button')
       if (btn && !btn.hasAttribute('data-no-click-sound')) soundClick()
     }
-    function onUp(e: PointerEvent) {
-      const btn = (e.target as HTMLElement).closest('button')
-      if (btn && !btn.hasAttribute('data-no-click-sound')) soundClick()
-    }
     pill.addEventListener('pointerdown', onDown)
-    pill.addEventListener('pointerup',   onUp)
     return () => {
       pill.removeEventListener('pointerdown', onDown)
-      pill.removeEventListener('pointerup',   onUp)
     }
   }, [])
 

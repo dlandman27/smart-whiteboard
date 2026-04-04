@@ -13,6 +13,8 @@
  * (Creating a context per sound is fine for short one-shot FX.)
  */
 
+import SOUNDS from './sounds.config'
+
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
 function ctx(): AudioContext {
@@ -53,45 +55,23 @@ function playFile(path: string, volume = 1.0, durationMs?: number, playbackRate 
   }
 }
 
-// ─── 0. Panel / Button click (file-based) ─────────────────────────────────────
+// ─── File-based sounds (configured in sounds.config.ts) ──────────────────────
 
-export function soundPanelOpen() {
-  playFile('/assets/sounds/whoof.wav', 0.4, undefined, 1.5, 600)
+function playSound(key: keyof typeof SOUNDS) {
+  const { file, volume, durationMs, playbackRate, offsetMs } = SOUNDS[key]
+  if (!file) return
+  playFile(file, volume, durationMs, playbackRate, offsetMs)
 }
 
-export function soundSwipe() {
-  playFile('/assets/sounds/swipe.wav', 0.4)
-}
+export function soundPanelOpen()    { playSound('panelOpen') }
+export function soundSwipe()        { playSound('swipe') }
+export function soundAlert()        { playSound('alert') }
+export function soundClick()        { playSound('click') }
+export function soundWidgetRemoved(){ playSound('widgetRemoved') }
+export function soundWidgetDrop()   { playSound('widgetDrop') }
+export function soundWidgetPickup() { playSound('widgetPickup') }
 
-export function soundAlert() {
-  playFile('/assets/sounds/alert.wav', 0.5)
-}
-
-export function soundClick() {
-  playFile('/assets/sounds/click.wav', 0.4)
-}
-
-export function soundWidgetRemoved() {
-  playFile('/assets/sounds/drop.wav', 0.2, 80)
-}
-
-export function soundWidgetDrop() {
-  playFile('/assets/sounds/dropped.wav', 0.3, 120, 1.6)
-}
-
-export function soundWidgetPickup() {
-  playFile('/assets/sounds/grab.wav', 0.5, 150)
-}
-
-// ─── 1. Widget Added ──────────────────────────────────────────────────────────
-//
-// Two-tone rising chime: a short low sweep followed immediately by a
-// slightly higher, brighter tone — like a soft HUD "element materialised"
-// confirmation.  Both tones use a sine wave so they stay warm not buzzy.
-//
-export function soundWidgetAdded(): void {
-  playFile('/assets/sounds/land.wav', 0.5)
-}
+export function soundWidgetAdded()  { playSound('widgetAdded') }
 
 // ─── 2. Widget Removed ────────────────────────────────────────────────────────
 //

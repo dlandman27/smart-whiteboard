@@ -10,7 +10,6 @@ import { google } from 'googleapis'
 import Anthropic from '@anthropic-ai/sdk'
 import { createScheduler } from './agents/index.js'
 import { notify }          from './lib/notify.js'
-import { MOBILE_PAGE }     from './mobilePage.js'
 
 dotenv.config()
 
@@ -322,12 +321,6 @@ app.get('/api/health', (_req, res) => {
   res.json({ ok: true, configured: !!process.env.NOTION_API_KEY })
 })
 
-// ── Mobile companion ──────────────────────────────────────────────────────────
-
-app.get('/mobile', (_req, res) => {
-  res.setHeader('Content-Type', 'text/html; charset=utf-8')
-  res.send(MOBILE_PAGE)
-})
 
 app.get('/api/databases', async (_req, res) => {
   try {
