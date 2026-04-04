@@ -6,14 +6,14 @@ import { useWhiteboardStore } from '../store/whiteboard'
 import { DrawingCanvas } from './DrawingCanvas'
 import { DatabasePicker } from './DatabasePicker'
 import { BoardMenu } from './BoardMenu'
-import { NotificationCenter } from './NotificationCenter'
+import { NotificationCenter, NotificationCenterButton } from './NotificationCenter'
 import { LayoutPicker } from './layout/LayoutPicker'
 import { SettingsPanel } from './SettingsPanel'
 import { Pill } from './Pill'
 import type { PendingWidget } from '../types'
 
 type Tool = 'pointer' | 'marker' | 'eraser'
-type ActivePanel = 'theme' | 'layout' | 'board' | 'picker' | null
+type ActivePanel = 'theme' | 'layout' | 'board' | 'picker' | 'notif' | null
 
 interface Props {
   onToolChange:     (tool: Tool) => void
@@ -161,7 +161,10 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
         </div>
 
         <div key={`notif-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '220ms' }}>
-          <NotificationCenter />
+          <NotificationCenterButton
+            active={activePanel === 'notif'}
+            onClick={() => togglePanel('notif')}
+          />
         </div>
 
         {/* Hide tab — sits on top of the pill */}
@@ -206,9 +209,10 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
         Menu
       </button>
 
-      {activePanel === 'theme'  && <SettingsPanel onClose={() => setActivePanel(null)} />}
-      {activePanel === 'layout' && <LayoutPicker  onClose={() => setActivePanel(null)} />}
-      {activePanel === 'board'  && <BoardMenu     onClose={() => setActivePanel(null)} onSlide={onSlide} />}
+      {activePanel === 'theme'  && <SettingsPanel      onClose={() => setActivePanel(null)} />}
+      {activePanel === 'layout' && <LayoutPicker       onClose={() => setActivePanel(null)} />}
+      {activePanel === 'board'  && <BoardMenu          onClose={() => setActivePanel(null)} onSlide={onSlide} />}
+      {activePanel === 'notif'  && <NotificationCenter onClose={() => setActivePanel(null)} />}
       {activePanel === 'picker' && (
         <DatabasePicker
           onClose={() => setActivePanel(null)}

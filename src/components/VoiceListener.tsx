@@ -118,8 +118,11 @@ export function VoiceListener() {
 
   // ── Briefing (agent-triggered speech) ────────────────────────────────────
   const [briefingResponse, setBriefingResponse] = useState<string | null>(null)
+  const handledBriefingRef = useRef<string | null>(null)
   useEffect(() => {
     if (!briefingText) return
+    if (handledBriefingRef.current === briefingText) return
+    handledBriefingRef.current = briefingText
     clearBriefing()
     setBriefingResponse(briefingText)
     addMessage('walli', briefingText)

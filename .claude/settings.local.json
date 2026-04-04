@@ -13,7 +13,8 @@
       "Bash(curl -sv \"https://site.api.espn.com/apis/site/v2/sports/soccer/eng.1/standings\")",
       "Bash(curl -s \"https://site.web.api.espn.com/apis/v2/sports/soccer/eng.1/standings\")",
       "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(list\\(d.keys\\(\\)\\)\\)\")",
-      "Bash(python -c \":*)"
+      "Bash(python -c \":*)",
+      "Bash(xargs ls:*)"
     ]
   }
 }

@@ -1,0 +1,14 @@
+[
+  {
+    "id": "0a44d75c-a0d9-47f2-991e-e596e5e64e61",
+    "text": "Go to the gym",
+    "fireAt": "2026-04-04T19:00:00",
+    "fired": false
+  },
+  {
+    "id": "673ea1b2-835b-4322-b6b0-65ef6b4c9c51",
+    "text": "say hi to Ari",
+    "fireAt": "2026-04-04T10:34:00",
+    "fired": true
+  }
+]

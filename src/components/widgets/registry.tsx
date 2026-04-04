@@ -19,6 +19,7 @@ import { WorldcupWidget } from './WorldcupWidget'
 import { NotionViewWidget, NotionViewSettingsPanel } from './notion-view'
 import { UrlWidget, UrlSettings } from './UrlWidget'
 import { RoutinesWidget, RoutinesSettings } from './RoutinesWidget'
+import { TimersWidget } from './TimersWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 
@@ -190,6 +191,16 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     defaultSize:       { width: 300, height: 340 },
     component:         SpotifyWidget,
     settingsComponent: SpotifySettings,
+  },
+  {
+    type:        '@whiteboard/timers',
+    label:       'Timers & Reminders',
+    Icon:        'Bell',
+    iconBg:      'bg-orange-50',
+    iconClass:   'text-orange-500',
+    keywords:    ['timer', 'alarm', 'reminder', 'countdown', 'alert'],
+    defaultSize: { width: 300, height: 320 },
+    component:   TimersWidget,
   },
   {
     type:              '@whiteboard/worldcup',

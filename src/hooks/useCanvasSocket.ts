@@ -4,9 +4,13 @@ import { useUIStore } from '../store/ui'
 import { useThemeStore } from '../store/theme'
 import { soundWidgetAdded, soundWidgetRemoved } from '../lib/sounds'
 import { useBriefingStore } from '../store/briefing'
+import { useNotificationStore } from '../store/notifications'
 import { queryClient } from '../App'
 
 const WS_URL = 'ws://localhost:3001'
+
+// Module-level dedup set — survives component remounts (Strict Mode, reconnects, multiple tabs via shared sessionStorage)
+const handledSpeakIds = new Set<string>()
 
 export function useCanvasSocket() {
   const wsRef = useRef<WebSocket | null>(null)
@@ -101,9 +105,23 @@ export function useCanvasSocket() {
           const boardId = useWhiteboardStore.getState().activeBoardId
           setCustomLayout(boardId, msg.slots ?? [])
         } else if (msg.type === 'speak_briefing') {
+          if (msg.id) {
+            if (handledSpeakIds.has(msg.id)) return
+            handledSpeakIds.add(msg.id)
+            // Keep the set from growing forever
+            if (handledSpeakIds.size > 200) {
+              const first = handledSpeakIds.values().next().value
+              handledSpeakIds.delete(first)
+            }
+          }
           useBriefingStore.getState().trigger(msg.text)
         } else if (msg.type === 'flash_widget') {
           useUIStore.getState().flashWidget(msg.id)
+        } else if (msg.type === 'timer_alert') {
+          useNotificationStore.getState().addNotification({
+            title: `⏰ ${msg.label}`,
+            body:  'Timer done',
+          })
         } else if (msg.type === 'notion_invalidate') {
           if (msg.databaseId) {
             queryClient.invalidateQueries({ queryKey: ['notion-view', msg.databaseId] })

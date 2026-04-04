@@ -27,6 +27,38 @@ interface WalliMemory {
 
 let _memory: WalliMemory | null = null
 
+// ── Timers ────────────────────────────────────────────────────────────────────
+
+interface TimerEntry {
+  id:         string
+  label:      string
+  durationMs: number
+  startedAt:  number
+  fired:      boolean
+}
+
+const activeTimers = new Map<string, TimerEntry>()
+
+// ── Reminders ─────────────────────────────────────────────────────────────────
+
+interface Reminder {
+  id:     string
+  text:   string
+  fireAt: string   // ISO 8601
+  fired:  boolean
+}
+
+const REMINDERS_PATH = path.join(process.cwd(), 'server/reminders.json')
+
+function loadReminders(): Reminder[] {
+  try { return JSON.parse(fs.readFileSync(REMINDERS_PATH, 'utf-8')) }
+  catch { return [] }
+}
+
+function saveReminders(reminders: Reminder[]): void {
+  fs.writeFileSync(REMINDERS_PATH, JSON.stringify(reminders, null, 2))
+}
+
 function loadMemory(): WalliMemory {
   if (_memory) return _memory
   try { _memory = JSON.parse(fs.readFileSync(MEMORY_PATH, 'utf-8')) }
@@ -803,7 +835,7 @@ const VOICE_TOOLS: Anthropic.Tool[] = [
   },
   {
     name:        'create_widget',
-    description: 'Add a new widget to the board. Available types: @whiteboard/clock, @whiteboard/weather, @whiteboard/tasks, @whiteboard/note, @whiteboard/pomodoro, @whiteboard/countdown, @whiteboard/quote, @whiteboard/routines, @whiteboard/nfl, @whiteboard/nba, @whiteboard/html.',
+    description: 'Add a new widget to the board. Available types: @whiteboard/clock, @whiteboard/weather, @whiteboard/tasks, @whiteboard/note, @whiteboard/pomodoro, @whiteboard/countdown, @whiteboard/quote, @whiteboard/routines, @whiteboard/nfl, @whiteboard/nba, @whiteboard/html, @whiteboard/timers.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -1201,6 +1233,74 @@ const VOICE_TOOLS: Anthropic.Tool[] = [
         widgetId: { type: 'string', description: 'YouTube widget ID to update. If omitted, a new widget is created.' },
       },
       required: ['query'],
+    },
+  },
+  {
+    name:        'set_timer',
+    description: 'Start a countdown timer that speaks an alert when it finishes. Use for "set a 10 minute timer", "remind me in 5 minutes", etc.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        durationSeconds: { type: 'number', description: 'Timer duration in seconds, e.g. 600 for 10 minutes' },
+        label:           { type: 'string', description: 'What the timer is for, e.g. "pasta", "laundry". Used in the alert.' },
+      },
+      required: ['durationSeconds'],
+    },
+  },
+  {
+    name:        'list_timers',
+    description: 'List all active (not yet fired) timers and how much time is left on each.',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name:        'cancel_timer',
+    description: 'Cancel an active timer before it fires.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        timerId: { type: 'string', description: 'Timer ID from list_timers' },
+      },
+      required: ['timerId'],
+    },
+  },
+  {
+    name:        'set_reminder',
+    description: 'Set a reminder to fire at a specific time. Walli will speak the reminder text and send a push notification. Use for "remind me at 3pm to call mom", "remind me tomorrow morning to take out the trash".',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        text:   { type: 'string', description: 'What to remind the user. Spoken aloud when the reminder fires, e.g. "Call mom".' },
+        fireAt: { type: 'string', description: 'ISO 8601 datetime when the reminder should fire, e.g. "2026-04-04T15:00:00". Use the current date/time context to resolve relative times like "tomorrow at 9am".' },
+      },
+      required: ['text', 'fireAt'],
+    },
+  },
+  {
+    name:        'list_reminders',
+    description: 'List all upcoming (not yet fired) reminders.',
+    input_schema: { type: 'object' as const, properties: {} },
+  },
+  {
+    name:        'cancel_reminder',
+    description: 'Cancel an upcoming reminder.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        reminderId: { type: 'string', description: 'Reminder ID from list_reminders' },
+      },
+      required: ['reminderId'],
+    },
+  },
+  {
+    name:        'quick_list_add',
+    description: 'Add an item to a named list (shopping list, grocery list, to-do, etc.) by list name. Looks up the Notion database from memory automatically — no need to know the database ID.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        listName: { type: 'string', description: 'Name of the list, e.g. "shopping list", "groceries", "tasks". Matched case-insensitively against known databases in memory.' },
+        item:     { type: 'string', description: 'The item to add.' },
+      },
+      required: ['listName', 'item'],
     },
   },
 ]
@@ -1793,6 +1893,112 @@ async function executeVoiceTool(name: string, input: Record<string, any>): Promi
       return `Created YouTube widget playing: ${result.title} (id: ${id})`
     }
 
+    case 'set_timer': {
+      const { durationSeconds, label = '' } = input as { durationSeconds: number; label?: string }
+      const id = crypto.randomUUID()
+      activeTimers.set(id, {
+        id,
+        label:      label || `${Math.round(durationSeconds / 60)} minute timer`,
+        durationMs: durationSeconds * 1000,
+        startedAt:  Date.now(),
+        fired:      false,
+      })
+      const mins = Math.floor(durationSeconds / 60)
+      const secs = durationSeconds % 60
+      const dur  = mins > 0 ? `${mins} minute${mins !== 1 ? 's' : ''}${secs > 0 ? ` ${secs} seconds` : ''}` : `${secs} seconds`
+      return `Timer set for ${dur}${label ? ` (${label})` : ''} (id: ${id})`
+    }
+
+    case 'list_timers': {
+      const now     = Date.now()
+      const running = [...activeTimers.values()].filter((t) => !t.fired)
+      if (!running.length) return 'No active timers.'
+      return running.map((t) => {
+        const remaining = Math.max(0, t.durationMs - (now - t.startedAt))
+        const mins = Math.floor(remaining / 60_000)
+        const secs = Math.floor((remaining % 60_000) / 1000)
+        const timeLeft = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
+        return `"${t.label}" — ${timeLeft} left (id: ${t.id})`
+      }).join('\n')
+    }
+
+    case 'cancel_timer': {
+      const timer = activeTimers.get(input.timerId)
+      if (!timer) return `No timer found with id ${input.timerId}`
+      activeTimers.delete(input.timerId)
+      return `Cancelled "${timer.label}"`
+    }
+
+    case 'set_reminder': {
+      const { text, fireAt } = input as { text: string; fireAt: string }
+      const reminders = loadReminders()
+      const id = crypto.randomUUID()
+      reminders.push({ id, text, fireAt, fired: false })
+      saveReminders(reminders)
+      const when = new Date(fireAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      return `Reminder set for ${when}: "${text}" (id: ${id})`
+    }
+
+    case 'list_reminders': {
+      const reminders = loadReminders().filter((r) => !r.fired)
+      if (!reminders.length) return 'No upcoming reminders.'
+      return reminders.map((r) => {
+        const when = new Date(r.fireAt).toLocaleString('en-US', { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+        return `"${r.text}" — ${when} (id: ${r.id})`
+      }).join('\n')
+    }
+
+    case 'cancel_reminder': {
+      const reminders = loadReminders()
+      const idx = reminders.findIndex((r) => r.id === input.reminderId)
+      if (idx === -1) return `No reminder found with id ${input.reminderId}`
+      const [removed] = reminders.splice(idx, 1)
+      saveReminders(reminders)
+      return `Cancelled reminder: "${removed.text}"`
+    }
+
+    case 'quick_list_add': {
+      const { listName, item } = input as { listName: string; item: string }
+      const mem = loadMemory()
+      const entry = Object.entries(mem.databases).find(([k]) =>
+        k.toLowerCase().includes(listName.toLowerCase()) ||
+        listName.toLowerCase().includes(k.toLowerCase())
+      )
+      let databaseId: string
+      let dbLabel: string
+
+      if (!entry) {
+        // Auto-create the database
+        const port      = Number(process.env.PORT) || 3001
+        const title     = listName.charAt(0).toUpperCase() + listName.slice(1)
+        const result    = await fetch(`http://localhost:${port}/api/notion/databases`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            title,
+            properties: {
+              Name:   { title: {} },
+              Done:   { checkbox: {} },
+            },
+          }),
+        }).then((r) => r.json()) as { id?: string; error?: string }
+        if (result.error || !result.id) return `Could not create "${listName}" list: ${result.error ?? 'unknown error'}`
+        databaseId = result.id
+        dbLabel    = title
+        mem.databases[dbLabel] = databaseId
+        saveMemory(mem)
+      } else {
+        ;[dbLabel, databaseId] = entry
+      }
+
+      await notion.pages.create({
+        parent:     { database_id: databaseId },
+        properties: { Name: { title: [{ text: { content: item } }] } },
+      })
+      broadcast({ type: 'notion_invalidate', databaseId })
+      return entry ? `Added "${item}" to ${dbLabel}` : `Created "${dbLabel}" list and added "${item}"`
+    }
+
     default:
       return `Unknown tool: ${name}`
   }
@@ -1836,6 +2042,9 @@ app.post('/api/voice', async (req, res) => {
           'For Spotify: use spotify_control for play/pause/skip/previous/now_playing. Spotify must be actively playing on a device for controls to work — if it fails, tell the user to open Spotify on their device first.',
           'When the user asks to "show" something, use open_url with the best URL from your search results or knowledge. Prefer sites known to allow embedding (e.g. flashscore.com, bbc.co.uk, wikipedia.org). Avoid sites that block iframes (google.com, twitter.com, premierleague.com).',
           'When the user says "note:", "jot down", "remember this", "write down", or dictates something to save, use set_scratch_pad with mode "append" to add a timestamped line to the note widget. "Clear my note" or "wipe the scratch pad" uses mode "clear".',
+          'For timers: use set_timer when the user says "set a timer", "timer for X minutes", or "remind me in X minutes/hours". Convert all durations to seconds. When confirming, say the duration naturally e.g. "Timer set for 10 minutes." Use list_timers to check active timers, cancel_timer to stop one.',
+          'For reminders: use set_reminder when the user says "remind me at [time]", "remind me to [do thing]", or "set a reminder". Convert the time to ISO 8601 using today\'s date context. When confirming, say the time naturally e.g. "Got it — I\'ll remind you at 3 PM." Use list_reminders to show upcoming reminders, cancel_reminder to remove one.',
+          'For shopping lists and quick list additions: use quick_list_add when the user says "add [item] to my [list]", "put [item] on the [list]", or similar. It looks up the list by name from memory automatically. If no matching database is found, offer to create one with create_notion_database.',
           'When you need more information to complete a task, ask ONE short clarifying question (max 10 words, ending with "?"). The user will answer and you can then complete the task.',
           'When answering a question, summarise the key facts in 1-2 spoken sentences. When confirming an action, ONE short sentence (max 8 words).',
           'Never use markdown, bullet points, or long explanations — responses are spoken aloud.',
@@ -2065,11 +2274,45 @@ setInterval(async () => {
   if (hhmm !== target) return
   try {
     const text = await compileBriefing()
-    broadcast({ type: 'speak_briefing', text })
+    broadcast({ type: 'speak_briefing', text, id: crypto.randomUUID() })
     console.log('[briefing] fired at', hhmm)
   } catch (e) {
     console.error('[briefing] error:', e)
   }
+}, 60_000)
+
+// ── Timer tick (every 5 seconds) ──────────────────────────────────────────────
+
+setInterval(() => {
+  const now = Date.now()
+  for (const [id, timer] of activeTimers) {
+    if (timer.fired) continue
+    if (now - timer.startedAt >= timer.durationMs) {
+      timer.fired = true
+      broadcast({ type: 'speak_briefing', text: `${timer.label} is done.`, id: crypto.randomUUID() })
+      broadcast({ type: 'timer_alert', timerId: id, label: timer.label })
+      loggedNotify('⏰ Timer done', timer.label, { priority: 'high', tags: ['timer'] })
+      setTimeout(() => activeTimers.delete(id), 5 * 60_000)
+    }
+  }
+}, 5_000)
+
+// ── Reminder tick (every minute, alongside briefing cron) ─────────────────────
+
+setInterval(() => {
+  const now       = Date.now()
+  const reminders = loadReminders()
+  let   changed   = false
+  for (const reminder of reminders) {
+    if (reminder.fired) continue
+    if (new Date(reminder.fireAt).getTime() <= now) {
+      reminder.fired = true
+      changed = true
+      broadcast({ type: 'speak_briefing', text: `Reminder: ${reminder.text}`, id: crypto.randomUUID() })
+      loggedNotify('🔔 Reminder', reminder.text, { priority: 'high', tags: ['reminder'] })
+    }
+  }
+  if (changed) saveReminders(reminders)
 }, 60_000)
 
 // ── Notifications log ─────────────────────────────────────────────────────────
@@ -2102,12 +2345,31 @@ app.get('/api/notifications', (_req, res) => {
   res.json(notifLog)
 })
 
+app.get('/api/timers', (_req, res) => {
+  const now    = Date.now()
+  const timers = [...activeTimers.values()]
+    .filter((t) => !t.fired)
+    .map((t) => ({
+      id:          t.id,
+      label:       t.label,
+      durationMs:  t.durationMs,
+      startedAt:   t.startedAt,
+      remainingMs: Math.max(0, t.durationMs - (now - t.startedAt)),
+    }))
+  res.json(timers)
+})
+
+app.get('/api/reminders', (_req, res) => {
+  const reminders = loadReminders().filter((r) => !r.fired)
+  res.json(reminders)
+})
+
 // ── Agent scheduler ────────────────────────────────────────────────────────────
 // Context uses getters so agents always read the latest board state
 
 const agentScheduler = createScheduler({
   broadcast: (msg) => broadcast(msg),
-  speak:     (text) => broadcast({ type: 'speak_briefing', text }),
+  speak:     (text) => broadcast({ type: 'speak_briefing', text, id: crypto.randomUUID() }),
   notify:    loggedNotify,
   notion,
   anthropic,
