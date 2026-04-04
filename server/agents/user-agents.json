@@ -1,0 +1,29 @@
+[
+  {
+    "id": "hydration-reminder",
+    "name": "Hydration Reminder",
+    "description": "Every time this runs, speak a short friendly reminder to drink water. Keep it under 8 words and vary the phrasing each time.",
+    "intervalMs": 5400000,
+    "enabled": true,
+    "icon": "💧",
+    "createdAt": "2026-04-04T00:00:00.000Z"
+  },
+  {
+    "id": "break-reminder",
+    "name": "Break Reminder",
+    "description": "It is time for a short break. Speak a brief encouraging message to stand up, stretch, or step away from the screen. Keep it under 10 words and vary the phrasing.",
+    "intervalMs": 3600000,
+    "enabled": false,
+    "icon": "🧘",
+    "createdAt": "2026-04-04T00:00:00.000Z"
+  },
+  {
+    "id": "clear-takss",
+    "name": "Clear takss",
+    "description": "At the end of the day clear all tasks from my todos that are complete",
+    "intervalMs": 86400000,
+    "enabled": true,
+    "icon": "🔔",
+    "createdAt": "2026-04-04T18:48:23.664Z"
+  }
+]

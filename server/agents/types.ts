@@ -30,6 +30,10 @@ export interface Agent {
   name: string
   /** What this agent does */
   description: string
+  /** Optional emoji icon */
+  icon?: string
+  /** Pixel art sprite key (cat, dog, robot, bunny, ghost, owl, bear, frog) */
+  spriteType?: string
   /** How often to run, in milliseconds */
   intervalMs: number
   /** Whether this agent is active */

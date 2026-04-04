@@ -8,6 +8,7 @@ interface ThemeStore {
   customOverrides: Partial<ThemeVars>
   customTheme:     ThemeVars | null
   background:      Background
+  petsEnabled:     boolean
 
   setTheme:           (id: string) => void
   setCustomTheme:     (vars: Partial<ThemeVars>, background?: Background, baseThemeId?: string) => void
@@ -15,6 +16,7 @@ interface ThemeStore {
   clearOverrides:     () => void
   applyToDOM:         () => void
   setBackground:      (bg: Background) => void
+  setPetsEnabled:     (enabled: boolean) => void
 }
 
 export const useThemeStore = create<ThemeStore>()(
@@ -24,6 +26,7 @@ export const useThemeStore = create<ThemeStore>()(
       customOverrides: {},
       customTheme:     null,
       background:      DEFAULT_BACKGROUND,
+      petsEnabled:     true,
 
       setTheme: (id) => {
         const theme = THEME_MAP[id]
@@ -51,6 +54,8 @@ export const useThemeStore = create<ThemeStore>()(
         const base = THEME_MAP[get().activeThemeId]?.vars ?? {}
         applyThemeVars({ ...base, ...overrides } as ThemeVars)
       },
+
+      setPetsEnabled: (enabled) => set({ petsEnabled: enabled }),
 
       clearOverrides: () => {
         set({ customOverrides: {} })

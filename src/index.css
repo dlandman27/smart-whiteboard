@@ -354,6 +354,16 @@ body {
 }
 .slide-up { animation: slideUp 0.18s ease-out; }
 
+@keyframes petBob {
+  0%, 100% { transform: scale(1.08) translateY(0); }
+  50%       { transform: scale(1.08) translateY(-4px); }
+}
+
+@keyframes petPopIn {
+  from { opacity: 0; transform: translateX(-50%) scale(0.85); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }

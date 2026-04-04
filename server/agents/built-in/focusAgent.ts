@@ -21,6 +21,7 @@ export const focusAgent: Agent = {
   id:          'focus-agent',
   name:        'Focus Agent',
   description: 'Switches to the right board automatically based on time of day.',
+  icon:        '🎯',
   intervalMs:  10 * 60_000,  // every 10 minutes
   enabled:     true,
 

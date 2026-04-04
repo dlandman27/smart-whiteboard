@@ -14,7 +14,7 @@ export interface SoundConfig {
 
 const sounds = {
   panelOpen:     { file: '/assets/sounds/whoof.wav',      volume: 0.4, playbackRate: 1.5, offsetMs: 600 },
-  swipe:         { file: '/assets/sounds/swipe.wav',      volume: 0.4 },
+  swipe:         { file: '/assets/sounds/swipe.wav',      volume: 0.15 },
   alert:         { file: '/assets/sounds/alert.wav',      volume: 0.5 },
   click:         { file: '/assets/sounds/click.wav',      volume: 0.4 },
   widgetRemoved: { file: '/assets/sounds/drop.wav', volume: 0.2, durationMs: 80 },

@@ -5,6 +5,7 @@ import { useThemeStore } from '../store/theme'
 import { soundWidgetAdded, soundWidgetRemoved } from '../lib/sounds'
 import { useBriefingStore } from '../store/briefing'
 import { useNotificationStore } from '../store/notifications'
+import { usePetsStore } from '../store/pets'
 import { queryClient } from '../App'
 
 const WS_URL = 'ws://localhost:3001'
@@ -122,6 +123,14 @@ export function useCanvasSocket() {
             title: `⏰ ${msg.label}`,
             body:  'Timer done',
           })
+        } else if (msg.type === 'pet_wake') {
+          usePetsStore.getState().setPet(msg.agentId, 'active')
+        } else if (msg.type === 'pet_message') {
+          usePetsStore.getState().setPet(msg.agentId, 'speaking', msg.text)
+        } else if (msg.type === 'pet_idle') {
+          const current = usePetsStore.getState().pets[msg.agentId]
+          // Don't clear if there's still a message showing
+          if (!current?.message) usePetsStore.getState().setPet(msg.agentId, 'idle')
         } else if (msg.type === 'notion_invalidate') {
           if (msg.databaseId) {
             queryClient.invalidateQueries({ queryKey: ['notion-view', msg.databaseId] })

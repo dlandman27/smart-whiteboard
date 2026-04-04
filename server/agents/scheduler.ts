@@ -51,16 +51,19 @@ export class AgentScheduler {
 
   // ── Status ────────────────────────────────────────────────────────────────────
 
-  status(): Array<{ id: string; name: string; enabled: boolean; lastRun: string | null; nextRun: string | null }> {
+  status(): Array<{ id: string; name: string; description: string; icon: string; spriteType?: string; enabled: boolean; lastRun: string | null; nextRun: string | null }> {
     return [...this.agents.values()].map((a) => {
       const last = this.lastRun.get(a.id) ?? null
       const next = last ? new Date(last + a.intervalMs).toISOString() : 'soon'
       return {
-        id:       a.id,
-        name:     a.name,
-        enabled:  a.enabled,
-        lastRun:  last ? new Date(last).toISOString() : null,
-        nextRun:  a.enabled ? next : null,
+        id:          a.id,
+        name:        a.name,
+        description: a.description,
+        icon:        a.icon ?? '🤖',
+        spriteType:  a.spriteType,
+        enabled:     a.enabled,
+        lastRun:     last ? new Date(last).toISOString() : null,
+        nextRun:     a.enabled ? next : null,
       }
     })
   }
@@ -87,13 +90,31 @@ export class AgentScheduler {
     const start = Date.now()
     this.lastRun.set(agent.id, start)
     console.log(`[Agent:${agent.name}] Running…`)
+
+    // Wake the pet on the board
+    this.ctx.broadcast({ type: 'pet_wake', agentId: agent.id })
+
+    // Wrap ctx.speak so every spoken line also lights up the pet bubble
+    const originalSpeak = this.ctx.speak.bind(this.ctx)
+    const patchedCtx: typeof this.ctx = {
+      ...this.ctx,
+      speak: (text: string) => {
+        originalSpeak(text)
+        this.ctx.broadcast({ type: 'pet_message', agentId: agent.id, text })
+      },
+    }
+
     let error: string | undefined
     try {
-      await agent.run(this.ctx)
+      await agent.run(patchedCtx)
     } catch (err: any) {
       error = String(err?.message ?? err)
       console.error(`[Agent:${agent.name}] Error: ${error}`)
     }
+
+    // Return pet to idle (speech bubble will linger until timeout on the client)
+    this.ctx.broadcast({ type: 'pet_idle', agentId: agent.id })
+
     const run: AgentRun = { agentId: agent.id, startedAt: new Date(start), durationMs: Date.now() - start, error }
     const hist = this.history.get(agent.id) ?? []
     hist.unshift(run)

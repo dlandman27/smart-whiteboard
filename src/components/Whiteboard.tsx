@@ -8,16 +8,16 @@ import { WidgetCanvas } from './WidgetCanvas'
 import { NotificationToast } from './NotificationToast'
 import { UndoToast } from './UndoToast'
 import { VoiceListener } from './VoiceListener'
+import { PetBar } from './PetBar'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
 import type { PendingWidget } from '../types'
 
 export function Whiteboard() {
   useCanvasSocket()
   const { focusedWidgetId, setFocusedWidget } = useUIStore()
-  const [slideDir,      setSlideDir]      = useState<'left' | 'right'>('right')
   const [activeTool,    setActiveTool]    = useState('pointer')
   const [pendingWidget, setPendingWidget] = useState<PendingWidget | null>(null)
-  const { background } = useThemeStore()
+  const { background, petsEnabled } = useThemeStore()
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -31,7 +31,6 @@ export function Whiteboard() {
     <WhiteboardBackground background={background}>
 
       <WidgetCanvas
-        slideDir={slideDir}
         activeTool={activeTool}
         pendingWidget={pendingWidget}
         onClearPending={() => setPendingWidget(null)}
@@ -42,6 +41,7 @@ export function Whiteboard() {
       </div>
 
 
+      {petsEnabled && <PetBar />}
       <NotificationToast />
       <UndoToast />
       <VoiceListener />
@@ -49,7 +49,6 @@ export function Whiteboard() {
       <BottomToolbar
         onToolChange={setActiveTool}
         onWidgetSelected={(w) => { setPendingWidget(w); setActiveTool('pointer') }}
-        onSlide={setSlideDir}
       />
 
     </WhiteboardBackground>

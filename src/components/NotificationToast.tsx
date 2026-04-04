@@ -9,7 +9,6 @@ export function NotificationToast() {
   const notifications = useNotificationStore((s) => s.notifications)
   const dismiss       = useNotificationStore((s) => s.dismissNotification)
 
-  // Track which notification ids are currently visible as toasts
   const [visibleIds, setVisibleIds] = useState<string[]>([])
   const seenIds = useRef<Set<string>>(new Set())
 
@@ -17,7 +16,7 @@ export function NotificationToast() {
     notifications.forEach((n) => {
       if (seenIds.current.has(n.id)) return
       seenIds.current.add(n.id)
-      soundAlert()
+      if (n.type !== 'error') soundAlert()
       setVisibleIds((prev) => [...prev, n.id])
       setTimeout(() => {
         setVisibleIds((prev) => prev.filter((id) => id !== n.id))
@@ -39,39 +38,46 @@ export function NotificationToast() {
 
   return (
     <div className="fixed bottom-6 right-6 z-[9998] flex flex-col-reverse gap-2 pointer-events-none select-none">
-      {toasts.map((n) => (
-        <div
-          key={n.id}
-          className="pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-2xl max-w-xs"
-          style={{
-            backgroundColor: 'var(--wt-bg)',
-            border:          '1px solid var(--wt-border-active)',
-            backdropFilter:  'var(--wt-backdrop)',
-            boxShadow:       'var(--wt-shadow-lg)',
-          }}
-        >
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold leading-snug" style={{ color: 'var(--wt-text)' }}>
-              {n.title}
-            </p>
-            {n.body && (
-              <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--wt-text-muted)' }}>
-                {n.body}
-              </p>
-            )}
-          </div>
-          <button
-            className="wt-action-btn flex-shrink-0 mt-0.5"
-            style={{ width: 18, height: 18 }}
-            onClick={() => {
-              setVisibleIds((prev) => prev.filter((id) => id !== n.id))
-              dismiss(n.id)
+      {toasts.map((n) => {
+        const isError = n.type === 'error'
+        return (
+          <div
+            key={n.id}
+            className="pointer-events-auto flex items-start gap-3 px-4 py-3 rounded-2xl max-w-xs"
+            style={{
+              backgroundColor: 'var(--wt-bg)',
+              border:          isError ? '1px solid var(--wt-danger)' : '1px solid var(--wt-border-active)',
+              borderLeft:      isError ? '3px solid var(--wt-danger)' : undefined,
+              backdropFilter:  'var(--wt-backdrop)',
+              boxShadow:       'var(--wt-shadow-lg)',
             }}
           >
-            <Icon icon="X" size={11} />
-          </button>
-        </div>
-      ))}
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-sm font-semibold leading-snug"
+                style={{ color: isError ? 'var(--wt-danger)' : 'var(--wt-text)' }}
+              >
+                {n.title}
+              </p>
+              {n.body && (
+                <p className="text-xs mt-0.5 leading-snug" style={{ color: 'var(--wt-text-muted)' }}>
+                  {n.body}
+                </p>
+              )}
+            </div>
+            <button
+              className="wt-action-btn flex-shrink-0 mt-0.5"
+              style={{ width: 18, height: 18 }}
+              onClick={() => {
+                setVisibleIds((prev) => prev.filter((id) => id !== n.id))
+                dismiss(n.id)
+              }}
+            >
+              <Icon icon="X" size={11} />
+            </button>
+          </div>
+        )
+      })}
     </div>
   )
 }

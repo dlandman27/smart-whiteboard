@@ -19,7 +19,6 @@ type ActivePanel = 'customize' | 'settings' | 'picker' | 'notif' | null
 interface Props {
   onToolChange:     (tool: Tool) => void
   onWidgetSelected: (widget: PendingWidget) => void
-  onSlide:          (dir: 'left' | 'right') => void
 }
 
 const WAVEFORM_BARS = [
@@ -124,7 +123,7 @@ function Divider() {
   )
 }
 
-export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props) {
+export function BottomToolbar({ onToolChange, onWidgetSelected }: Props) {
   const { activeBoardId } = useWhiteboardStore()
   const voiceState = useVoiceStore((s) => s.state)
 
@@ -170,15 +169,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
     if (hidden) soundSwipe()
     else { soundPanelOpen(); setOpenKey((k) => k + 1) }
   }, [hidden])
-
-  useEffect(() => {
-    if (hidden || activePanel) return
-    function onPointerDown(e: PointerEvent) {
-      if (!pillRef.current?.contains(e.target as Node)) setHidden(true)
-    }
-    document.addEventListener('pointerdown', onPointerDown)
-    return () => document.removeEventListener('pointerdown', onPointerDown)
-  }, [hidden, activePanel])
 
   function selectTool(tool: Tool) {
     setActiveTool(tool)

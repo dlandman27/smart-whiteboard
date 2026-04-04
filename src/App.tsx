@@ -1,13 +1,24 @@
 import { useEffect } from 'react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query'
 import { Whiteboard } from './components/Whiteboard'
 import { KioskGuard } from './components/KioskGuard'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { useThemeStore } from './store/theme'
+import { useNotificationStore } from './store/notifications'
 
 export const queryClient = new QueryClient({
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      useNotificationStore.getState().addNotification({
+        title: 'Action failed',
+        body:  error instanceof Error ? error.message : 'Something went wrong',
+        type:  'error',
+      })
+    },
+  }),
   defaultOptions: {
     queries: {
-      retry: 1,
+      retry:     1,
       staleTime: 10_000,
     },
   },
@@ -21,11 +32,13 @@ function ThemeApplier() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeApplier />
-      <KioskGuard>
-        <Whiteboard />
-      </KioskGuard>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ThemeApplier />
+        <KioskGuard>
+          <Whiteboard />
+        </KioskGuard>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }

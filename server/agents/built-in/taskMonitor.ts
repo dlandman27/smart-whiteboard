@@ -1,6 +1,5 @@
-import fs   from 'fs'
-import path from 'path'
 import type { Agent, AgentContext } from '../types.js'
+import { loadMemory } from '../../services/memory.js'
 
 // ── State ─────────────────────────────────────────────────────────────────────
 // Track which overdue task IDs we've already alerted about today.
@@ -22,6 +21,7 @@ export const taskMonitorAgent: Agent = {
   id:          'task-monitor',
   name:        'Task Monitor',
   description: 'Watches Notion task databases for overdue items and speaks an alert.',
+  icon:        '✅',
   intervalMs:  15 * 60_000,  // every 15 minutes
   enabled:     true,
 
@@ -90,16 +90,13 @@ export const taskMonitorAgent: Agent = {
 function getTaskDatabaseIds(ctx: AgentContext): string[] {
   const ids = new Set<string>()
 
-  // From Walli's memory.json
-  try {
-    const mem = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'server/memory.json'), 'utf-8'))
-    for (const [key, id] of Object.entries(mem?.databases ?? {})) {
-      if (typeof id === 'string' &&
-          (key.toLowerCase().includes('task') || key.toLowerCase().includes('todo'))) {
-        ids.add(id)
-      }
+  // From Walli's memory
+  const mem = loadMemory()
+  for (const [key, id] of Object.entries(mem.databases)) {
+    if (key.toLowerCase().includes('task') || key.toLowerCase().includes('todo')) {
+      ids.add(id)
     }
-  } catch { /* memory.json may not exist */ }
+  }
 
   // From widgets on the active board
   const widgets = ctx.boards.find((b: any) => b.id === ctx.activeBoardId)?.widgets ?? []

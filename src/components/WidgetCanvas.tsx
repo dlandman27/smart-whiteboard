@@ -11,13 +11,12 @@ import { getStaticWidgetDef } from './widgets/registry'
 import type { PendingWidget } from '../types'
 
 interface Props {
-  slideDir:       'left' | 'right'
   activeTool:     string
   pendingWidget:  PendingWidget | null
   onClearPending: () => void
 }
 
-export function WidgetCanvas({ slideDir, activeTool, pendingWidget, onClearPending }: Props) {
+export function WidgetCanvas({ activeTool, pendingWidget, onClearPending }: Props) {
   const { boards, activeBoardId, addWidget, updateLayout, assignSlot } = useWhiteboardStore()
   const { slotMap, layout } = useLayout()
 
@@ -136,7 +135,7 @@ export function WidgetCanvas({ slideDir, activeTool, pendingWidget, onClearPendi
   return (
     <div
       key={activeBoardId}
-      className={`absolute inset-0 ${slideDir === 'right' ? 'board-slide-right' : 'board-slide-left'}`}
+      className="absolute inset-0 board-slide-right"
       onClick={handleCanvasClick}
     >
 

@@ -10,6 +10,7 @@ export const routineAgent: Agent = {
   id:          'routine-agent',
   name:        'Routine Agent',
   description: 'Reminds you to start your routines at the beginning of each period.',
+  icon:        '🔁',
   intervalMs:  10 * 60_000,  // every 10 minutes
   enabled:     true,
 

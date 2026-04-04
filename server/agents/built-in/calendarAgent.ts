@@ -11,6 +11,7 @@ export const calendarAgent: Agent = {
   id:          'calendar-agent',
   name:        'Calendar Agent',
   description: 'Warns about calendar events starting in the next 10 minutes.',
+  icon:        '📅',
   intervalMs:  5 * 60_000,  // every 5 minutes
   enabled:     true,
 

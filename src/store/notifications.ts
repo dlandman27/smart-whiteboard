@@ -4,6 +4,7 @@ export interface Notification {
   id:        string
   title:     string
   body?:     string
+  type?:     'info' | 'error'   // defaults to 'info'
   widgetId?: string   // source widget — used for cleanup when widget is removed
   timestamp: number
   read:      boolean
@@ -24,7 +25,7 @@ export const useNotificationStore = create<NotificationStore>()((set) => ({
   addNotification: (notif) =>
     set((s) => ({
       notifications: [
-        { ...notif, id: crypto.randomUUID(), timestamp: Date.now(), read: false },
+        { type: 'info' as const, ...notif, id: crypto.randomUUID(), timestamp: Date.now(), read: false },
         ...s.notifications,
       ],
     })),
