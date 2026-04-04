@@ -8,6 +8,8 @@ export interface AgentContext {
   broadcast: (msg: object) => void
   /** Speak text aloud via the board's voice system */
   speak: (text: string) => void
+  /** Push a notification to the user's phone via ntfy */
+  notify: (title: string, body: string, opts?: { priority?: 'min'|'low'|'default'|'high'|'urgent'; tags?: string[] }) => Promise<void>
   /** Notion API client */
   notion: Client
   /** Anthropic client for Claude calls */

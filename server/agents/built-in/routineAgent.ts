@@ -33,5 +33,6 @@ export const routineAgent: Agent = {
 
     const periodLabel = hour === 6 ? 'morning' : hour === 12 ? 'fitness' : 'evening'
     ctx.speak(`Time for your ${periodLabel} routines.`)
+    await ctx.notify(`${periodLabel.charAt(0).toUpperCase() + periodLabel.slice(1)} Routines`, `Time to start your ${periodLabel} routines.`, { tags: ['muscle'] })
   },
 }

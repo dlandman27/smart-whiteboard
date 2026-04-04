@@ -77,20 +77,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
     else { soundPanelOpen(); setOpenKey((k) => k + 1) }
   }, [hidden])
 
-  useEffect(() => {
-    if (!hidden) return
-    let startY = 0
-    function onStart(e: TouchEvent) { startY = e.touches[0].clientY }
-    function onEnd(e: TouchEvent) {
-      if (e.changedTouches[0].clientY - startY < -20) setHidden(false)
-    }
-    window.addEventListener('touchstart', onStart)
-    window.addEventListener('touchend', onEnd)
-    return () => {
-      window.removeEventListener('touchstart', onStart)
-      window.removeEventListener('touchend', onEnd)
-    }
-  }, [hidden])
 
   useEffect(() => {
     if (hidden || activePanel) return

@@ -70,7 +70,11 @@ export const taskMonitorAgent: Agent = {
       messages:   [{ role: 'user', content: `Overdue:\n${taskList}` }],
     })
     const text = ((response.content[0] as any).text ?? '').trim()
-    if (text) ctx.speak(text)
+    if (text) {
+      ctx.speak(text)
+      const names = overdue.map((t) => `• ${t.name}`).join('\n')
+      await ctx.notify('Overdue Tasks', names, { priority: 'high', tags: ['warning'] })
+    }
 
     // Flash the task widget on the board
     const widgets = ctx.boards.find((b: any) => b.id === ctx.activeBoardId)?.widgets ?? []

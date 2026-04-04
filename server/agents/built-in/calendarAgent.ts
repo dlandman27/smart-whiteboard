@@ -50,6 +50,7 @@ export const calendarAgent: Agent = {
         : `in ${minutesUntil} minute${minutesUntil === 1 ? '' : 's'}`
 
       ctx.speak(`Heads up — ${title} is ${timeStr}.`)
+      await ctx.notify(`📅 ${title}`, `Starting ${timeStr}`, { priority: 'high', tags: ['calendar'] })
     }
 
     // Clean up old event IDs so we don't grow forever

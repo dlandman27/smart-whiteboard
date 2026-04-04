@@ -9,6 +9,8 @@ import { Client } from '@notionhq/client'
 import { google } from 'googleapis'
 import Anthropic from '@anthropic-ai/sdk'
 import { createScheduler } from './agents/index.js'
+import { notify }          from './lib/notify.js'
+import { MOBILE_PAGE }     from './mobilePage.js'
 
 dotenv.config()
 
@@ -51,7 +53,7 @@ function memoryToPrompt(mem: WalliMemory): string {
 
 const app = express()
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '20mb' }))
 
 // ── WebSocket canvas bridge ────────────────────────────────────────────────────
 
@@ -136,6 +138,73 @@ app.post('/api/canvas/theme', (req, res) => {
 app.post('/api/canvas/custom-theme', (req, res) => {
   broadcast({ type: 'set_custom_theme', vars: req.body.vars ?? {}, background: req.body.background })
   res.json({ ok: true })
+})
+
+app.post('/api/theme/generate', async (req, res) => {
+  const { description } = req.body as { description?: string }
+  if (!description?.trim()) return res.status(400).json({ error: 'description required' })
+
+  const apiKey = process.env.VITE_ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return res.status(500).json({ error: 'ANTHROPIC_API_KEY not set' })
+
+  try {
+    const themeAnthropic = new Anthropic({ apiKey })
+    const msg = await themeAnthropic.messages.create({
+      model:      'claude-opus-4-6',
+      max_tokens: 1024,
+      messages:   [{
+        role:    'user',
+        content: `Generate a whiteboard theme based on this description: "${description}"
+
+Return ONLY valid JSON (no markdown, no explanation) with this exact shape:
+{
+  "name": "Theme Name",
+  "dark": true or false,
+  "background": { "label": "...", "bg": "#hex", "dot": "#hex" },
+  "vars": {
+    "widgetBg": "#hex",
+    "widgetBorder": "#hex or rgba(...)",
+    "widgetBorderActive": "#hex",
+    "shadowSm": "0 1px 3px rgba(...)",
+    "shadowMd": "0 4px 12px rgba(...)",
+    "shadowLg": "0 20px 40px rgba(...)",
+    "backdropFilter": "none",
+    "textPrimary": "#hex",
+    "textMuted": "#hex",
+    "surfaceSubtle": "#hex",
+    "surfaceHover": "#hex",
+    "surfaceDanger": "#hex",
+    "accent": "#hex",
+    "accentText": "#hex",
+    "danger": "#hex",
+    "actionBg": "#hex",
+    "actionBorder": "#hex",
+    "settingsBg": "#hex",
+    "settingsBorder": "#hex",
+    "settingsDivider": "#hex",
+    "settingsLabel": "#hex",
+    "scrollThumb": "#hex",
+    "clockFaceFill": "#hex",
+    "clockFaceStroke": "#hex",
+    "clockTickMajor": "#hex",
+    "clockTickMinor": "#hex",
+    "clockHands": "#hex",
+    "clockSecond": "#hex",
+    "clockCenter": "#hex",
+    "noteDefaultBg": "#hex"
+  }
+}`,
+      }],
+    })
+
+    const raw  = (msg.content[0] as any).text as string
+    const json = JSON.parse(raw.replace(/```json|```/g, '').trim())
+
+    broadcast({ type: 'set_custom_theme', vars: json.vars, background: json.background })
+    res.json({ ok: true, theme: json })
+  } catch (err: any) {
+    res.status(500).json({ error: err.message })
+  }
 })
 
 // ── Board endpoints ────────────────────────────────────────────────────────────
@@ -251,6 +320,13 @@ const anthropic = new Anthropic()
 
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, configured: !!process.env.NOTION_API_KEY })
+})
+
+// ── Mobile companion ──────────────────────────────────────────────────────────
+
+app.get('/mobile', (_req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  res.send(MOBILE_PAGE)
 })
 
 app.get('/api/databases', async (_req, res) => {
@@ -2003,12 +2079,43 @@ setInterval(async () => {
   }
 }, 60_000)
 
+// ── Notifications log ─────────────────────────────────────────────────────────
+
+interface NotifEntry {
+  id:        string
+  title:     string
+  body:      string
+  priority?: string
+  tags?:     string[]
+  ts:        number
+}
+
+const notifLog: NotifEntry[] = []
+
+function loggedNotify(title: string, body: string, opts: Parameters<typeof notify>[2] = {}) {
+  notifLog.unshift({
+    id:       crypto.randomUUID(),
+    title,
+    body,
+    priority: opts?.priority,
+    tags:     opts?.tags,
+    ts:       Date.now(),
+  })
+  if (notifLog.length > 100) notifLog.pop()
+  return notify(title, body, opts)
+}
+
+app.get('/api/notifications', (_req, res) => {
+  res.json(notifLog)
+})
+
 // ── Agent scheduler ────────────────────────────────────────────────────────────
 // Context uses getters so agents always read the latest board state
 
 const agentScheduler = createScheduler({
   broadcast: (msg) => broadcast(msg),
   speak:     (text) => broadcast({ type: 'speak_briefing', text }),
+  notify:    loggedNotify,
   notion,
   anthropic,
   get gcal()          { return getGCalClient() },
