@@ -1,5 +1,6 @@
 import type { Client } from '@notionhq/client'
 import { loadTokens } from '../services/tokens.js'
+import { log, error as logError } from '../lib/logger.js'
 import { compileBriefing } from '../services/briefing.js'
 import { broadcast } from '../ws.js'
 
@@ -14,9 +15,9 @@ export function startBriefingCron(notion: Client) {
     try {
       const text = await compileBriefing(notion)
       broadcast({ type: 'speak_briefing', text, id: crypto.randomUUID() })
-      console.log('[briefing] fired at', hhmm)
+      log('[briefing] fired at', hhmm)
     } catch (e) {
-      console.error('[briefing] error:', e)
+      logError('[briefing] error:', e)
     }
   }, 60_000)
 }

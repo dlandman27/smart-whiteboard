@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from 'express'
+import { error as logError } from '../lib/logger.js'
 
 /**
  * Throw this for any intentional error in a route handler.
@@ -44,6 +45,6 @@ export function errorMiddleware(
     })
     return
   }
-  console.error('[server error]', err)
+  logError('[server error]', err)
   res.status(500).json({ error: 'Internal server error' })
 }

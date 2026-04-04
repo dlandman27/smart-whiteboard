@@ -25,7 +25,10 @@
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}, indent=2\\)\\)\")",
       "Bash(node -e \"const p = require\\('./package.json'\\); const all = {...p.dependencies, ...p.devDependencies}; console.log\\(JSON.stringify\\(Object.fromEntries\\(Object.entries\\(all\\).filter\\(\\([k]\\) => k.includes\\('express'\\) || k.includes\\('@types'\\)\\)\\), null, 2\\)\\)\")",
       "Bash(wc -l server/routes/*.ts server/services/*.ts server/crons/*.ts)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(find /c/Users/dylan/Documents/projects/smart-whiteboard/server/routes -name \"*.ts\" -exec wc -l {} +)",
+      "Bash(find /c/Users/dylan/Documents/projects/smart-whiteboard/server -name \"*.ts\" -type f -exec grep -l \"any\\\\|unknown\" {} \\\\;)",
+      "Bash(npm rm:*)"
     ]
   }
 }

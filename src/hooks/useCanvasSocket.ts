@@ -28,12 +28,18 @@ export function useCanvasSocket() {
     }))
   }
 
-  // Sync state to server whenever store changes
+  // Sync state to server whenever store changes — throttled to avoid flooding during drag
   useEffect(() => {
+    let pending = false
     return useWhiteboardStore.subscribe(() => {
-      const ws = wsRef.current
-      if (!ws || ws.readyState !== WebSocket.OPEN) return
-      sendState(ws)
+      if (pending) return
+      pending = true
+      setTimeout(() => {
+        pending = false
+        const ws = wsRef.current
+        if (!ws || ws.readyState !== WebSocket.OPEN) return
+        sendState(ws)
+      }, 100)
     })
   }, [])
 

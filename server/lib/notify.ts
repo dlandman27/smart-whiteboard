@@ -3,6 +3,7 @@
 // Publishes a push notification to an ntfy topic.
 // Install the ntfy app on your phone and subscribe to the same topic.
 // https://ntfy.sh
+import { error as logError } from './logger.js'
 
 interface NotifyOptions {
   priority?: 'min' | 'low' | 'default' | 'high' | 'urgent'
@@ -31,6 +32,6 @@ export async function notify(title: string, body: string, opts: NotifyOptions = 
       body,
     })
   } catch (err) {
-    console.error('[ntfy] Failed to send notification:', err)
+    logError('[ntfy] Failed to send notification:', err)
   }
 }

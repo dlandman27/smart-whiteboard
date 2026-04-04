@@ -27,6 +27,7 @@ import { miscRouter }          from './routes/misc.js'
 
 import { startAllCrons } from './crons/index.js'
 import { errorMiddleware } from './middleware/error.js'
+import { log, warn } from './lib/logger.js'
 
 dotenv.config()
 
@@ -91,13 +92,13 @@ startAllCrons(notion)
 
 const PORT = Number(process.env.PORT) || 3001
 httpServer.listen(PORT, () => {
-  console.log(`\n🗂  Smart Whiteboard server running on http://localhost:${PORT}`)
-  if (!process.env.NOTION_API_KEY) console.warn('⚠️  NOTION_API_KEY not set')
-  else                             console.log('✅  Notion API key loaded')
+  log(`Smart Whiteboard server running on http://localhost:${PORT}`)
+  if (!process.env.NOTION_API_KEY) warn('NOTION_API_KEY not set')
+  else                             log('Notion API key loaded')
   const gcalTokens = loadTokens()
-  if (gcalTokens?.refresh_token || gcalTokens?.access_token) console.log('✅  Google Calendar authenticated')
-  else console.log('   Google Calendar: connect via Settings panel')
-  if (gcalTokens?.spotify_refresh_token || gcalTokens?.spotify_access_token) console.log('✅  Spotify authenticated')
-  else console.log('   Spotify: connect via the widget settings panel')
+  if (gcalTokens?.refresh_token || gcalTokens?.access_token) log('Google Calendar authenticated')
+  else log('Google Calendar: connect via Settings panel')
+  if (gcalTokens?.spotify_refresh_token || gcalTokens?.spotify_access_token) log('Spotify authenticated')
+  else log('Spotify: connect via the widget settings panel')
   agentScheduler.start()
 })

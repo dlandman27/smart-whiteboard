@@ -22,7 +22,7 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending }: Prop
 
   const activeIndex = boards.findIndex((b) => b.id === activeBoardId)
   const rawWidgets  = boards[activeIndex]?.widgets ?? []
-  const widgets     = rawWidgets.filter((w, i, arr) => arr.findIndex((x) => x.id === w.id) === i)
+  const widgets     = [...new Map(rawWidgets.map((w) => [w.id, w])).values()]
   const isFreeform  = layout.slots.length === 0
 
   // Track which widget is being dragged and which slot is hovered

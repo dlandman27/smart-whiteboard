@@ -1,5 +1,6 @@
 import { broadcast, getWidgets, getCanvas, getBoards, getActiveBoardId } from '../ws.js'
 import { loadMemory, saveMemory } from './memory.js'
+import { log } from '../lib/logger.js'
 
 // ── Typed canvas operations (direct in-process, no HTTP round-trip) ────────────
 
@@ -56,7 +57,7 @@ export function autoSaveDatabases() {
       mem.databases[label] = dbId
       knownIds.add(dbId)
       changed = true
-      console.log(`[memory] auto-saved database "${label}" → ${dbId}`)
+      log(`[memory] auto-saved database "${label}" → ${dbId}`)
     }
   }
   if (changed) saveMemory(mem)

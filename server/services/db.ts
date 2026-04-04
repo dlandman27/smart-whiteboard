@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import fs from 'fs'
 import path from 'path'
+import { log } from '../lib/logger.js'
 
 const DB_PATH = path.join(process.cwd(), 'server/walli.db')
 
