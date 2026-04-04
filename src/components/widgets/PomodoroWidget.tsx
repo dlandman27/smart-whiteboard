@@ -31,8 +31,8 @@ const PHASE_LABELS: Record<Phase, string> = {
 
 const PHASE_COLORS: Record<Phase, string> = {
   work:      'var(--wt-accent)',
-  break:     '#34d399',   // emerald
-  longBreak: '#60a5fa',   // blue
+  break:     'var(--wt-success)',
+  longBreak: 'var(--wt-info)',
 }
 
 function pad(n: number) { return String(n).padStart(2, '0') }
@@ -195,7 +195,7 @@ export function PomodoroWidget({ widgetId }: { widgetId: string }) {
           style={{
             width: 44, height: 44,
             backgroundColor: color,
-            color: '#fff',
+            color: 'var(--wt-accent-text)',
             border: 'none',
             cursor: 'pointer',
             boxShadow: '0 2px 8px rgba(0,0,0,0.18)',

@@ -1,4 +1,5 @@
 import { canvas, ordinal, leagueLabel } from '../board-utils.js'
+import { log } from '../../lib/logger.js'
 import type { VoiceTool } from './_types.js'
 
 export const webTools: VoiceTool[] = [
@@ -23,7 +24,7 @@ export const webTools: VoiceTool[] = [
         { headers: { 'Accept': 'application/json', 'X-Subscription-Token': braveKey } },
       )
       const body = await r.text()
-      console.log(`[brave] status=${r.status} body=${body.slice(0, 300)}`)
+      log(`[brave] status=${r.status} body=${body.slice(0, 300)}`)
       if (!r.ok) return `Search failed: ${r.status} — ${body.slice(0, 200)}`
       const data = JSON.parse(body) as any
       const results = (data.web?.results ?? []).map((v: any) => ({

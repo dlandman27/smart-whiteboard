@@ -134,7 +134,7 @@ function ScorePill({ home, away, live, completed }: { home: string; away: string
       borderRadius:   99,
       fontSize:       13,
       fontWeight:     700,
-      background:     live ? '#ef4444' : 'var(--wt-surface-hover)',
+      background:     live ? 'var(--wt-danger)' : 'var(--wt-surface-hover)',
       color:          live ? '#fff' : 'var(--wt-text)',
       fontVariantNumeric: 'tabular-nums',
     }}>
@@ -199,8 +199,8 @@ function DetailPanel({ game, onClose }: { game: any; onClose: () => void }) {
           <Text variant="label" color="muted" style={{ fontSize: 12 }}>Back</Text>
         </button>
         {game.live && (
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: '#ef4444' }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', display: 'inline-block', animation: 'pulse 1.5s infinite' }} />
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--wt-danger)' }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--wt-danger)', display: 'inline-block', animation: 'pulse 1.5s infinite' }} />
             LIVE
           </span>
         )}
@@ -350,11 +350,11 @@ function GameRow({ game, onClick }: { game: any; onClick: () => void }) {
       <FlexRow align="center" justify="between">
         <FlexRow align="center" style={{ gap: 6 }}>
           {game.live && (
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#ef4444', display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--wt-danger)', display: 'inline-block', flexShrink: 0 }} />
           )}
           <Text variant="label" style={{
             fontSize: 11,
-            color: game.live ? '#ef4444' : 'var(--wt-text-muted)',
+            color: game.live ? 'var(--wt-danger)' : 'var(--wt-text-muted)',
             fontWeight: game.live ? 700 : 500,
           }}>
             {game.live ? `LIVE ${game.statusLabel}` : game.completed ? `FT` : formatKickoff(game.date)}
@@ -496,7 +496,7 @@ export function WorldcupWidget({ widgetId }: { widgetId: string }) {
                 border:       'none',
                 cursor:       'pointer',
                 background:   tab === t
-                  ? (t === 'live' ? '#ef4444' : 'var(--wt-accent)')
+                  ? (t === 'live' ? 'var(--wt-danger)' : 'var(--wt-accent)')
                   : 'var(--wt-surface-hover)',
                 color:        tab === t
                   ? (t === 'live' ? '#fff' : 'var(--wt-accent-text)')
@@ -507,7 +507,7 @@ export function WorldcupWidget({ widgetId }: { widgetId: string }) {
               }}
             >
               {t === 'live' && liveCount > 0 && (
-                <span style={{ width: 5, height: 5, borderRadius: '50%', background: tab === 'live' ? '#fff' : '#ef4444', display: 'inline-block' }} />
+                <span style={{ width: 5, height: 5, borderRadius: '50%', background: tab === 'live' ? '#fff' : 'var(--wt-danger)', display: 'inline-block' }} />
               )}
               {t.charAt(0).toUpperCase() + t.slice(1)}
               {t === 'live' && liveCount > 0 && ` (${liveCount})`}
@@ -573,12 +573,6 @@ export function WorldcupWidget({ widgetId }: { widgetId: string }) {
         <DetailPanel game={selectedGame} onClose={() => setSelected(null)} />
       )}
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
     </div>
   )
 }

@@ -62,7 +62,7 @@ function migrateFromJson() {
              JSON.stringify(d.preferences ?? []),
              JSON.stringify(d.facts ?? []),
              JSON.stringify(d.databases ?? {}))
-      console.log('[db] migrated memory.json → walli.db')
+      log('[db] migrated memory.json → walli.db')
     } catch { /* start fresh */ }
   }
 
@@ -76,7 +76,7 @@ function migrateFromJson() {
       db.transaction(() => {
         for (const [k, v] of Object.entries(data)) upsert.run(k, String(v))
       })()
-      console.log('[db] migrated tokens.json → walli.db')
+      log('[db] migrated tokens.json → walli.db')
     } catch { /* ignore */ }
   }
 
@@ -90,7 +90,7 @@ function migrateFromJson() {
       db.transaction(() => {
         for (const r of data) insert.run(r.id, r.text, r.fireAt, r.fired ? 1 : 0)
       })()
-      console.log('[db] migrated reminders.json → walli.db')
+      log('[db] migrated reminders.json → walli.db')
     } catch { /* ignore */ }
   }
 
@@ -108,7 +108,7 @@ function migrateFromJson() {
           insert.run(a.id, a.name, a.description, a.intervalMs, a.enabled ? 1 : 0,
                      a.icon ?? '🤖', a.spriteType ?? null, a.createdAt)
       })()
-      console.log('[db] migrated user-agents.json → walli.db')
+      log('[db] migrated user-agents.json → walli.db')
     } catch { /* ignore */ }
   }
 }

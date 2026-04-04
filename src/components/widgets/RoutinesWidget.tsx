@@ -158,7 +158,7 @@ export function RoutinesWidget({ widgetId }: { widgetId: string }) {
         }}>
           <div style={{
             height: '100%', borderRadius: 2,
-            background: pct === 100 ? '#22c55e' : 'var(--wt-accent)',
+            background: pct === 100 ? 'var(--wt-success)' : 'var(--wt-accent)',
             width: `${pct}%`,
             transition: 'width 0.4s ease',
           }} />
@@ -221,7 +221,7 @@ export function RoutinesWidget({ widgetId }: { widgetId: string }) {
         ))}
 
         {pct === 100 && total > 0 && (
-          <div style={{ textAlign: 'center', padding: '12px 0 4px', fontSize: 12, color: '#22c55e', fontWeight: 500 }}>
+          <div style={{ textAlign: 'center', padding: '12px 0 4px', fontSize: 12, color: 'var(--wt-success)', fontWeight: 500 }}>
             All done! 🎉
           </div>
         )}

@@ -19,6 +19,8 @@
   --wt-accent:          #3b82f6;
   --wt-accent-text:     #ffffff;
   --wt-danger:          #f87171;
+  --wt-success:         #22c55e;  /* green — completion, break states */
+  --wt-info:            #60a5fa;  /* blue  — pomodoro long-break, informational */
   --wt-action-bg:       #ffffff;
   --wt-action-border:   #e7e5e4;
   --wt-settings-bg:     #ffffff;
@@ -34,6 +36,12 @@
   --wt-clock-second:    #ef4444;
   --wt-clock-center:    #1c1917;
   --wt-note-bg:         #fef9c3;
+}
+
+/* ── Shared utility animations ─────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 /* ── Siri-style voice overlay ─────────────────────────────────────────────── */

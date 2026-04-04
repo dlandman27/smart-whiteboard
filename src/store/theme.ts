@@ -75,7 +75,15 @@ export const useThemeStore = create<ThemeStore>()(
     }),
     {
       name: 'widget-theme',
-      version: 1,
+      version: 2,
+      migrate: (persisted: unknown, version: number) => {
+        const state = (persisted ?? {}) as Record<string, unknown>
+        // v0 → v1: petsEnabled didn't exist
+        if (version < 1) state.petsEnabled = true
+        // v1 → v2: ensure background is always set
+        if (version < 2) state.background = state.background ?? DEFAULT_BACKGROUND
+        return state
+      },
     }
   )
 )

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { IconButton, Text, Button, SegmentedControl } from '../../ui/web'
 import { FlexCol, FlexRow, Box, Grid, Center, ScrollArea } from '../../ui/layouts'
 import { useGCalEvents, type GCalEvent } from '../../hooks/useGCal'
+import { useWidgetSettings, type WidgetProps } from '@whiteboard/sdk'
 
 // Google Calendar event color map
 const GCAL_COLORS: Record<string, string> = {
@@ -226,17 +227,14 @@ function MonthView({ events, date }: { events: GCalEvent[]; date: Date }) {
 
 type View = 'day' | 'week' | 'month'
 
-interface Props {
-  calendarId: string
-}
-
 const VIEW_OPTIONS = [
   { value: 'day',   label: 'Day'   },
   { value: 'week',  label: 'Week'  },
   { value: 'month', label: 'Month' },
 ]
 
-export function CalendarWidget({ calendarId }: Props) {
+export function CalendarWidget({ widgetId }: WidgetProps) {
+  const [{ calendarId }] = useWidgetSettings(widgetId, { calendarId: '' })
   const [view, setView]       = useState<View>('day')
   const [current, setCurrent] = useState(new Date())
 

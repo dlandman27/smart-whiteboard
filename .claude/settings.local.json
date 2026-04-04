@@ -28,7 +28,15 @@
       "Bash(wc:*)",
       "Bash(find /c/Users/dylan/Documents/projects/smart-whiteboard/server/routes -name \"*.ts\" -exec wc -l {} +)",
       "Bash(find /c/Users/dylan/Documents/projects/smart-whiteboard/server -name \"*.ts\" -type f -exec grep -l \"any\\\\|unknown\" {} \\\\;)",
-      "Bash(npm rm:*)"
+      "Bash(npm rm:*)",
+      "Bash(sed:*)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\dylan\\\\Documents\\\\projects\\\\smart-whiteboard\\\\.claude\\\\pods\\\\data-integration\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\dylan\\\\Documents\\\\projects\\\\smart-whiteboard\\\\.claude\\\\integration-specs\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\dylan\\\\Documents\\\\projects\\\\smart-whiteboard\\\\.claude\\\\pods\\\\board-core\")",
+      "Bash(mkdir -p \"C:\\\\Users\\\\dylan\\\\Documents\\\\projects\\\\smart-whiteboard\\\\.claude\\\\board-specs\")",
+      "Bash(git checkout:*)",
+      "Bash(git pull:*)",
+      "Bash(grep:*)"
     ]
   }
 }

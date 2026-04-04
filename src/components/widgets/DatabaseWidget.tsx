@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, Icon, IconButton, Input, Text } from '../../ui/web'
 import { FlexCol, FlexRow, Box, Center, ScrollArea } from '../../ui/layouts'
 import { useNotionPages, useUpdatePage, useCreatePage, useArchivePage } from '../../hooks/useNotion'
+import { useWidgetSettings, type WidgetProps } from '@whiteboard/sdk'
 
 // Property types we know how to display/edit
 const EDITABLE_TYPES = new Set([
@@ -76,11 +77,8 @@ function buildUpdatePayload(type: string, value: string): Record<string, unknown
 
 // ---- Component --------------------------------------------------------------
 
-interface Props {
-  databaseId: string
-}
-
-export function DatabaseWidget({ databaseId }: Props) {
+export function DatabaseWidget({ widgetId }: WidgetProps) {
+  const [{ databaseId }] = useWidgetSettings(widgetId, { databaseId: '' })
   const { data, isLoading, error, refetch, isFetching } = useNotionPages(databaseId)
   const updatePage  = useUpdatePage(databaseId)
   const createPage  = useCreatePage(databaseId)

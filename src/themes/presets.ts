@@ -55,6 +55,10 @@ export interface ThemeVars {
 
   // Note widget
   noteDefaultBg: string
+
+  // Status colors
+  success: string
+  info:    string
 }
 
 export interface Theme {
@@ -128,6 +132,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#ef4444',
       clockCenter:        '#1c1917',
       noteDefaultBg:      '#fef9c3',
+      success:            '#22c55e',
+      info:               '#3b82f6',
     },
   },
   {
@@ -168,6 +174,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#3b82f6',
       clockCenter:        '#0f172a',
       noteDefaultBg:      '#f1f5f9',
+      success:            '#22c55e',
+      info:               '#3b82f6',
     },
   },
   {
@@ -208,6 +216,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#8b4513',
       clockCenter:        '#2d2016',
       noteDefaultBg:      '#fef9e7',
+      success:            '#4a7c3f',
+      info:               '#5c6a8a',
     },
   },
   {
@@ -248,6 +258,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#d97706',
       clockCenter:        '#451a03',
       noteDefaultBg:      '#fef3c7',
+      success:            '#15803d',
+      info:               '#b45309',
     },
   },
   {
@@ -288,6 +300,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#e11d48',
       clockCenter:        '#4c0519',
       noteDefaultBg:      '#fff1f2',
+      success:            '#15803d',
+      info:               '#be123c',
     },
   },
   {
@@ -328,6 +342,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#4a7c59',
       clockCenter:        '#1a2e1a',
       noteDefaultBg:      '#ddeadd',
+      success:            '#4a7c59',
+      info:               '#2d5a6a',
     },
   },
   // ── Dark ──────────────────────────────────────────────────────────────────
@@ -369,6 +385,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#f87171',
       clockCenter:        '#e5e5e5',
       noteDefaultBg:      '#262626',
+      success:            '#4ade80',
+      info:               '#60a5fa',
     },
   },
   {
@@ -409,6 +427,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#ff4444',
       clockCenter:        '#00b4ff',
       noteDefaultBg:      '#0a1520',
+      success:            '#00d084',
+      info:               '#00b4ff',
     },
   },
   {
@@ -449,6 +469,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#22c55e',
       clockCenter:        '#a3e8a3',
       noteDefaultBg:      '#0d180d',
+      success:            '#22c55e',
+      info:               '#4ade80',
     },
   },
   {
@@ -489,6 +511,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#38bdf8',
       clockCenter:        '#7dd3fc',
       noteDefaultBg:      '#031828',
+      success:            '#34d399',
+      info:               '#38bdf8',
     },
   },
   {
@@ -529,6 +553,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#00cc33',
       clockCenter:        '#00ff41',
       noteDefaultBg:      '#001408',
+      success:            '#00ff41',
+      info:               '#00cc33',
     },
   },
   {
@@ -569,6 +595,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#58a6ff',
       clockCenter:        '#c9d1d9',
       noteDefaultBg:      '#21262d',
+      success:            '#3fb950',
+      info:               '#58a6ff',
     },
   },
   {
@@ -609,6 +637,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#a78bfa',
       clockCenter:        '#c4b5fd',
       noteDefaultBg:      '#1e1a35',
+      success:            '#a78bfa',
+      info:               '#818cf8',
     },
   },
   {
@@ -649,6 +679,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#d97706',
       clockCenter:        '#e5c9a0',
       noteDefaultBg:      '#2a1e12',
+      success:            '#a3724a',
+      info:               '#d97706',
     },
   },
   {
@@ -689,6 +721,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#38bdf8',
       clockCenter:        '#cbd5e1',
       noteDefaultBg:      '#162032',
+      success:            '#34d399',
+      info:               '#38bdf8',
     },
   },
   // ── New light themes ───────────────────────────────────────────────────────
@@ -731,6 +765,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#10b981',
       clockCenter:        '#064e3b',
       noteDefaultBg:      '#fefce8',
+      success:            '#10b981',
+      info:               '#06b6d4',
     },
   },
 
@@ -772,6 +808,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#3b6cb0',
       clockCenter:        '#1a2d4a',
       noteDefaultBg:      '#fefce8',
+      success:            '#22c55e',
+      info:               '#3b6cb0',
     },
   },
 
@@ -813,6 +851,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#e05080',
       clockCenter:        '#4a1828',
       noteDefaultBg:      '#fefce8',
+      success:            '#16a34a',
+      info:               '#be185d',
     },
   },
 
@@ -856,6 +896,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#ff79c6',
       clockCenter:        '#bd93f9',
       noteDefaultBg:      '#383a4a',
+      success:            '#50fa7b',
+      info:               '#8be9fd',
     },
   },
 
@@ -897,6 +939,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#00b4ff',
       clockCenter:        '#00b4ff',
       noteDefaultBg:      '#0d1e38',
+      success:            '#00d084',
+      info:               '#00b4ff',
     },
   },
 
@@ -938,6 +982,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#c87941',
       clockCenter:        '#c87941',
       noteDefaultBg:      '#241a0c',
+      success:            '#a3724a',
+      info:               '#c87941',
     },
   },
 
@@ -981,6 +1027,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#f4614a',
       clockCenter:        '#2d1a4a',
       noteDefaultBg:      '#fff8e8',
+      success:            '#7c3aed',
+      info:               '#6d28d9',
     },
   },
 
@@ -1022,6 +1070,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#d97706',
       clockCenter:        '#0c2a4a',
       noteDefaultBg:      '#fffbe8',
+      success:            '#0c7a4a',
+      info:               '#3b6cb0',
     },
   },
 
@@ -1063,6 +1113,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#c0430a',
       clockCenter:        '#1e2e18',
       noteDefaultBg:      '#fffbe8',
+      success:            '#5a7850',
+      info:               '#5a7850',
     },
   },
 
@@ -1106,6 +1158,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#f0b429',
       clockCenter:        '#f0b429',
       noteDefaultBg:      '#101c38',
+      success:            '#34d399',
+      info:               '#60a5fa',
     },
   },
 
@@ -1147,6 +1201,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#f472b6',
       clockCenter:        '#f472b6',
       noteDefaultBg:      '#102010',
+      success:            '#4ade80',
+      info:               '#f472b6',
     },
   },
 
@@ -1188,6 +1244,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#00e5cc',
       clockCenter:        '#00e5cc',
       noteDefaultBg:      '#1e1030',
+      success:            '#00e5cc',
+      info:               '#818cf8',
     },
   },
 
@@ -1229,6 +1287,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#a3e635',
       clockCenter:        '#a3e635',
       noteDefaultBg:      '#1e1e18',
+      success:            '#a3e635',
+      info:               '#84cc16',
     },
   },
 
@@ -1272,6 +1332,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#e8640a',
       clockCenter:        '#3d1f0a',
       noteDefaultBg:      '#fff3c8',
+      success:            '#15803d',
+      info:               '#b45309',
     },
   },
 
@@ -1313,6 +1375,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#e879a0',
       clockCenter:        '#f0d0e0',
       noteDefaultBg:      '#22122a',
+      success:            '#e879a0',
+      info:               '#c084fc',
     },
   },
 
@@ -1354,6 +1418,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#0077cc',
       clockCenter:        '#082040',
       noteDefaultBg:      '#fffde8',
+      success:            '#0e7a5e',
+      info:               '#0077cc',
     },
   },
 
@@ -1395,6 +1461,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#ff5733',
       clockCenter:        '#ffd0c0',
       noteDefaultBg:      '#2a1208',
+      success:            '#ff5733',
+      info:               '#f0a060',
     },
   },
 
@@ -1436,6 +1504,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#8b6914',
       clockCenter:        '#2d2010',
       noteDefaultBg:      '#fffde0',
+      success:            '#4a7c3f',
+      info:               '#8b6914',
     },
   },
 
@@ -1477,6 +1547,8 @@ export const THEMES: Theme[] = [
       clockSecond:        '#39ff14',
       clockCenter:        '#39ff14',
       noteDefaultBg:      '#0a200a',
+      success:            '#39ff14',
+      info:               '#00e5cc',
     },
   },
 ]
@@ -1514,6 +1586,8 @@ export const CSS_VAR_MAP: Record<keyof ThemeVars, string> = {
   clockSecond:        '--wt-clock-second',
   clockCenter:        '--wt-clock-center',
   noteDefaultBg:      '--wt-note-bg',
+  success:            '--wt-success',
+  info:               '--wt-info',
 }
 
 export function applyThemeVars(vars: ThemeVars) {

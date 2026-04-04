@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
+import { Icon } from '../../ui/web'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -164,6 +165,15 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
   }
 
   const pct = track.durationMs > 0 ? (progress / track.durationMs) * 100 : 0
+  const hasArt = !!track.albumArt
+
+  // Colors: white-on-blurred-art when album art is present; theme tokens otherwise
+  const textColor        = hasArt ? '#fff'                      : 'var(--wt-text)'
+  const textMutedColor   = hasArt ? 'rgba(255,255,255,0.7)'     : 'var(--wt-text-muted)'
+  const timeColor        = hasArt ? 'rgba(255,255,255,0.5)'     : 'var(--wt-text-muted)'
+  const progressTrackBg  = hasArt ? 'rgba(255,255,255,0.2)'     : 'var(--wt-surface-hover)'
+  const ctrlSecondaryBg  = hasArt ? 'rgba(255,255,255,0.15)'    : 'var(--wt-surface-hover)'
+  const ctrlSecondaryColor = hasArt ? '#fff'                    : 'var(--wt-text)'
 
   return (
     <div style={{
@@ -212,13 +222,13 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
         {/* Track info */}
         <div style={{ textAlign: 'center', width: '100%' }}>
           <div style={{
-            fontSize: 14, fontWeight: 600, color: '#fff',
+            fontSize: 14, fontWeight: 600, color: textColor,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             {track.title}
           </div>
           <div style={{
-            fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2,
+            fontSize: 12, color: textMutedColor, marginTop: 2,
             whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
           }}>
             {track.artist}
@@ -229,7 +239,7 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
         <div style={{ width: '100%' }}>
           <div style={{
             width: '100%', height: 3, borderRadius: 2,
-            background: 'rgba(255,255,255,0.2)', overflow: 'hidden',
+            background: progressTrackBg, overflow: 'hidden',
           }}>
             <div style={{
               height: '100%', borderRadius: 2,
@@ -239,21 +249,40 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
             }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{fmtTime(progress)}</span>
-            <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)' }}>{fmtTime(track.durationMs)}</span>
+            <span style={{ fontSize: 10, color: timeColor }}>{fmtTime(progress)}</span>
+            <span style={{ fontSize: 10, color: timeColor }}>{fmtTime(track.durationMs)}</span>
           </div>
         </div>
 
         {/* Controls */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 2 }}>
-          <CtrlBtn onClick={() => control('previous')} title="Previous">
-            <PrevIcon />
+          <CtrlBtn
+            onClick={() => control('previous')}
+            title="Previous"
+            bg={ctrlSecondaryBg}
+            color={ctrlSecondaryColor}
+          >
+            <Icon icon="SkipBack" size={16} weight="fill" />
           </CtrlBtn>
-          <CtrlBtn onClick={() => control(track.isPlaying ? 'pause' : 'play')} large title={track.isPlaying ? 'Pause' : 'Play'}>
-            {track.isPlaying ? <PauseIcon /> : <PlayIcon />}
+          <CtrlBtn
+            onClick={() => control(track.isPlaying ? 'pause' : 'play')}
+            large
+            title={track.isPlaying ? 'Pause' : 'Play'}
+            bg="#1DB954"
+            color="#fff"
+          >
+            {track.isPlaying
+              ? <Icon icon="Pause" size={18} weight="fill" />
+              : <Icon icon="Play"  size={18} weight="fill" style={{ marginLeft: 2 }} />
+            }
           </CtrlBtn>
-          <CtrlBtn onClick={() => control('next')} title="Next">
-            <NextIcon />
+          <CtrlBtn
+            onClick={() => control('next')}
+            title="Next"
+            bg={ctrlSecondaryBg}
+            color={ctrlSecondaryColor}
+          >
+            <Icon icon="SkipForward" size={16} weight="fill" />
           </CtrlBtn>
         </div>
       </div>
@@ -375,7 +404,16 @@ function Spinner() {
   )
 }
 
-function CtrlBtn({ onClick, children, large, title }: { onClick: () => void; children: React.ReactNode; large?: boolean; title?: string }) {
+function CtrlBtn({
+  onClick, children, large, title, bg, color,
+}: {
+  onClick: () => void
+  children: React.ReactNode
+  large?: boolean
+  title?: string
+  bg: string
+  color: string
+}) {
   return (
     <button
       onClick={onClick}
@@ -383,8 +421,8 @@ function CtrlBtn({ onClick, children, large, title }: { onClick: () => void; chi
       style={{
         width: large ? 44 : 32, height: large ? 44 : 32,
         borderRadius: '50%', border: 'none', cursor: 'pointer',
-        background: large ? '#1DB954' : 'rgba(255,255,255,0.15)',
-        color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: bg,
+        color, display: 'flex', alignItems: 'center', justifyContent: 'center',
         transition: 'transform 0.1s, opacity 0.1s',
         flexShrink: 0,
       }}
@@ -402,17 +440,4 @@ function SpotifyIcon({ size = 24 }: { size?: number }) {
       <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.623.623 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.387.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.519-.972c3.632-1.102 8.147-.568 11.234 1.328a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.793c3.563-1.08 9.488-.872 13.22 1.37a.937.937 0 01-.06 1.58z" />
     </svg>
   )
-}
-
-function PlayIcon() {
-  return <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-}
-function PauseIcon() {
-  return <svg width={18} height={18} viewBox="0 0 24 24" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-}
-function PrevIcon() {
-  return <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-}
-function NextIcon() {
-  return <svg width={16} height={16} viewBox="0 0 24 24" fill="currentColor"><path d="M6 18l8.5-6L6 6v12zm2.5-6l6-4.35v8.7L8.5 12zM16 6h2v12h-2z"/></svg>
 }

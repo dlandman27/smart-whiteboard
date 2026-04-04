@@ -20,6 +20,8 @@ import { NotionViewWidget, NotionViewSettingsPanel } from './notion-view'
 import { UrlWidget, UrlSettings } from './UrlWidget'
 import { RoutinesWidget, RoutinesSettings } from './RoutinesWidget'
 import { TimersWidget } from './TimersWidget'
+import { CalendarWidget } from './CalendarWidget'
+import { DatabaseWidget } from './DatabaseWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 
@@ -211,6 +213,26 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     keywords:          ["world cup","fifa","soccer","football","scores","espn","2026"],
     defaultSize:       { width: 380, height: 540 },
     component:         WorldcupWidget,
+  },
+  {
+    type:        '@whiteboard/calendar',
+    label:       'Calendar',
+    Icon:        'CalendarDots',
+    iconBg:      'bg-blue-100',
+    iconClass:   'text-blue-500',
+    keywords:    ['calendar', 'events', 'google', 'schedule'],
+    defaultSize: { width: 480, height: 360 },
+    component:   CalendarWidget,
+  },
+  {
+    type:        '@whiteboard/database',
+    label:       'Database',
+    Icon:        'Database',
+    iconBg:      'bg-orange-100',
+    iconClass:   'text-orange-500',
+    keywords:    ['notion', 'database', 'table', 'data'],
+    defaultSize: { width: 600, height: 400 },
+    component:   DatabaseWidget,
   },
 ]
 

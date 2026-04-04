@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { Text } from '../../ui/web'
 import { FlexCol, FlexRow } from '../../ui/layouts'
+import { fontFamily } from '../../ui/theme'
 
 export interface CountdownSettings {
   title:      string
@@ -98,7 +99,7 @@ export function CountdownWidget({ widgetId }: { widgetId: string }) {
               variant="heading"
               size="small"
               color="muted"
-              style={{ fontFamily: 'monospace', fontWeight: '300', fontVariantNumeric: 'tabular-nums' }}
+              style={{ fontFamily: fontFamily.mono, fontWeight: '300', fontVariantNumeric: 'tabular-nums' }}
             >
               {pad(delta.hours)}:{pad(delta.minutes)}:{pad(delta.seconds)}
             </Text>
