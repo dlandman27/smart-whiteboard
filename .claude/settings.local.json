@@ -36,7 +36,12 @@
       "Bash(mkdir -p \"C:\\\\Users\\\\dylan\\\\Documents\\\\projects\\\\smart-whiteboard\\\\.claude\\\\board-specs\")",
       "Bash(git checkout:*)",
       "Bash(git pull:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr:*)",
+      "Bash(where gh:*)",
+      "Bash(winget list:*)"
     ]
   }
 }
