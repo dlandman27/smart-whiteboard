@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { soundWakeWord, soundProcessingStart, soundSuccess, soundError } from '../lib/sounds'
+import { useVoiceStore } from '../store/voice'
 
 export type VoiceState = 'idle' | 'listening' | 'processing' | 'responding' | 'unsupported'
 
@@ -89,7 +90,11 @@ const COMMAND_SILENCE_MS = 2500
 type ConvMessage = { role: 'user' | 'assistant'; content: string }
 
 export function useVoice(): VoiceStatus {
-  const [state,      setState]      = useState<VoiceState>(SR ? 'idle' : 'unsupported')
+  const [state, _setState] = useState<VoiceState>(SR ? 'idle' : 'unsupported')
+  function setState(s: VoiceState) {
+    _setState(s)
+    useVoiceStore.getState().setVoiceState(s)
+  }
   const [transcript, setTranscript] = useState('')
   const [response,   setResponse]   = useState('')
   const [error,      setError]      = useState<string | null>(null)

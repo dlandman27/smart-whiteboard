@@ -1,107 +1,125 @@
-import { useEffect, useState } from 'react'
-import { Panel, PanelHeader } from '../ui/web'
+import { useState } from 'react'
+import { Panel, PanelHeader, Slider, Text } from '../ui/web'
 import { ThemePicker } from './ThemePicker'
 import { BackgroundPicker } from './BackgroundPicker'
+import { LAYOUT_PRESETS, getLayoutPreset } from '../layouts/presets'
+import { useWhiteboardStore } from '../store/whiteboard'
+import { useLayout, computeSlotRect, TOOLBAR_RESERVED } from '../hooks/useLayout'
+import { LayoutThumbnail } from './layout/LayoutThumbnail'
 
 interface Props {
   onClose: () => void
 }
 
-function BriefingSettings() {
-  const [time,    setTime]    = useState('')
-  const [saved,   setSaved]   = useState(false)
+function LayoutSection() {
+  const boards           = useWhiteboardStore((s) => s.boards)
+  const activeBoardId    = useWhiteboardStore((s) => s.activeBoardId)
+  const setLayout        = useWhiteboardStore((s) => s.setLayout)
+  const setLayoutSpacing = useWhiteboardStore((s) => s.setLayoutSpacing)
+  const activeBoard      = boards.find((b) => b.id === activeBoardId)
+  const currentLayout    = activeBoard?.layoutId ?? 'dashboard'
+  const widgets          = activeBoard?.widgets ?? []
+  const { slotGap, slotPad, slotMap } = useLayout()
 
-  useEffect(() => {
-    fetch('/api/briefing/settings').then(r => r.json()).then((d: any) => setTime(d.time ?? ''))
-  }, [])
-
-  async function save() {
-    await fetch('/api/briefing/settings', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ time }),
+  function handleSelectLayout(newLayoutId: string) {
+    if (newLayoutId === currentLayout) return
+    const newLayoutDef  = getLayoutPreset(newLayoutId)
+    const canvasW       = window.innerWidth
+    const canvasH       = window.innerHeight - TOOLBAR_RESERVED
+    const newSlotRects  = newLayoutDef.slots.map((s) => computeSlotRect(s, canvasW, canvasH, slotGap, slotPad))
+    const curLayoutDef  = getLayoutPreset(currentLayout)
+    const curSlotOrder  = Object.fromEntries(curLayoutDef.slots.map((s, i) => [s.id, i]))
+    const sorted        = [...widgets].sort((a, b) => {
+      const ai = a.slotId !== undefined ? (curSlotOrder[a.slotId] ?? 999) : 999
+      const bi = b.slotId !== undefined ? (curSlotOrder[b.slotId] ?? 999) : 999
+      return ai !== bi ? ai - bi : (a.x ?? 0) - (b.x ?? 0)
     })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  async function preview() {
-    const r = await fetch('/api/briefing')
-    const { text } = await r.json() as any
-    if (text) {
-      // Push to briefing store so VoiceListener speaks it
-      const { useBriefingStore } = await import('../store/briefing')
-      useBriefingStore.getState().trigger(text)
-    }
+    const widgetUpdates = sorted.map((widget, i) => {
+      const newSlot = newSlotRects[i]
+      if (newSlot) return { id: widget.id, slotId: newSlot.id, x: newSlot.x, y: newSlot.y, width: newSlot.width, height: newSlot.height }
+      const curRect = widget.slotId ? slotMap[widget.slotId] : null
+      return { id: widget.id, slotId: null as null, x: curRect?.x ?? widget.x, y: curRect?.y ?? widget.y, width: curRect?.width ?? widget.width, height: curRect?.height ?? widget.height }
+    })
+    setLayout(activeBoardId, newLayoutId, widgetUpdates)
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <p style={{ fontSize: 12, color: 'var(--wt-text-muted)', margin: 0, lineHeight: 1.5 }}>
-        Walli will greet you with weather, calendar, tasks, and sports at this time each day.
-      </p>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-        <input
-          type="time"
-          value={time}
-          onChange={e => setTime(e.target.value)}
-          style={{
-            flex: 1, padding: '6px 10px', fontSize: 13, borderRadius: 8,
-            border: '1px solid var(--wt-border)', background: 'var(--wt-surface)',
-            color: 'var(--wt-text)', outline: 'none',
-          }}
-        />
-        <button
-          onClick={save}
-          style={{
-            padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-            background: saved ? 'var(--wt-surface)' : 'var(--wt-accent)',
-            color: saved ? 'var(--wt-text-muted)' : 'var(--wt-accent-text)',
-            border: 'none', cursor: 'pointer',
-          }}
-        >
-          {saved ? 'Saved' : 'Save'}
-        </button>
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-4 gap-2">
+        {LAYOUT_PRESETS.filter((l) => l.id !== 'custom').map((layout) => {
+          const isActive = layout.id === currentLayout
+          return (
+            <button
+              key={layout.id}
+              onClick={() => handleSelectLayout(layout.id)}
+              className="flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all"
+              style={{
+                backgroundColor: isActive ? 'color-mix(in srgb, var(--wt-accent) 10%, transparent)' : 'var(--wt-surface)',
+                border: `1.5px solid ${isActive ? 'var(--wt-accent)' : 'var(--wt-border)'}`,
+              }}
+            >
+              <LayoutThumbnail layout={layout} active={isActive} width={70} height={44} />
+              <Text variant="label" size="small" style={{ color: isActive ? 'var(--wt-accent)' : undefined }}>
+                {layout.name}
+              </Text>
+            </button>
+          )
+        })}
       </div>
-      <button
-        onClick={preview}
-        style={{
-          padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-          background: 'var(--wt-surface)', color: 'var(--wt-text)',
-          border: '1px solid var(--wt-border)', cursor: 'pointer', textAlign: 'left',
-        }}
-      >
-        Preview briefing now
-      </button>
+      <div className="flex flex-col gap-2.5 pt-1">
+        <Slider label="Widget gap"    value={slotGap} min={0} max={48} onChange={(v) => setLayoutSpacing(activeBoardId, v, slotPad)} />
+        <Slider label="Edge padding"  value={slotPad} min={0} max={64} onChange={(v) => setLayoutSpacing(activeBoardId, slotGap, v)} />
+      </div>
     </div>
   )
 }
 
+type Tab = 'theme' | 'background' | 'layout'
+
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'theme',      label: 'Theme'      },
+  { id: 'background', label: 'Background' },
+  { id: 'layout',     label: 'Layout'     },
+]
+
 export function SettingsPanel({ onClose }: Props) {
+  const [tab, setTab] = useState<Tab>('theme')
+
   return (
-    <Panel width={432} onClose={onClose}>
-      <PanelHeader title="Appearance" onClose={onClose} />
-      <div className="px-3 py-3 space-y-6">
-        <section>
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-3 px-1" style={{ color: 'var(--wt-text-muted)' }}>
-            Theme
-          </p>
-          <ThemePicker />
-        </section>
-        <div style={{ height: 1, background: 'var(--wt-settings-divider)' }} />
-        <section>
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-3 px-1" style={{ color: 'var(--wt-text-muted)' }}>
-            Background
-          </p>
-          <BackgroundPicker />
-        </section>
-        <div style={{ height: 1, background: 'var(--wt-settings-divider)' }} />
-        <section>
-          <p className="text-[11px] font-bold uppercase tracking-widest mb-3 px-1" style={{ color: 'var(--wt-text-muted)' }}>
-            Morning Briefing
-          </p>
-          <BriefingSettings />
-        </section>
+    <Panel width={460} onClose={onClose}>
+      <PanelHeader title="Customize" onClose={onClose} />
+
+      {/* Tab bar */}
+      <div
+        className="flex items-center gap-0 px-3"
+        style={{ borderBottom: '1px solid var(--wt-settings-divider)' }}
+      >
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className="px-4 py-2.5 text-xs font-semibold transition-colors"
+            style={{
+              color:        tab === t.id ? 'var(--wt-text)' : 'var(--wt-text-muted)',
+              borderTop:    'none',
+              borderLeft:   'none',
+              borderRight:  'none',
+              borderBottom: tab === t.id ? '2px solid var(--wt-accent)' : '2px solid transparent',
+              marginBottom: -1,
+              background:   'none',
+              cursor:       'pointer',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Tab content */}
+      <div className="px-4 py-4 overflow-y-auto settings-scroll" style={{ height: 480 }}>
+        {tab === 'theme'      && <ThemePicker />}
+        {tab === 'background' && <BackgroundPicker />}
+        {tab === 'layout'     && <LayoutSection />}
       </div>
     </Panel>
   )

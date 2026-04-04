@@ -3,17 +3,18 @@ import { soundPanelOpen, soundSwipe, soundClick } from '../lib/sounds'
 import { Icon, IconButton } from '../ui/web'
 import { DEFAULT_COLOR, DEFAULT_STROKE, DEFAULT_ERASER_SIZE } from '../constants/drawing'
 import { useWhiteboardStore } from '../store/whiteboard'
+import { useVoiceStore } from '../store/voice'
 import { DrawingCanvas } from './DrawingCanvas'
 import { DatabasePicker } from './DatabasePicker'
 import { BoardMenu } from './BoardMenu'
 import { NotificationCenter, NotificationCenterButton } from './NotificationCenter'
-import { LayoutPicker } from './layout/LayoutPicker'
 import { SettingsPanel } from './SettingsPanel'
+import { ConfigPanel } from './ConfigPanel'
 import { Pill } from './Pill'
 import type { PendingWidget } from '../types'
 
 type Tool = 'pointer' | 'marker' | 'eraser'
-type ActivePanel = 'theme' | 'layout' | 'board' | 'picker' | 'notif' | null
+type ActivePanel = 'customize' | 'settings' | 'picker' | 'notif' | null
 
 interface Props {
   onToolChange:     (tool: Tool) => void
@@ -21,8 +22,111 @@ interface Props {
   onSlide:          (dir: 'left' | 'right') => void
 }
 
+const WAVEFORM_BARS = [
+  { delay: '0ms',    durations: { listening: '0.55s', processing: '0.7s' } },
+  { delay: '120ms',  durations: { listening: '0.7s',  processing: '0.7s' } },
+  { delay: '60ms',   durations: { listening: '0.62s', processing: '0.7s' } },
+  { delay: '200ms',  durations: { listening: '0.5s',  processing: '0.7s' } },
+]
+
+function WaveformBars({ state }: { state: ReturnType<typeof useVoiceStore>['state'] }) {
+  const isListening  = state === 'listening'
+  const isProcessing = state === 'processing'
+  const isResponding = state === 'responding'
+  const isActive     = isListening || isProcessing || isResponding
+
+  return (
+    <>
+      <style>{`
+        @keyframes wf-bounce {
+          0%, 100% { height: 3px; }
+          50%       { height: 16px; }
+        }
+        @keyframes wf-pulse {
+          0%, 100% { height: 6px;  opacity: 0.5; }
+          50%       { height: 10px; opacity: 1;   }
+        }
+        @keyframes wf-respond {
+          0%, 100% { height: 4px; }
+          50%       { height: 14px; }
+        }
+      `}</style>
+      <div className="flex items-center gap-[3px]" style={{ height: 20 }}>
+        {WAVEFORM_BARS.map((bar, i) => {
+          let animation = 'none'
+          if (isListening)  animation = `wf-bounce  ${bar.durations.listening}  ease-in-out ${bar.delay} infinite`
+          if (isProcessing) animation = `wf-pulse   ${bar.durations.processing} ease-in-out ${bar.delay} infinite`
+          if (isResponding) animation = `wf-respond 0.45s                       ease-in-out ${bar.delay} infinite`
+          return (
+            <div
+              key={i}
+              style={{
+                width:           3,
+                height:          isActive ? undefined : 3,
+                borderRadius:    2,
+                backgroundColor: isActive ? 'var(--wt-accent-text)' : 'var(--wt-text)',
+                opacity:         isActive ? 1 : 0.45,
+                alignSelf:       'center',
+                animation,
+                transition:      'background-color 0.2s, opacity 0.2s',
+              }}
+            />
+          )
+        })}
+      </div>
+    </>
+  )
+}
+
+function VoiceButton({ state }: { state: ReturnType<typeof useVoiceStore>['state'] }) {
+  const isActive = state === 'listening' || state === 'processing' || state === 'responding'
+
+  return (
+    <div className="relative flex items-center justify-center">
+      {state === 'listening' && (
+        <span
+          className="absolute inset-0 rounded-full animate-ping"
+          style={{ backgroundColor: 'var(--wt-accent)', opacity: 0.2 }}
+        />
+      )}
+      <button
+        data-no-click-sound
+        title={state === 'unsupported' ? 'Voice not supported' : `Voice — ${state}`}
+        className="relative flex items-center justify-center rounded-full transition-all"
+        style={{
+          width:           44,
+          height:          44,
+          backgroundColor: isActive
+            ? 'var(--wt-accent)'
+            : 'color-mix(in srgb, var(--wt-text) 8%, transparent)',
+          opacity:         state === 'unsupported' ? 0.3 : 1,
+          boxShadow:       isActive ? '0 0 0 3px color-mix(in srgb, var(--wt-accent) 25%, transparent)' : 'none',
+          cursor:          state === 'unsupported' ? 'not-allowed' : 'default',
+        }}
+      >
+        <WaveformBars state={state} />
+      </button>
+    </div>
+  )
+}
+
+function Divider() {
+  return (
+    <div
+      className="flex-shrink-0 self-stretch"
+      style={{
+        width:           1,
+        margin:          '6px 2px',
+        backgroundColor: 'var(--wt-text)',
+        opacity:         0.12,
+      }}
+    />
+  )
+}
+
 export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props) {
-  const { activeBoardId, boards } = useWhiteboardStore()
+  const { activeBoardId } = useWhiteboardStore()
+  const voiceState = useVoiceStore((s) => s.state)
 
   const [activeTool,  setActiveTool]  = useState<Tool>('pointer')
   const [activeColor, setActiveColor] = useState(DEFAULT_COLOR)
@@ -37,8 +141,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
     setActivePanel((p) => (p !== panel ? panel : null))
   }
 
-  const activeBoard = boards.find((b) => b.id === activeBoardId)
-
   function onTouchStart(e: React.TouchEvent) {
     touchStartY.current = e.touches[0].clientY
   }
@@ -48,7 +150,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
     if (delta > 20) { setHidden(true); setActivePanel(null) }
   }
 
-  // Play click sound on press AND release for every button inside the pill
+  // Click sound on every button inside the pill
   useEffect(() => {
     const pill = pillRef.current
     if (!pill) return
@@ -57,9 +159,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
       if (btn && !btn.hasAttribute('data-no-click-sound')) soundClick()
     }
     pill.addEventListener('pointerdown', onDown)
-    return () => {
-      pill.removeEventListener('pointerdown', onDown)
-    }
+    return () => pill.removeEventListener('pointerdown', onDown)
   }, [])
 
   const [openKey, setOpenKey] = useState(0)
@@ -71,13 +171,10 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
     else { soundPanelOpen(); setOpenKey((k) => k + 1) }
   }, [hidden])
 
-
   useEffect(() => {
     if (hidden || activePanel) return
     function onPointerDown(e: PointerEvent) {
-      if (!pillRef.current?.contains(e.target as Node)) {
-        setHidden(true)
-      }
+      if (!pillRef.current?.contains(e.target as Node)) setHidden(true)
     }
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
@@ -86,6 +183,23 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
   function selectTool(tool: Tool) {
     setActiveTool(tool)
     onToolChange(tool)
+  }
+
+  // Shared tab style for both show and hide handles
+  const tabStyle: React.CSSProperties = {
+    position:     'absolute',
+    left:         '50%',
+    transform:    'translate(-50%, -100%)',
+    top:          0,
+    background:   'var(--wt-bg)',
+    border:       '1px solid var(--wt-border)',
+    borderBottom: 'none',
+    borderRadius: '6px 6px 0 0',
+    padding:      '3px 24px',
+    cursor:       'pointer',
+    color:        'var(--wt-text-muted)',
+    display:      'flex',
+    alignItems:   'center',
   }
 
   return (
@@ -98,10 +212,10 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
         eraserSize={eraserSize}
       />
 
-      {/* ── Main toolbar ─────────────────────────────────────────── */}
+      {/* ── Main toolbar ──��──────────────────────────────────────── */}
       <Pill
         ref={pillRef}
-        className="absolute bottom-2 left-1/2 z-[9999] flex items-center gap-2 p-2.5 select-none"
+        className="absolute bottom-2 left-1/2 z-[9999] flex items-center gap-1.5 p-2 select-none"
         style={{
           transform:     hidden ? 'translateX(-50%) translateY(calc(100% + 12px))' : 'translateX(-50%)',
           transition:    'transform 0.25s ease, opacity 0.25s ease',
@@ -111,46 +225,43 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
         onTouchStart={onTouchStart}
         onTouchEnd={onToolbarTouchEnd}
       >
-        {/* Theme */}
-        <div key={`theme-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '0ms' }}>
+        {/* Hide handle */}
+        <button data-no-click-sound style={tabStyle} onClick={() => { setHidden(true); setActivePanel(null) }}>
+          <Icon icon="CaretDown" size={11} />
+        </button>
+
+        {/* ── Left group: navigation ── */}
+        <div key={`customize-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '0ms' }}>
           <IconButton
             icon="Palette"
             size="xl"
-            variant={activePanel === 'theme' ? 'active' : 'default'}
-            onClick={() => togglePanel('theme')}
-            title="Theme"
+            variant={activePanel === 'customize' ? 'active' : 'default'}
+            onClick={() => togglePanel('customize')}
+            title="Customize"
           />
         </div>
 
-        {/* Layout picker */}
-        <div key={`layout-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '55ms' }}>
+        <div key={`settings-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '40ms' }}>
           <IconButton
-            icon="SquaresFour"
+            icon="Gear"
             size="xl"
-            variant={activePanel === 'layout' ? 'active' : 'default'}
-            onClick={() => togglePanel('layout')}
-            title="Layout"
+            variant={activePanel === 'settings' ? 'active' : 'default'}
+            onClick={() => togglePanel('settings')}
+            title="Settings"
           />
         </div>
 
-        {/* Board picker */}
-        <div>
-          <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => togglePanel('board')}
-            className="wt-nav-btn px-3 py-1.5 rounded-xl text-sm font-medium transition-all"
-            style={{
-              color:      activePanel === 'board' ? 'var(--wt-accent)' : 'var(--wt-text)',
-              background: activePanel === 'board' ? 'color-mix(in srgb, var(--wt-accent) 10%, transparent)' : 'transparent',
-            }}
-            title="Boards & Layout"
-          >
-            {activeBoard?.name ?? 'Board'}
-          </button>
+        <Divider />
+
+        {/* ── Center: voice ── */}
+        <div key={`voice-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '120ms' }}>
+          <VoiceButton state={voiceState} />
         </div>
 
-        {/* Add widget */}
-        <div key={`plus-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '165ms' }}>
+        <Divider />
+
+        {/* ── Right group: actions ── */}
+        <div key={`plus-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '160ms' }}>
           <IconButton
             icon="Plus"
             size="xl"
@@ -160,59 +271,37 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, onSlide }: Props
           />
         </div>
 
-        <div key={`notif-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '220ms' }}>
+        <div key={`notif-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '200ms' }}>
           <NotificationCenterButton
             active={activePanel === 'notif'}
             onClick={() => togglePanel('notif')}
           />
         </div>
-
-        {/* Hide tab — sits on top of the pill */}
-        <button
-          data-no-click-sound
-          onClick={() => { setHidden(true); setActivePanel(null) }}
-          style={{
-            position:        'absolute',
-            top:             0,
-            left:            '50%',
-            transform:       'translate(-50%, -100%)',
-            background:      'var(--wt-bg)',
-            border:          '1px solid var(--wt-border)',
-            borderBottom:    'none',
-            borderRadius:    '6px 6px 0 0',
-            padding:         '2px 28px',
-            cursor:          'pointer',
-            color:           'var(--wt-text-muted)',
-            display:         'flex',
-            alignItems:      'center',
-          }}
-        >
-          <Icon icon="CaretDown" size={11} />
-        </button>
-
       </Pill>
 
-      {/* ── Show-again tab ───────────────────────────────────────── */}
+      {/* ── Show handle (visible when toolbar is hidden) ──────��──── */}
       <button
+        data-no-click-sound
         onClick={() => setHidden(false)}
-        className="absolute bottom-0 left-1/2 z-[9999] flex items-center gap-1 px-4 py-1 wt-pill rounded-t-xl rounded-b-none select-none"
+        className="absolute bottom-0 left-1/2 z-[9999] flex items-center gap-1 select-none"
         style={{
-          transform:     hidden ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(100%)',
-          transition:    'transform 0.25s ease',
-          borderBottom:  'none',
-          fontSize:      12,
-          fontWeight:    600,
-          color:         'var(--wt-text-muted)',
+          transform:    hidden ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(100%)',
+          transition:   'transform 0.25s ease',
+          background:   'var(--wt-bg)',
+          border:       '1px solid var(--wt-border)',
+          borderBottom: 'none',
+          borderRadius: '6px 6px 0 0',
+          padding:      '3px 24px',
+          cursor:       'pointer',
+          color:        'var(--wt-text-muted)',
         }}
       >
-        <Icon icon="CaretUp" size={12} />
-        Menu
+        <Icon icon="CaretUp" size={11} />
       </button>
 
-      {activePanel === 'theme'  && <SettingsPanel      onClose={() => setActivePanel(null)} />}
-      {activePanel === 'layout' && <LayoutPicker       onClose={() => setActivePanel(null)} />}
-      {activePanel === 'board'  && <BoardMenu          onClose={() => setActivePanel(null)} onSlide={onSlide} />}
-      {activePanel === 'notif'  && <NotificationCenter onClose={() => setActivePanel(null)} />}
+      {activePanel === 'customize' && <SettingsPanel onClose={() => setActivePanel(null)} />}
+      {activePanel === 'settings'  && <ConfigPanel   onClose={() => setActivePanel(null)} />}
+      {activePanel === 'notif'     && <NotificationCenter onClose={() => setActivePanel(null)} />}
       {activePanel === 'picker' && (
         <DatabasePicker
           onClose={() => setActivePanel(null)}
