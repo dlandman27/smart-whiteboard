@@ -87,7 +87,7 @@ Include in every dev prompt:
 - Exact files to create/modify
 - App root path: `C:/Users/dylan/Documents/projects/wiigit-whiteboard/app/`
 
-PR title format: `feat(mobile): <description>`
+PR title format: `feat(mobile): <description>` — see `.claude/PREFIXES.md` for full type list (fix, refactor, etc.)
 
 ## Tone
 

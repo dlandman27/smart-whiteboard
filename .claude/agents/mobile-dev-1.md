@@ -135,6 +135,10 @@ git diff --stat
 ```
 
 ### 5. Commit and open PR
+
+Prefix reference: `.claude/PREFIXES.md` — scope for this pod is `mobile`.
+Use `feat(mobile):` for new features, `fix(mobile):` for bug fixes, `refactor(mobile):` for refactors.
+
 ```bash
 git add app/<screen>.tsx          # or components/<Name>.tsx
 git add lib/api.ts                # if new api functions added

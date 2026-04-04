@@ -91,7 +91,7 @@ Write complete, self-contained prompts. Include:
 - Specific invariants to preserve
 - PR title/description format
 
-PR title format: `feat(board): <description>` or `fix(board): <description>`
+PR title format: `feat(board): <description>` or `fix(board): <description>` — see `.claude/PREFIXES.md` for full type list
 PR description must include: summary, files changed, migration notes (if any), testing notes.
 
 ## Tone

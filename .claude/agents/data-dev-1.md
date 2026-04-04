@@ -131,6 +131,10 @@ git diff --stat
 Fix all TypeScript errors first.
 
 ### 8. Commit and open PR
+
+Prefix reference: `.claude/PREFIXES.md` — scope for this pod is `integration`.
+Use `feat(integration):` for new integrations, `fix(integration):` for bug fixes, `refactor(integration):` for refactors.
+
 ```bash
 git add server/routes/<source>.ts
 git add server/index.ts

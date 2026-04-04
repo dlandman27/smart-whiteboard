@@ -89,6 +89,10 @@ git diff --stat
 Fix any TypeScript errors before opening the PR.
 
 ### 6. Commit and open PR
+
+Prefix reference: `.claude/PREFIXES.md` — scope for this pod is `widget`.
+Use `feat(widget):` for new widgets, `fix(widget):` for bug fixes, `refactor(widget):` for refactors.
+
 ```bash
 git add src/components/widgets/<Name>Widget.tsx
 git add src/components/widgets/<Name>Settings.tsx  # if applicable

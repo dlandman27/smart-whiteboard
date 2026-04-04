@@ -115,9 +115,12 @@ git diff --stat
 
 ## Commit and open PR
 
+Prefix reference: `.claude/PREFIXES.md` — scope for this pod is `board`.
+Use `feat(board):` for new features, `fix(board):` for bug fixes, `refactor(board):` for refactors.
+
 ```bash
 git add <files>
-git commit -m "feat(board): <description>"
+git commit -m "feat(board): <description>"  # or fix(board): / refactor(board):
 
 gh pr create \
   --title "feat(board): <description>" \

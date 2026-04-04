@@ -99,7 +99,7 @@ Write complete, self-contained prompts. Include:
 - The exact files to create/modify
 - PR instructions (title format, description format)
 
-PR title format: `feat(integration): add <source-name> integration`
+PR title format: `feat(integration): add <source-name> integration` — see `.claude/PREFIXES.md` for full type list (fix, refactor, etc.)
 PR description must include: summary, which spec it implements, env vars added, testing notes.
 
 ## Tone

@@ -125,7 +125,7 @@ Write complete, self-contained prompts. Include:
 - Exact files to create/modify
 - PR title/description format
 
-PR title format: `feat(agent): add <agent-name> agent`
+PR title format: `feat(agent): add <agent-name> agent` — see `.claude/PREFIXES.md` for full type list (fix, refactor, etc.)
 
 ## Tone
 

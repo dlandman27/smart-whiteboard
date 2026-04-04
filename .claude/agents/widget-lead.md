@@ -92,7 +92,7 @@ When spawning dev agents, write complete, self-contained prompts. Include:
 - The exact files to create/modify
 - The PR instructions (title format, description format)
 
-PR title format: `feat(widget): add <widget-name> widget`
+PR title format: `feat(widget): add <widget-name> widget` — see `.claude/PREFIXES.md` for full type list (fix, refactor, etc.)
 PR description must include: summary, which spec it implements, testing notes.
 
 ## Tone

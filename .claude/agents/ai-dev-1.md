@@ -99,6 +99,10 @@ git diff --stat
 ```
 
 ### 6. Commit and open PR
+
+Prefix reference: `.claude/PREFIXES.md` — scope for this pod is `agent`.
+Use `feat(agent):` for new agents, `fix(agent):` for bug fixes, `refactor(agent):` for refactors.
+
 ```bash
 git add server/agents/built-in/<name>.ts
 git add server/agents/index.ts
