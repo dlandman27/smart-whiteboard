@@ -26,12 +26,14 @@ Read `.claude/pods/widget-ui/OBJECTIVES.md` for full detail. Your review is the 
 
 ## Review process
 
-### 1. Read the PR and spec
+### 1. Read the PR, PRD, and tech plan
 ```bash
 gh pr view <number> --json title,body,headRefName,files
 gh pr diff <number>
 ```
-Read the spec at `.claude/widget-specs/<name>.md`.
+Read:
+- PRD at `.claude/widget-prds/<name>.md` — did we build the right thing?
+- Tech Plan at `.claude/widget-plans/<name>.md` — did we build it correctly?
 
 ### 2. Read the changed files in full
 Don't just scan the diff — read each file completely:

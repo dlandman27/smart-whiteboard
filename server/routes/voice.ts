@@ -18,8 +18,10 @@ export function voiceRouter(notion: Client): Router {
 
     const anthropic = new Anthropic({ apiKey })
 
+    const MAX_HISTORY_TURNS = 6 // keep last 6 messages (3 exchanges) to cap token growth
     const priorMessages: Anthropic.MessageParam[] = history
       .filter((h) => h.role === 'user' || h.role === 'assistant')
+      .slice(-MAX_HISTORY_TURNS)
       .map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content }))
 
     const messages: Anthropic.MessageParam[] = [

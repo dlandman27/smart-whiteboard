@@ -41,7 +41,10 @@
       "Bash(git push:*)",
       "Bash(gh pr:*)",
       "Bash(where gh:*)",
-      "Bash(winget list:*)"
+      "Bash(winget list:*)",
+      "Bash(pip --version)",
+      "Bash(python -c ':*)",
+      "Bash(node:*)"
     ]
   }
 }

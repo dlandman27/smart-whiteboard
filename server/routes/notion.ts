@@ -118,5 +118,100 @@ export function notionRouter(notion: Client): Router {
     res.json(await notion.blocks.update({ block_id: req.params.id, ...req.body }))
   }))
 
+  // POST /api/notion/doc — create a Notion page with markdown-like content
+  // Body: { title: string, content: string, parentPageId?: string }
+  router.post('/doc', asyncRoute(async (req, res) => {
+    const tokens = loadTokens()
+    const parentPageId: string | undefined =
+      req.body.parentPageId
+      ?? tokens?.notion_parent_page_id
+      ?? process.env.NOTION_PARENT_PAGE_ID
+
+    if (!parentPageId) {
+      throw new AppError(400, 'No Notion parent page configured. Set NOTION_PARENT_PAGE_ID or use set_notion_workspace_page.', 'MISSING_PARENT_PAGE')
+    }
+
+    const { title, content } = req.body as { title: string; content: string }
+    if (!title) throw new AppError(400, 'title is required')
+
+    // Convert markdown text into Notion blocks (headings, bullets, paragraphs, code)
+    const blocks: any[] = []
+    const lines = (content ?? '').split('\n')
+    let inCode = false
+    let codeLang = ''
+    let codeLines: string[] = []
+
+    for (const raw of lines) {
+      const line = raw
+
+      // Code fence
+      if (line.startsWith('```')) {
+        if (!inCode) {
+          inCode = true
+          codeLang = line.slice(3).trim() || 'plain text'
+          codeLines = []
+        } else {
+          blocks.push({
+            object: 'block',
+            type: 'code',
+            code: {
+              language: codeLang,
+              rich_text: [{ type: 'text', text: { content: codeLines.join('\n') } }],
+            },
+          })
+          inCode = false
+          codeLines = []
+        }
+        continue
+      }
+
+      if (inCode) {
+        codeLines.push(line)
+        continue
+      }
+
+      // Headings
+      if (line.startsWith('### ')) {
+        blocks.push({ object: 'block', type: 'heading_3', heading_3: { rich_text: [{ type: 'text', text: { content: line.slice(4) } }] } })
+      } else if (line.startsWith('## ')) {
+        blocks.push({ object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: line.slice(3) } }] } })
+      } else if (line.startsWith('# ')) {
+        blocks.push({ object: 'block', type: 'heading_1', heading_1: { rich_text: [{ type: 'text', text: { content: line.slice(2) } }] } })
+      // Bullets
+      } else if (line.match(/^[-*] /)) {
+        blocks.push({ object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: line.slice(2) } }] } })
+      } else if (line.match(/^\d+\. /)) {
+        blocks.push({ object: 'block', type: 'numbered_list_item', numbered_list_item: { rich_text: [{ type: 'text', text: { content: line.replace(/^\d+\. /, '') } }] } })
+      // Divider
+      } else if (line.match(/^---+$/)) {
+        blocks.push({ object: 'block', type: 'divider', divider: {} })
+      // Blank line → skip
+      } else if (line.trim() === '') {
+        // omit empty blocks
+      // Paragraph
+      } else {
+        blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: line } }] } })
+      }
+    }
+
+    const page = await notion.pages.create({
+      parent: { type: 'page_id', page_id: parentPageId },
+      properties: {
+        title: { title: [{ type: 'text', text: { content: title } }] },
+      },
+      children: blocks.slice(0, 100), // Notion API limit per request
+    } as any)
+
+    // If content exceeded 100 blocks, append the rest
+    if (blocks.length > 100) {
+      await notion.blocks.children.append({
+        block_id: page.id,
+        children: blocks.slice(100, 200),
+      } as any)
+    }
+
+    res.json({ id: page.id, url: (page as any).url })
+  }))
+
   return router
 }
