@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { useNFLScores, useNBAScores } from '../../hooks/useSports'
 import { Center, FlexCol, FlexRow, Box, ScrollArea } from '../../ui/layouts'
@@ -16,7 +17,11 @@ const NBA_DEFAULTS: SportsWidgetSettings = { league: 'nba', favoriteTeam: '' }
 
 // ── Game row ──────────────────────────────────────────────────────────────────
 
-function GameRow({ game, favoriteTeam }: { game: Game; favoriteTeam: string }) {
+function GameRow({ game, favoriteTeam, containerWidth }: {
+  game:           Game
+  favoriteTeam:   string
+  containerWidth: number
+}) {
   const isFav     = favoriteTeam && (game.home.abbr === favoriteTeam || game.away.abbr === favoriteTeam)
   const isLive    = game.status === 'in'
   const isFinal   = game.status === 'post'
@@ -24,6 +29,8 @@ function GameRow({ game, favoriteTeam }: { game: Game; favoriteTeam: string }) {
 
   const awayWin = isFinal && Number(game.away.score) > Number(game.home.score)
   const homeWin = isFinal && Number(game.home.score) > Number(game.away.score)
+
+  const showRecords = containerWidth >= 280
 
   return (
     <FlexRow
@@ -51,7 +58,7 @@ function GameRow({ game, favoriteTeam }: { game: Game; favoriteTeam: string }) {
         >
           {game.away.abbr}
         </Text>
-        {isPre && game.away.record && (
+        {isPre && showRecords && game.away.record && (
           <Text variant="caption" color="muted" style={{ fontSize: 10 }}>
             {game.away.record}
           </Text>
@@ -90,7 +97,7 @@ function GameRow({ game, favoriteTeam }: { game: Game; favoriteTeam: string }) {
 
       {/* Home */}
       <FlexRow align="center" justify="end" style={{ flex: 1, gap: 6, minWidth: 0 }}>
-        {isPre && game.home.record && (
+        {isPre && showRecords && game.home.record && (
           <Text variant="caption" color="muted" style={{ fontSize: 10 }}>
             {game.home.record}
           </Text>
@@ -121,6 +128,17 @@ function SportsShell({ league, settings }: { league: League; settings: SportsWid
   const nba = useNBAScores()
   const { data, isLoading, error } = league === 'nfl' ? nfl : nba
 
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [containerWidth, setContainerWidth] = useState(300)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const ro = new ResizeObserver(([entry]) => setContainerWidth(entry.contentRect.width))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
+
   const label = league === 'nfl' ? 'NFL' : 'NBA'
 
   if (isLoading) return <Center fullHeight><Text variant="caption" color="muted">Loading…</Text></Center>
@@ -134,7 +152,7 @@ function SportsShell({ league, settings }: { league: League; settings: SportsWid
   })
 
   return (
-    <FlexCol fullHeight style={{ color: 'var(--wt-text)' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', color: 'var(--wt-text)' }}>
       {/* Header */}
       <FlexRow align="center" className="px-3 pt-3 pb-2 flex-shrink-0" style={{ gap: 8 }}>
         <Text variant="label" style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', color: 'var(--wt-text-muted)', textTransform: 'uppercase' }}>
@@ -149,11 +167,16 @@ function SportsShell({ league, settings }: { league: League; settings: SportsWid
       <ScrollArea style={{ flex: 1 }}>
         <FlexCol style={{ gap: 2, paddingBottom: 8 }}>
           {sorted.map((game) => (
-            <GameRow key={game.id} game={game} favoriteTeam={settings.favoriteTeam} />
+            <GameRow
+              key={game.id}
+              game={game}
+              favoriteTeam={settings.favoriteTeam}
+              containerWidth={containerWidth}
+            />
           ))}
         </FlexCol>
       </ScrollArea>
-    </FlexCol>
+    </div>
   )
 }
 
