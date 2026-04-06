@@ -5,6 +5,7 @@ import { useUIStore } from '../store/ui'
 import { useUndoStore } from '../store/undo'
 import { Icon, IconButton, Input } from '../ui/web'
 import type { PluginPreference } from '@whiteboard/sdk'
+import { clampSize, DEFAULT_CONSTRAINTS, type WidgetSizeConstraints } from '../lib/widgetConstraints'
 
 // ── Preference fields ─────────────────────────────────────────────────────────
 
@@ -51,16 +52,21 @@ interface Props {
   preferences?:     PluginPreference[]
   refSize?:         { width: number; height: number }
   slotAssigned?:    boolean
+  /** Per-widget resize constraints. Falls back to DEFAULT_CONSTRAINTS when absent. */
+  sizeConstraints?: WidgetSizeConstraints
   onDropped?:       (rect: { x: number; y: number; width: number; height: number }, cursorPt: { x: number; y: number }) => void
   onDragStart?:     () => void
   onDragMove?:      (cx: number, cy: number) => void
   onDragEnd?:       () => void
 }
 
-export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
+export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, sizeConstraints, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
   const { updateLayout, removeWidget } = useWhiteboardStore()
   const { focusedWidgetId, setFocusedWidget, flashingWidgetId } = useUIStore()
   const isFlashing = flashingWidgetId === id
+
+  // Resolve constraints once — fall back to global defaults when not provided
+  const constraints = sizeConstraints ?? DEFAULT_CONSTRAINTS
 
   const [active,       setActive]       = useState(false)
   const [zOrder,       setZOrder]       = useState(0)
@@ -179,14 +185,31 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     const dx = e.clientX - rd.startCX
     const dy = e.clientY - rd.startCY
     let newW = rd.startW, newH = rd.startH, newX = rd.startX, newY = rd.startY
-    if (rd.corner === 'se') { newW = Math.max(120, rd.startW + dx); newH = Math.max(80, rd.startH + dy) }
-    if (rd.corner === 'sw') { newW = Math.max(120, rd.startW - dx); newX = rd.startX + (rd.startW - newW); newH = Math.max(80, rd.startH + dy) }
-    if (rd.corner === 'ne') { newW = Math.max(120, rd.startW + dx); newH = Math.max(80, rd.startH - dy); newY = rd.startY + (rd.startH - newH) }
-    if (rd.corner === 'nw') { newW = Math.max(120, rd.startW - dx); newX = rd.startX + (rd.startW - newW); newH = Math.max(80, rd.startH - dy); newY = rd.startY + (rd.startH - newH) }
-    if (rd.corner === 'e')  { newW = Math.max(120, rd.startW + dx) }
-    if (rd.corner === 'w')  { newW = Math.max(120, rd.startW - dx); newX = rd.startX + (rd.startW - newW) }
-    if (rd.corner === 's')  { newH = Math.max(80, rd.startH + dy) }
-    if (rd.corner === 'n')  { newH = Math.max(80, rd.startH - dy); newY = rd.startY + (rd.startH - newH) }
+
+    // Raw proposed dimensions before clamping
+    let rawW = rd.startW, rawH = rd.startH
+    if (rd.corner === 'se') { rawW = rd.startW + dx; rawH = rd.startH + dy }
+    if (rd.corner === 'sw') { rawW = rd.startW - dx; rawH = rd.startH + dy }
+    if (rd.corner === 'ne') { rawW = rd.startW + dx; rawH = rd.startH - dy }
+    if (rd.corner === 'nw') { rawW = rd.startW - dx; rawH = rd.startH - dy }
+    if (rd.corner === 'e')  { rawW = rd.startW + dx }
+    if (rd.corner === 'w')  { rawW = rd.startW - dx }
+    if (rd.corner === 's')  { rawH = rd.startH + dy }
+    if (rd.corner === 'n')  { rawH = rd.startH - dy }
+
+    // Clamp to per-widget constraints
+    const clamped = clampSize(rawW, rawH, constraints)
+    newW = clamped.width
+    newH = clamped.height
+
+    // Adjust origin for handles that move the top/left edge
+    if (rd.corner === 'sw' || rd.corner === 'nw' || rd.corner === 'w') {
+      newX = rd.startX + (rd.startW - newW)
+    }
+    if (rd.corner === 'ne' || rd.corner === 'nw' || rd.corner === 'n') {
+      newY = rd.startY + (rd.startH - newH)
+    }
+
     sizeRef.current = { width: newW, height: newH }
     posRef.current  = { x: newX, y: newY }
     setSize({ width: newW, height: newH })
@@ -212,10 +235,11 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   function onContainerTouchMove(e: React.TouchEvent) {
     if (e.touches.length !== 2 || !pinch.current) return
     const scale = touchDist(e.touches) / pinch.current.initialDist
-    const newW = Math.max(120, pinch.current.initialW * scale)
-    const newH = Math.max(80,  pinch.current.initialH * scale)
-    sizeRef.current = { width: newW, height: newH }
-    setSize({ width: newW, height: newH })
+    const rawW = pinch.current.initialW * scale
+    const rawH = pinch.current.initialH * scale
+    const clamped = clampSize(rawW, rawH, constraints)
+    sizeRef.current = { width: clamped.width, height: clamped.height }
+    setSize({ width: clamped.width, height: clamped.height })
   }
   function onContainerTouchEnd() {
     if (!pinch.current) return
