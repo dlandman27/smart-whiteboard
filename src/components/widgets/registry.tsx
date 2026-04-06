@@ -22,6 +22,9 @@ import { RoutinesWidget, RoutinesSettings } from './RoutinesWidget'
 import { TimersWidget } from './TimersWidget'
 import { CalendarWidget } from './CalendarWidget'
 import { DatabaseWidget } from './DatabaseWidget'
+import { GiphyWidget } from './GiphyWidget'
+import { GiphySettings } from './GiphySettings'
+import { GIPHY_CONSTRAINTS, type WidgetSizeConstraints } from '../../lib/widgetConstraints'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 
@@ -33,6 +36,8 @@ export interface StaticWidgetDef {
   iconClass:          string
   keywords:           string[]
   defaultSize:        { width: number; height: number }
+  /** Per-widget min/max resize constraints. Falls back to Widget.tsx global defaults when absent. */
+  sizeConstraints?:   WidgetSizeConstraints
   scalable?:          boolean
   preferences?:       PluginPreference[]
   component:          React.ComponentType<{ widgetId: string }>
@@ -233,6 +238,18 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     keywords:    ['notion', 'database', 'table', 'data'],
     defaultSize: { width: 600, height: 400 },
     component:   DatabaseWidget,
+  },
+  {
+    type:              '@whiteboard/giphy',
+    label:             'GIF',
+    Icon:              'GifIcon',
+    iconBg:            'bg-pink-50',
+    iconClass:         'text-pink-500',
+    keywords:          ['gif', 'giphy', 'animation', 'meme', 'reaction', 'fun'],
+    defaultSize:       { width: 320, height: 240 },
+    sizeConstraints:   GIPHY_CONSTRAINTS,
+    component:         GiphyWidget,
+    settingsComponent: GiphySettings,
   },
 ]
 

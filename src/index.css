@@ -324,6 +324,29 @@
 .wt-row-btn:not(:disabled):hover { background-color: var(--wt-surface-hover); }
 .wt-row-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
+/* ── GiphyGrid thumbnail button ────────────────────────────────────────────── */
+.giphy-thumbnail {
+  display:       block;
+  width:         150px;
+  height:        150px;
+  border-radius: 8px;
+  overflow:      hidden;
+  flex-shrink:   0;
+  padding:       0;
+  border:        none;
+  background:    none;
+  cursor:        pointer;
+  transition:    transform 0.15s ease, box-shadow 0.15s ease;
+}
+.giphy-thumbnail:hover {
+  transform:  scale(1.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+.giphy-thumbnail:focus-visible {
+  outline:        2px solid var(--wt-accent);
+  outline-offset: 3px;
+}
+
 /* ── Settings panel inside widgets (themed via CSS vars) ───────────────────── */
 .wt-settings-panel {
   background-color: var(--wt-settings-bg);
@@ -412,4 +435,3 @@ body {
 .note-scroll::-webkit-scrollbar-track { background: transparent; }
 .note-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
 .note-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
-
