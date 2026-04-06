@@ -1,0 +1,80 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches: [main]
+
+jobs:
+  review:
+    name: Claude review
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: diff
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD -- \
+            '*.ts' '*.tsx' \
+            ':!*.d.ts' ':!dist/**' ':!node_modules/**' \
+            | head -c 30000)
+          # Write to file to avoid shell escaping issues
+          echo "$DIFF" > /tmp/pr_diff.txt
+          echo "has_diff=$([ -s /tmp/pr_diff.txt ] && echo true || echo false)" >> $GITHUB_OUTPUT
+
+      - name: Run AI review
+        if: steps.diff.outputs.has_diff == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          DIFF=$(cat /tmp/pr_diff.txt)
+
+          RESPONSE=$(curl -s https://api.anthropic.com/v1/messages \
+            -H "x-api-key: $ANTHROPIC_API_KEY" \
+            -H "anthropic-version: 2023-06-01" \
+            -H "content-type: application/json" \
+            -d "$(jq -n \
+              --arg diff "$DIFF" \
+              --arg title "$PR_TITLE" \
+              --arg body "$PR_BODY" \
+              '{
+                model: "claude-haiku-4-5-20251001",
+                max_tokens: 1024,
+                messages: [{
+                  role: "user",
+                  content: ("You are a senior engineer reviewing a PR for a React/TypeScript smart whiteboard app.\n\nPR title: " + $title + "\n\nPR description:\n" + $body + "\n\nDiff:\n```\n" + $diff + "\n```\n\nReview the changes. Be direct and concise. Focus on:\n- Bugs or logic errors\n- TypeScript type safety issues\n- React best practices (missing deps in hooks, unnecessary re-renders, etc.)\n- Code that violates the existing patterns in the codebase\n- Anything that will obviously break\n\nDo NOT nitpick style (prettier handles that). Do NOT summarise what the diff does.\n\nFormat your response as:\n\n**Summary** — one sentence verdict (Looks good / Minor issues / Needs changes)\n\n**Issues** — bullet list of actual problems, each with file:line if possible. If none, write \"None.\"\n\n**Suggestions** — optional bullet list of non-blocking improvements. If none, omit this section.")
+                }]
+              }' \
+            )")
+
+          REVIEW=$(echo "$RESPONSE" | jq -r '.content[0].text // "Review failed — check workflow logs."')
+          echo "$REVIEW" > /tmp/review.txt
+          cat /tmp/review.txt
+
+      - name: Post review comment
+        if: steps.diff.outputs.has_diff == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          REVIEW=$(cat /tmp/review.txt)
+          BODY="## 🤖 AI Code Review
+
+${REVIEW}
+
+---
+*Reviewed by Claude — [wiigit-whiteboard/agents](https://github.com/wiigit-whiteboard/agents)*"
+
+          gh pr comment ${{ github.event.pull_request.number }} \
+            --repo ${{ github.repository }} \
+            --body "$BODY"
