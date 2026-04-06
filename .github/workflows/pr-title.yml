@@ -1,0 +1,30 @@
+name: PR Title
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  check-title:
+    name: Check conventional commit title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate title
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern="^(feat|fix|refactor|chore|docs|test|style|perf|ci|build|revert)(\(.+\))!?: .{1,100}$"
+          if [[ "$TITLE" =~ $pattern ]]; then
+            echo "✅ Title is valid: $TITLE"
+          else
+            echo "❌ Invalid PR title: $TITLE"
+            echo ""
+            echo "Expected format: <type>(<scope>): <description>"
+            echo "Examples:"
+            echo "  feat(widgets): add ResizeObserver to SportsShell"
+            echo "  fix(ai): strip asterisk characters before TTS"
+            echo "  chore: update dependencies"
+            echo ""
+            echo "Valid types: feat, fix, refactor, chore, docs, test, style, perf, ci, build, revert"
+            exit 1
+          fi
