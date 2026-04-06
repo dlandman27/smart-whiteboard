@@ -99,6 +99,11 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   const tapCount    = useRef(0)
   const tapTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Last reliable pointer position during a drag — updated on every pointermove.
+  // Touch pointerup events fire with clientX/clientY = 0 on some browsers, so we
+  // use this ref in onBodyUp instead of e.clientX / e.clientY.
+  const lastPointerPos = useRef<{ clientX: number; clientY: number }>({ clientX: 0, clientY: 0 })
+
   // Body drag — pending until threshold crossed, then becomes a real drag
   const bodyDrag = useRef<{
     pointerId: number
@@ -303,6 +308,10 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
       setActive(true)
       setDragging(true)
     }
+    // Record the last reliable pointer coordinates. Touch pointerup events fire
+    // with clientX/clientY = 0 on some browsers, so onBodyUp reads from this ref
+    // instead of the event coordinates.
+    lastPointerPos.current = { clientX: e.clientX, clientY: e.clientY }
     const np = calcDragPos(bd.startX, bd.startY, bd.startCX, bd.startCY, e.clientX, e.clientY)
     posRef.current = np
     setPos(np)
@@ -317,10 +326,18 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     const bd = bodyDrag.current
     if (!bd || e.pointerId !== bd.pointerId) return
     if (bd.dragging) {
-      const finalRect = { ...calcDragPos(bd.startX, bd.startY, bd.startCX, bd.startCY, e.clientX, e.clientY), ...sizeRef.current }
+      // Touch pointerup events fire with clientX/clientY = 0 on some browsers,
+      // which would cause calcDragPos to compute a wrong position near the origin
+      // and snap the widget back. Use the last reliable coordinates from onBodyMove
+      // instead, falling back to the event coordinates for mouse/pen pointers.
+      const clientX = e.pointerType === 'touch' ? lastPointerPos.current.clientX : e.clientX
+      const clientY = e.pointerType === 'touch' ? lastPointerPos.current.clientY : e.clientY
+      // posRef.current is already up-to-date from onBodyMove; use it directly so
+      // the final position is always consistent with what the user saw on screen.
+      const finalRect = { ...posRef.current, ...sizeRef.current }
       const pRect = containerRef.current?.parentElement?.getBoundingClientRect()
       const cursorPt = pRect
-        ? { x: e.clientX - pRect.left, y: e.clientY - pRect.top }
+        ? { x: clientX - pRect.left, y: clientY - pRect.top }
         : { x: finalRect.x + finalRect.width / 2, y: finalRect.y + finalRect.height / 2 }
       updateLayout(id, finalRect)
       onDropped?.(finalRect, cursorPt)
