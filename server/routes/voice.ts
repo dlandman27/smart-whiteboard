@@ -5,6 +5,7 @@ import { VOICE_TOOLS, executeVoiceTool } from '../services/voice-tools/registry.
 import { loadMemory, memoryToPrompt } from '../services/memory.js'
 import { getBoardSnapshot } from '../services/board-utils.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
+import { normalizeTtsText } from '../services/tts-normalize.js'
 
 export function voiceRouter(notion: Client): Router {
   const router = Router()
@@ -90,6 +91,8 @@ export function voiceRouter(notion: Client): Router {
 
     const voiceId = process.env.VITE_ELEVENLABS_VOICE_ID ?? process.env.ELEVENLABS_VOICE_ID ?? 'SOYHLrjzK2X1ezoPC6cr'
 
+    const normalized = normalizeTtsText(text)
+
     const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}/stream`, {
       method:  'POST',
       headers: {
@@ -98,7 +101,7 @@ export function voiceRouter(notion: Client): Router {
         'Accept':       'audio/mpeg',
       },
       body: JSON.stringify({
-        text: text.trim(),
+        text: normalized,
         model_id: 'eleven_turbo_v2',
         voice_settings: { stability: 0.85, similarity_boost: 0.6, style: 0, use_speaker_boost: true },
       }),
