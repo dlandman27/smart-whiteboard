@@ -202,6 +202,7 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending }: Prop
             preferences={def?.preferences}
             refSize={def?.scalable !== false ? def?.defaultSize : undefined}
             slotAssigned={!!slotRect}
+            sizeConstraints={def?.sizeConstraints}
             onDragStart={() => {
               soundWidgetPickup()
               dragStartRef.current = { x, y, width, height, slotId: widget.slotId }
