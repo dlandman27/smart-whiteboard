@@ -14,7 +14,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Type check
         run: npx tsc -b --noEmit
 
@@ -27,6 +27,6 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Check formatting
         run: npx prettier --check "src/**/*.{ts,tsx}" "server/**/*.{ts,tsx}" "plugins/**/*.{ts,tsx}"
