@@ -1,0 +1,77 @@
+# Components
+
+- **SpotifyWidget** — props: widgetId — `plugins\spotify\SpotifyWidget.tsx`
+- **App** — `src\App.tsx`
+- **AuthGuard** — `src\components\AuthGuard.tsx`
+- **BackgroundPicker** — `src\components\BackgroundPicker.tsx`
+- **BoardMenu** — props: onClose, onSlide — `src\components\BoardMenu.tsx`
+- **BoardNav** — props: onSlide — `src\components\BoardNav.tsx`
+- **BoardThumbnail** — props: board, width, height — `src\components\BoardThumbnail.tsx`
+- **BottomToolbar** — props: onToolChange, onWidgetSelected — `src\components\BottomToolbar.tsx`
+- **ConfigPanel** — props: onClose — `src\components\ConfigPanel.tsx`
+- **DatabasePicker** — props: onClose, onWidgetSelected — `src\components\DatabasePicker.tsx`
+- **DrawingCanvas** — props: boardId, tool, color, strokeWidth, eraserSize — `src\components\DrawingCanvas.tsx`
+- **KioskGuard** — `src\components\KioskGuard.tsx`
+- **LayoutPicker** — props: onClose — `src\components\layout\LayoutPicker.tsx`
+- **LayoutSlot** — props: id, x, y, width, height, mode, isHovered, onClick — `src\components\layout\LayoutSlot.tsx`
+- **LayoutSlots** — props: pendingWidget, draggingWidgetId, hoveredSlotId, onSlotClick — `src\components\layout\LayoutSlots.tsx`
+- **LayoutThumbnail** — props: layout, width, height, active — `src\components\layout\LayoutThumbnail.tsx`
+- **LoginScreen** — `src\components\LoginScreen.tsx`
+- **Logo** — props: size — `src\components\Logo.tsx`
+- **LogoSettings** — props: showSettings, onCloseSettings — `src\components\LogoSettings.tsx`
+- **NetworkStatusBanner** — `src\components\NetworkStatusBanner.tsx`
+- **NotificationCenter** — props: onClose — `src\components\NotificationCenter.tsx`
+- **NotificationToast** — `src\components\NotificationToast.tsx`
+- **PetBar** — `src\components\PetBar.tsx`
+- **PixelSprite** — props: sprite, frameIdx, flip — `src\components\pets\PixelSprite.tsx`
+- **WalkingPet** — props: agent, mood, message, onMessageDone, onInspect, inspecting — `src\components\pets\WalkingPet.tsx`
+- **Pill** — `src\components\Pill.tsx`
+- **SettingsPanel** — props: onClose — `src\components\SettingsPanel.tsx`
+- **ThemePicker** — `src\components\ThemePicker.tsx`
+- **UndoToast** — `src\components\UndoToast.tsx`
+- **VoiceListener** — `src\components\VoiceListener.tsx`
+- **WalliChatButton** — `src\components\WalliChat.tsx`
+- **Whiteboard** — `src\components\Whiteboard.tsx`
+- **WhiteboardBackground** — props: background — `src\components\WhiteboardBackground.tsx`
+- **Widget** — props: id, x, y, width, height, settingsContent, preferences, refSize — `src\components\Widget.tsx`
+- **WidgetCanvas** — props: activeTool, pendingWidget, onClearPending — `src\components\WidgetCanvas.tsx`
+- **CalendarWidget** — props: widgetId — `src\components\widgets\CalendarWidget.tsx`
+- **ClockSettings** — props: widgetId — `src\components\widgets\ClockSettings.tsx`
+- **ClockWidget** — props: widgetId — `src\components\widgets\ClockWidget.tsx`
+- **CountdownSettings** — props: widgetId — `src\components\widgets\CountdownSettings.tsx`
+- **CountdownWidget** — props: widgetId — `src\components\widgets\CountdownWidget.tsx`
+- **DatabaseWidget** — props: widgetId — `src\components\widgets\DatabaseWidget.tsx`
+- **HtmlWidget** — props: widgetId — `src\components\widgets\HtmlWidget.tsx`
+- **NoteWidget** — props: widgetId — `src\components\widgets\NoteWidget.tsx`
+- **NotionViewWidget** — props: widgetId — `src\components\widgets\notion-view\index.tsx`
+- **NotionViewSettingsPanel** — props: widgetId — `src\components\widgets\notion-view\NotionViewSettings.tsx`
+- **PomodoroWidget** — props: widgetId — `src\components\widgets\PomodoroWidget.tsx`
+- **QuoteSettings** — props: widgetId — `src\components\widgets\QuoteSettings.tsx`
+- **QuoteWidget** — props: widgetId — `src\components\widgets\QuoteWidget.tsx`
+- **BUILTIN_WIDGETS** — `src\components\widgets\registry.tsx`
+- **RoutinesWidget** — props: widgetId — `src\components\widgets\RoutinesWidget.tsx`
+- **SportsSettings** — props: widgetId, league — `src\components\widgets\SportsSettings.tsx`
+- **NFLWidget** — props: widgetId — `src\components\widgets\SportsWidget.tsx`
+- **SpotifyWidget** — props: widgetId — `src\components\widgets\SpotifyWidget.tsx`
+- **TimersWidget** — props: widgetId — `src\components\widgets\TimersWidget.tsx`
+- **UrlWidget** — props: widgetId — `src\components\widgets\UrlWidget.tsx`
+- **WeatherSettings** — props: widgetId — `src\components\widgets\WeatherSettings.tsx`
+- **WeatherWidget** — props: widgetId — `src\components\widgets\WeatherWidget.tsx`
+- **WorldcupWidget** — props: widgetId — `src\components\widgets\WorldcupWidget.tsx`
+- **YouTubeWidget** — props: widgetId — `src\components\widgets\YouTubeWidget.tsx`
+- **Box** — props: flex1, fullHeight, fullWidth, noSelect, overflow, as, className, style, onClick — `src\ui\layouts\Box.tsx`
+- **Center** — props: dir — `src\ui\layouts\Center.tsx`
+- **Flex** — props: dir, align, justify, gap, wrap, flex1, fullHeight, fullWidth, noSelect, overflow — `src\ui\layouts\Flex.tsx`
+- **Grid** — props: cols, gap, flex1, fullHeight, as, className, style — `src\ui\layouts\Grid.tsx`
+- **ScrollArea** — props: axis, flex1, className, style — `src\ui\layouts\ScrollArea.tsx`
+- **Chip** — props: variant, iconLeft, disabled, onClick, className — `src\ui\web\Chip.tsx`
+- **Divider** — props: orientation, className — `src\ui\web\Divider.tsx`
+- **Icon** — props: icon, size, weight, className, style — `src\ui\web\Icon.tsx`
+- **IconButton** — props: icon, variant, size, weight, filled, title, disabled, className, onClick, onMouseDown — `src\ui\web\IconButton.tsx`
+- **MenuItem** — props: icon, iconBg, iconStyle, name, source, label, selected, disabled, onClick, onMouseEnter — `src\ui\web\MenuItem.tsx`
+- **Panel** — props: onClose, width, maxHeight, className, style — `src\ui\web\Panel.tsx`
+- **PanelHeader** — props: title, onClose, onBack, actions, className — `src\ui\web\PanelHeader.tsx`
+- **SegmentedControl** — `src\ui\web\SegmentedControl.tsx`
+- **SettingsSection** — props: label, className — `src\ui\web\SettingsSection.tsx`
+- **Spacer** — props: size, px, horizontal — `src\ui\web\Spacer.tsx`
+- **Text** — props: variant, size, color, align, textTransform, numberOfLines, italic, as, className, style — `src\ui\web\Text.tsx`
