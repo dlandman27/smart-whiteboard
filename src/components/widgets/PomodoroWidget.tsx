@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Icon } from '../../ui/web'
+import { Icon, IconButton } from '../../ui/web'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { useNotificationStore } from '../../store/notifications'
 import { Text, Input, SettingsSection } from '../../ui/web'
@@ -181,15 +181,14 @@ export function PomodoroWidget({ widgetId }: { widgetId: string }) {
 
       {/* Controls */}
       <FlexRow align="center" className="gap-3">
-        <button
-          className="wt-action-btn"
-          style={{ width: 32, height: 32 }}
-          onPointerDown={(e) => e.stopPropagation()}
+        <IconButton
+          icon="ArrowCounterClockwise"
+          variant="ghost"
+          size="md"
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={reset}
           title="Reset"
-        >
-          <Icon icon="ArrowCounterClockwise" size={14} />
-        </button>
+        />
         <button
           className="flex items-center justify-center rounded-full transition-all"
           style={{
