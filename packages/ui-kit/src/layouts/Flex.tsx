@@ -43,21 +43,22 @@ const overflowClass: Record<FlexOverflow, string> = {
 }
 
 export interface FlexProps {
-  dir?:        FlexDir
-  align?:      FlexAlign
-  justify?:    FlexJustify
-  gap?:        FlexGap
-  wrap?:       boolean
-  flex1?:      boolean
-  fullHeight?: boolean
-  fullWidth?:  boolean
-  noSelect?:   boolean
-  overflow?:   FlexOverflow
-  as?:         React.ElementType
-  className?:  string
-  style?:      React.CSSProperties
-  onClick?:    React.MouseEventHandler
-  children:    React.ReactNode
+  dir?:           FlexDir
+  align?:         FlexAlign
+  justify?:       FlexJustify
+  gap?:           FlexGap
+  wrap?:          boolean
+  flex1?:         boolean
+  fullHeight?:    boolean
+  fullWidth?:     boolean
+  noSelect?:      boolean
+  overflow?:      FlexOverflow
+  as?:            React.ElementType
+  className?:     string
+  style?:         React.CSSProperties
+  onClick?:       React.MouseEventHandler
+  onPointerDown?: React.PointerEventHandler
+  children:       React.ReactNode
 }
 
 export function Flex({
@@ -75,6 +76,7 @@ export function Flex({
   className,
   style,
   onClick,
+  onPointerDown,
   children,
 }: FlexProps) {
   return (
@@ -95,6 +97,7 @@ export function Flex({
       )}
       style={style}
       onClick={onClick}
+      onPointerDown={onPointerDown}
     >
       {children}
     </Tag>

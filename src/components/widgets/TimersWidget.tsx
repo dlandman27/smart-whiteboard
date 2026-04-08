@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
+import { Container, FlexCol, FlexRow, Text, Input, IconButton, Center, ScrollArea, Button } from '@whiteboard/ui-kit'
 import type { WidgetProps } from './registry'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -52,7 +53,6 @@ export function TimersWidget({ widgetId }: WidgetProps) {
   const settingsRef = useRef(settings)
   settingsRef.current = settings
 
-  // Single interval — ticks all running timers, decrements by 1 second
   useEffect(() => {
     const id = setInterval(() => {
       const current = settingsRef.current.timers
@@ -108,130 +108,126 @@ export function TimersWidget({ widgetId }: WidgetProps) {
   const timers = settings.timers
 
   return (
-    <div
-      className="w-full h-full flex flex-col overflow-hidden"
-      style={{ color: 'var(--wt-text)' }}
-    >
+    <Container className="flex flex-col overflow-hidden">
       {/* Add timer form */}
-      <div
-        className="flex gap-2 p-3 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--wt-border)' }}
+      <FlexRow
+        align="center"
+        gap="xs"
+        className="p-3 flex-shrink-0 border-b"
+        style={{ borderColor: 'var(--wt-border)' }}
         onPointerDown={(e) => e.stopPropagation()}
       >
-        <input
+        <Input
           value={newLabel}
           onChange={(e) => setNewLabel(e.target.value)}
           placeholder="Label"
-          style={{
-            flex: 1, minWidth: 0, padding: '5px 8px', fontSize: 12, borderRadius: 6,
-            border: '1px solid var(--wt-border-active)', background: 'var(--wt-surface)',
-            color: 'var(--wt-text)', outline: 'none',
-          }}
+          size="sm"
+          className="flex-1 min-w-0"
+          onPointerDown={(e) => e.stopPropagation()}
         />
-        <input
+        <Input
           value={newDuration}
           onChange={(e) => setNewDuration(e.target.value)}
           placeholder="MM:SS"
-          style={{
-            width: 60, padding: '5px 8px', fontSize: 12, borderRadius: 6,
-            border: '1px solid var(--wt-border-active)', background: 'var(--wt-surface)',
-            color: 'var(--wt-text)', outline: 'none', textAlign: 'center',
-          }}
+          size="sm"
+          className="text-center"
+          style={{ width: 64 }}
+          onPointerDown={(e) => e.stopPropagation()}
         />
-        <button
+        <Button
+          variant="accent"
+          size="sm"
           onClick={addTimer}
-          style={{
-            padding: '5px 10px', fontSize: 12, borderRadius: 6,
-            background: 'var(--wt-accent)', color: 'var(--wt-accent-text)',
-            border: 'none', cursor: 'pointer', fontWeight: 600, flexShrink: 0,
-          }}
+          className="flex-shrink-0"
         >
           Add
-        </button>
-      </div>
+        </Button>
+      </FlexRow>
 
       {/* Timer list */}
-      <div className="flex flex-col gap-2 p-3 overflow-y-auto settings-scroll flex-1">
-        {timers.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full gap-2 opacity-40">
-            <p className="text-xs" style={{ color: 'var(--wt-text-muted)' }}>
-              No timers yet. Add one above.
-            </p>
-          </div>
-        )}
+      <ScrollArea className="p-3 settings-scroll">
+        <FlexCol gap="xs">
+          {timers.length === 0 && (
+            <Center fullHeight className="py-8 opacity-40">
+              <Text variant="body" size="small" color="muted">No timers yet. Add one above.</Text>
+            </Center>
+          )}
 
-        {timers.map((t) => {
-          const progress  = t.durationSeconds > 0 ? t.remainingSeconds / t.durationSeconds : 0
-          const done      = t.remainingSeconds <= 0
-          const CIRC      = 2 * Math.PI * 15
+          {timers.map((t) => {
+            const progress = t.durationSeconds > 0 ? t.remainingSeconds / t.durationSeconds : 0
+            const done     = t.remainingSeconds <= 0
+            const CIRC     = 2 * Math.PI * 15
+            const countdownColor = done
+              ? 'var(--wt-success)'
+              : t.remainingSeconds < 60
+                ? 'var(--wt-accent)'
+                : 'var(--wt-text)'
 
-          return (
-            <div
-              key={t.id}
-              className="flex items-center gap-3 rounded-xl px-3 py-2.5"
-              style={{ backgroundColor: 'var(--wt-settings-divider)' }}
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              {/* Progress arc */}
-              <svg width="36" height="36" viewBox="0 0 36 36" className="flex-shrink-0 -rotate-90">
-                <circle cx="18" cy="18" r="15" fill="none"
-                  strokeWidth="3" stroke="var(--wt-border)" />
-                <circle cx="18" cy="18" r="15" fill="none"
-                  strokeWidth="3"
-                  stroke={done ? 'var(--wt-success)' : 'var(--wt-accent)'}
-                  strokeDasharray={String(CIRC)}
-                  strokeDashoffset={String(CIRC * (1 - progress))}
-                  strokeLinecap="round"
-                  style={{ transition: 'stroke-dashoffset 1s linear' }}
-                />
-              </svg>
-
-              {/* Label + countdown */}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate">{t.label}</p>
-              </div>
-              <p
-                className="text-base font-mono font-semibold tabular-nums flex-shrink-0"
-                style={{ color: done ? 'var(--wt-success)' : t.remainingSeconds < 60 ? 'var(--wt-accent)' : 'var(--wt-text)' }}
+            return (
+              <FlexRow
+                key={t.id}
+                align="center"
+                gap="sm"
+                className="rounded-xl px-3 py-2.5"
+                style={{ backgroundColor: 'var(--wt-settings-divider)' }}
+                onPointerDown={(e) => e.stopPropagation()}
               >
-                {formatCountdown(t.remainingSeconds)}
-              </p>
+                {/* Progress arc */}
+                <svg width="36" height="36" viewBox="0 0 36 36" className="flex-shrink-0 -rotate-90">
+                  <circle cx="18" cy="18" r="15" fill="none" strokeWidth="3" stroke="var(--wt-border)" />
+                  <circle
+                    cx="18" cy="18" r="15" fill="none" strokeWidth="3"
+                    stroke={done ? 'var(--wt-success)' : 'var(--wt-accent)'}
+                    strokeDasharray={String(CIRC)}
+                    strokeDashoffset={String(CIRC * (1 - progress))}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 1s linear' }}
+                  />
+                </svg>
 
-              {/* Controls */}
-              <div className="flex gap-1 flex-shrink-0">
-                <button
-                  onClick={() => toggleTimer(t.id)}
-                  disabled={done}
-                  className="wt-action-btn"
-                  style={{ width: 26, height: 26 }}
-                  title={t.isRunning ? 'Pause' : 'Start'}
+                {/* Label */}
+                <Text variant="label" size="small" className="flex-1 min-w-0 truncate">
+                  {t.label}
+                </Text>
+
+                {/* Countdown */}
+                <Text
+                  variant="heading"
+                  size="small"
+                  className="font-mono tabular-nums flex-shrink-0"
+                  style={{ color: countdownColor }}
                 >
-                  {t.isRunning
-                    ? <span style={{ fontSize: 12 }}>⏸</span>
-                    : <span style={{ fontSize: 12 }}>▶</span>
-                  }
-                </button>
-                <button
-                  onClick={() => resetTimer(t.id)}
-                  className="wt-action-btn"
-                  style={{ width: 26, height: 26 }}
-                  title="Reset"
-                >
-                  <span style={{ fontSize: 12 }}>↺</span>
-                </button>
-                <button
-                  onClick={() => deleteTimer(t.id)}
-                  className="wt-action-btn wt-action-btn-danger"
-                  style={{ width: 26, height: 26 }}
-                  title="Delete"
-                >
-                  <span style={{ fontSize: 12 }}>✕</span>
-                </button>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
+                  {formatCountdown(t.remainingSeconds)}
+                </Text>
+
+                {/* Controls */}
+                <FlexRow align="center" gap="xs" className="flex-shrink-0">
+                  <IconButton
+                    icon={t.isRunning ? 'Pause' : 'Play'}
+                    size="sm"
+                    weight="fill"
+                    disabled={done}
+                    onClick={() => toggleTimer(t.id)}
+                    title={t.isRunning ? 'Pause' : 'Start'}
+                  />
+                  <IconButton
+                    icon="ArrowCounterClockwise"
+                    size="sm"
+                    onClick={() => resetTimer(t.id)}
+                    title="Reset"
+                  />
+                  <IconButton
+                    icon="X"
+                    size="sm"
+                    onClick={() => deleteTimer(t.id)}
+                    title="Delete"
+                  />
+                </FlexRow>
+              </FlexRow>
+            )
+          })}
+        </FlexCol>
+      </ScrollArea>
+    </Container>
   )
 }

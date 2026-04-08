@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Icon, Text } from '@whiteboard/ui-kit'
-import { FlexCol } from '@whiteboard/ui-kit'
+import { Container, IconButton, Text, FlexCol } from '@whiteboard/ui-kit'
 
 export interface QuoteSettings {
   showRefresh: boolean
@@ -89,21 +88,23 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
 
   useEffect(() => { load() }, [])
 
-  const align    = settings.align
+  const align     = settings.align
   const flexAlign = align === 'center' ? 'center' : 'start'
 
   return (
-    <div className="relative w-full h-full">
+    <Container className="relative">
       {settings.showRefresh && (
-        <button
-          className="absolute top-3 right-3 opacity-25 hover:opacity-70 transition-opacity"
-          style={{ zIndex: 1 }}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => load(true)}
-          title="New quote"
-        >
-          <Icon icon="ArrowsClockwise" size={13} />
-        </button>
+        <div className="absolute top-3 right-3 z-[1]">
+          <IconButton
+            icon="ArrowsClockwise"
+            size="sm"
+            variant="ghost"
+            className="opacity-25 hover:opacity-70 transition-opacity"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={() => load(true)}
+            title="New quote"
+          />
+        </div>
       )}
 
       <FlexCol justify="center" align={flexAlign} fullHeight noSelect gap="md" className="px-6 py-5">
@@ -144,6 +145,6 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
           </>
         )}
       </FlexCol>
-    </div>
+    </Container>
   )
 }

@@ -20,29 +20,31 @@ const sizeClass: Record<IconButtonSize, { button: string; icon: number }> = {
 }
 
 interface Props {
-  icon:       IconProp
-  variant?:   IconButtonVariant
-  size?:      IconButtonSize
-  weight?:    IconWeight
-  filled?:    boolean
-  title?:     string
-  disabled?:  boolean
-  className?: string
-  onClick?:   React.MouseEventHandler<HTMLButtonElement>
-  onMouseDown?: React.MouseEventHandler<HTMLButtonElement>
+  icon:           IconProp
+  variant?:       IconButtonVariant
+  size?:          IconButtonSize
+  weight?:        IconWeight
+  filled?:        boolean
+  title?:         string
+  disabled?:      boolean
+  className?:     string
+  onClick?:       React.MouseEventHandler<HTMLButtonElement>
+  onMouseDown?:   React.MouseEventHandler<HTMLButtonElement>
+  onPointerDown?: React.PointerEventHandler<HTMLButtonElement>
 }
 
 export function IconButton({
   icon,
-  variant   = 'default',
-  size      = 'md',
-  weight    = 'regular',
-  filled    = false,
+  variant      = 'default',
+  size         = 'md',
+  weight       = 'regular',
+  filled       = false,
   title,
   disabled,
   className,
   onClick,
   onMouseDown,
+  onPointerDown,
 }: Props) {
   const { button, icon: iconSize } = sizeClass[size]
   const effectiveWeight: IconWeight = (filled || variant === 'active') ? 'fill' : weight
@@ -50,6 +52,7 @@ export function IconButton({
     <button
       onClick={onClick}
       onMouseDown={onMouseDown}
+      onPointerDown={onPointerDown}
       disabled={disabled}
       title={title}
       className={cn(

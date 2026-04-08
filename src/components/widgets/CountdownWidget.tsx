@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Text } from '@whiteboard/ui-kit'
+import { Text, Container } from '@whiteboard/ui-kit'
 import { FlexCol, FlexRow } from '@whiteboard/ui-kit'
 import { fontFamily } from '@whiteboard/ui-kit'
 
@@ -45,6 +45,10 @@ function pad(n: number) { return n.toString().padStart(2, '0') }
 // ── Widget ────────────────────────────────────────────────────────────────────
 
 export function CountdownWidget({ widgetId }: { widgetId: string }) {
+  return <Container><CountdownContent widgetId={widgetId} /></Container>
+}
+
+function CountdownContent({ widgetId }: { widgetId: string }) {
   const [settings] = useWidgetSettings<CountdownSettings>(widgetId, DEFAULT_COUNTDOWN_SETTINGS)
   const [, tick]   = useState(0)
 
@@ -78,7 +82,7 @@ export function CountdownWidget({ widgetId }: { widgetId: string }) {
         </FlexCol>
       ) : (
         <>
-          <FlexRow align="baseline" className="gap-1.5">
+          <FlexRow align="baseline" justify="center" className="gap-1.5">
             <Text
               as="span"
               variant="display"

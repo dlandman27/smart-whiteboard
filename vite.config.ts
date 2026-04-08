@@ -2,9 +2,10 @@ import path from 'path'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import basicSsl from '@vitejs/plugin-basic-ssl'
+import { uiKitEnforce } from './vite-plugins/ui-kit-enforce'
 
 export default defineConfig({
-  plugins: [react(), basicSsl()],
+  plugins: [uiKitEnforce(), react(), basicSsl()],
   resolve: {
     alias: {
       '@whiteboard/sdk':    path.resolve(__dirname, 'src/sdk/index.ts'),

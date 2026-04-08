@@ -1,9 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { Icon } from '@whiteboard/ui-kit'
+import React, { useEffect, useRef, useState } from 'react'
+import { Icon, IconButton, Container, Text, Input, SettingsSection, FlexCol, FlexRow } from '@whiteboard/ui-kit'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { useNotificationStore } from '../../store/notifications'
-import { Text, Input, SettingsSection } from '@whiteboard/ui-kit'
-import { FlexCol, FlexRow } from '@whiteboard/ui-kit'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -46,6 +44,10 @@ function phaseDuration(phase: Phase, s: PomodoroSettings): number {
 // ── Widget ────────────────────────────────────────────────────────────────────
 
 export function PomodoroWidget({ widgetId }: { widgetId: string }) {
+  return <Container><PomodoroContent widgetId={widgetId} /></Container>
+}
+
+function PomodoroContent({ widgetId }: { widgetId: string }) {
   const [settings]        = useWidgetSettings<PomodoroSettings>(widgetId, DEFAULTS)
   const addNotification   = useNotificationStore((s) => s.addNotification)
   const dismissAllByWidget = useNotificationStore((s) => s.dismissAllByWidget)
@@ -150,14 +152,7 @@ export function PomodoroWidget({ widgetId }: { widgetId: string }) {
       {/* Ring + time */}
       <div className="relative flex items-center justify-center">
         <svg width={140} height={140} style={{ transform: 'rotate(-90deg)' }}>
-          {/* Track */}
-          <circle
-            cx={70} cy={70} r={R}
-            fill="none"
-            stroke="var(--wt-surface-subtle)"
-            strokeWidth={6}
-          />
-          {/* Progress */}
+          <circle cx={70} cy={70} r={R} fill="none" stroke="var(--wt-surface-subtle)" strokeWidth={6} />
           <circle
             cx={70} cy={70} r={R}
             fill="none"
@@ -169,43 +164,42 @@ export function PomodoroWidget({ widgetId }: { widgetId: string }) {
             style={{ transition: 'stroke-dashoffset 0.8s linear, stroke 0.4s ease' }}
           />
         </svg>
-        <div className="absolute flex flex-col items-center">
-          <span
-            className="font-mono font-light tabular-nums"
-            style={{ fontSize: 32, color: 'var(--wt-text)', letterSpacing: '0.02em' }}
-          >
-            {pad(minutes)}:{pad(seconds)}
-          </span>
-        </div>
+        <Text
+          variant="heading"
+          size="large"
+          className="absolute font-mono font-light tabular-nums"
+          style={{ fontSize: 32, letterSpacing: '0.02em' }}
+        >
+          {pad(minutes)}:{pad(seconds)}
+        </Text>
       </div>
 
       {/* Controls */}
       <FlexRow align="center" className="gap-3">
-        <button
-          className="wt-action-btn"
-          style={{ width: 32, height: 32 }}
-          onPointerDown={(e) => e.stopPropagation()}
+        <IconButton
+          icon="ArrowCounterClockwise"
+          size="lg"
+          onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
           onClick={reset}
           title="Reset"
-        >
-          <Icon icon="ArrowCounterClockwise" size={14} />
-        </button>
+        />
+        {/* Play/pause — dynamic phase color, kept as raw button */}
         <button
-          className="flex items-center justify-center rounded-full transition-all"
+          className="flex items-center justify-center rounded-full cursor-pointer"
           style={{
-            width: 44, height: 44,
+            width: 52, height: 52,
             backgroundColor: color,
             color: 'var(--wt-accent-text)',
             border: 'none',
-            cursor: 'pointer',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.22)',
+            flexShrink: 0,
           }}
           onPointerDown={(e) => e.stopPropagation()}
           onClick={() => setRunning((r) => !r)}
         >
           {running
-            ? <Icon icon="Pause" size={18} weight="fill" />
-            : <Icon icon="Play"  size={18} weight="fill" style={{ marginLeft: 2 }} />
+            ? <Icon icon="Pause" size={22} weight="fill" />
+            : <Icon icon="Play"  size={22} weight="fill" style={{ marginLeft: 2 }} />
           }
         </button>
         {/* Cycle dots */}

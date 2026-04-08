@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Icon } from '@whiteboard/ui-kit'
+import {
+  Container, Center, FlexCol, FlexRow, Text,
+  Input, SettingsSection, Button, Icon,
+} from '@whiteboard/ui-kit'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -54,12 +57,10 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
   const [progress,  setProgress]      = useState(0)
   const tickRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Check auth status on mount
   useEffect(() => {
     spotifyFetch('/status').then((d: any) => setConnected(!!d?.connected))
   }, [])
 
-  // Poll now-playing every 5 s when connected
   useEffect(() => {
     if (!connected) return
     let active = true
@@ -76,7 +77,6 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
     return () => { active = false; clearInterval(id) }
   }, [connected])
 
-  // Local progress tick between polls
   useEffect(() => {
     if (tickRef.current) clearInterval(tickRef.current)
     if (track?.isPlaying) {
@@ -89,10 +89,8 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
 
   async function control(action: 'play' | 'pause' | 'next' | 'previous') {
     await spotifyFetch(`/${action}`, 'POST')
-    // Optimistic UI
     if (action === 'play')  setTrack((t) => t ? { ...t, isPlaying: true  } : t)
     if (action === 'pause') setTrack((t) => t ? { ...t, isPlaying: false } : t)
-    // Refresh after short delay to get actual new track
     setTimeout(async () => {
       const data = await spotifyFetch('/now-playing') as NowPlaying | null
       setTrack(data)
@@ -100,91 +98,88 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
     }, 800)
   }
 
+  async function startAuth() {
+    const r = await fetch('/api/spotify/start-auth', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        clientId:     settings.clientId,
+        clientSecret: settings.clientSecret,
+        redirectUri:  settings.redirectUri,
+      }),
+    }).then((r) => r.json()) as any
+    if (r.url) {
+      window.open(r.url, '_blank', 'width=500,height=700')
+      const poll = setInterval(async () => {
+        const s = await spotifyFetch('/status') as any
+        if (s?.connected) { setConnected(true); clearInterval(poll) }
+      }, 2000)
+    }
+  }
+
   // ── Not yet checked ──
   if (connected === null) {
-    return <Centered><Spinner /></Centered>
+    return (
+      <Center fullHeight style={{ background: 'var(--wt-bg)' }}>
+        <Spinner />
+      </Center>
+    )
   }
 
   // ── Not configured ──
   if (!settings.clientId || !settings.clientSecret) {
     return (
-      <Centered>
+      <Center fullHeight gap="sm" style={{ background: 'var(--wt-bg)' }}>
         <SpotifyIcon size={36} />
-        <p style={{ fontSize: 13, color: 'var(--wt-text-muted)', textAlign: 'center', margin: '8px 0 0', lineHeight: 1.5 }}>
-          Open settings to connect<br />your Spotify account
-        </p>
-      </Centered>
+        <Text variant="body" size="small" color="muted" align="center">
+          Open settings to connect{'\n'}your Spotify account
+        </Text>
+      </Center>
     )
   }
 
   // ── Not authenticated ──
   if (!connected) {
     return (
-      <Centered>
+      <Center fullHeight gap="sm" style={{ background: 'var(--wt-bg)' }}>
         <SpotifyIcon size={36} />
         <button
-          onClick={async () => {
-            const r = await fetch('/api/spotify/start-auth', {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body:    JSON.stringify({
-                clientId:    settings.clientId,
-                clientSecret: settings.clientSecret,
-                redirectUri:  settings.redirectUri,
-              }),
-            }).then((r) => r.json()) as any
-            if (r.url) {
-              window.open(r.url, '_blank', 'width=500,height=700')
-              // Poll for connection after window opens
-              const poll = setInterval(async () => {
-                const s = await spotifyFetch('/status') as any
-                if (s?.connected) { setConnected(true); clearInterval(poll) }
-              }, 2000)
-            }
-          }}
+          onClick={startAuth}
           style={{
-            marginTop: 12, padding: '8px 20px', borderRadius: 20,
+            padding: '8px 20px', borderRadius: 20,
             background: '#1DB954', color: '#fff', border: 'none',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}
         >
           Connect Spotify
         </button>
-      </Centered>
+      </Center>
     )
   }
 
   // ── Nothing playing ──
   if (!track) {
     return (
-      <Centered>
+      <Center fullHeight gap="sm" style={{ background: 'var(--wt-bg)' }}>
         <SpotifyIcon size={32} />
-        <p style={{ fontSize: 12, color: 'var(--wt-text-muted)', marginTop: 8 }}>Nothing playing</p>
-      </Centered>
+        <Text variant="body" size="small" color="muted">Nothing playing</Text>
+      </Center>
     )
   }
 
-  const pct = track.durationMs > 0 ? (progress / track.durationMs) * 100 : 0
+  const pct    = track.durationMs > 0 ? (progress / track.durationMs) * 100 : 0
   const hasArt = !!track.albumArt
 
-  // Colors: white-on-blurred-art when album art is present; theme tokens otherwise
-  const textColor        = hasArt ? '#fff'                      : 'var(--wt-text)'
-  const textMutedColor   = hasArt ? 'rgba(255,255,255,0.7)'     : 'var(--wt-text-muted)'
-  const timeColor        = hasArt ? 'rgba(255,255,255,0.5)'     : 'var(--wt-text-muted)'
-  const progressTrackBg  = hasArt ? 'rgba(255,255,255,0.2)'     : 'var(--wt-surface-hover)'
-  const ctrlSecondaryBg  = hasArt ? 'rgba(255,255,255,0.15)'    : 'var(--wt-surface-hover)'
-  const ctrlSecondaryColor = hasArt ? '#fff'                    : 'var(--wt-text)'
+  const textColor          = hasArt ? '#fff'                   : 'var(--wt-text)'
+  const textMutedColor     = hasArt ? 'rgba(255,255,255,0.7)'  : 'var(--wt-text-muted)'
+  const timeColor          = hasArt ? 'rgba(255,255,255,0.5)'  : 'var(--wt-text-muted)'
+  const progressTrackBg    = hasArt ? 'rgba(255,255,255,0.2)'  : 'var(--wt-surface-hover)'
+  const ctrlSecondaryBg    = hasArt ? 'rgba(255,255,255,0.15)' : 'var(--wt-surface-hover)'
+  const ctrlSecondaryColor = hasArt ? '#fff'                   : 'var(--wt-text)'
 
   return (
-    <div style={{
-      width: '100%', height: '100%',
-      display: 'flex', flexDirection: 'column',
-      background: 'var(--wt-bg)',
-      borderRadius: 'inherit',
-      overflow: 'hidden',
-      position: 'relative',
-    }}>
-      {/* Album art + blurred bg */}
+    <Container style={{ background: 'var(--wt-bg)', borderRadius: 'inherit', overflow: 'hidden', position: 'relative' }}>
+      {/* Blurred album art backdrop */}
       {track.albumArt && (
         <div style={{
           position: 'absolute', inset: 0,
@@ -195,13 +190,7 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
         }} />
       )}
 
-      {/* Content */}
-      <div style={{
-        position: 'relative', zIndex: 1,
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        flex: 1, padding: '16px 20px', gap: 10,
-      }}>
+      <FlexCol align="center" justify="center" fullHeight gap="sm" className="relative z-[1] px-5 py-4">
         {/* Album art */}
         {track.albumArt ? (
           <img
@@ -210,58 +199,45 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
             style={{ width: 96, height: 96, borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)', flexShrink: 0 }}
           />
         ) : (
-          <div style={{
-            width: 96, height: 96, borderRadius: 8,
-            background: 'var(--wt-surface)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center',
-          }}>
+          <Center style={{ width: 96, height: 96, borderRadius: 8, background: 'var(--wt-surface)' }}>
             <SpotifyIcon size={40} />
-          </div>
+          </Center>
         )}
 
         {/* Track info */}
-        <div style={{ textAlign: 'center', width: '100%' }}>
-          <div style={{
-            fontSize: 14, fontWeight: 600, color: textColor,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
+        <FlexCol align="center" className="w-full">
+          <Text
+            variant="heading"
+            size="small"
+            align="center"
+            style={{ color: textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}
+          >
             {track.title}
-          </div>
-          <div style={{
-            fontSize: 12, color: textMutedColor, marginTop: 2,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
+          </Text>
+          <Text
+            variant="body"
+            size="small"
+            align="center"
+            style={{ color: textMutedColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}
+          >
             {track.artist}
-          </div>
-        </div>
+          </Text>
+        </FlexCol>
 
         {/* Progress bar */}
-        <div style={{ width: '100%' }}>
-          <div style={{
-            width: '100%', height: 3, borderRadius: 2,
-            background: progressTrackBg, overflow: 'hidden',
-          }}>
-            <div style={{
-              height: '100%', borderRadius: 2,
-              background: '#1DB954',
-              width: `${pct}%`,
-              transition: 'width 1s linear',
-            }} />
+        <div className="w-full">
+          <div style={{ width: '100%', height: 3, borderRadius: 2, background: progressTrackBg, overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: 2, background: '#1DB954', width: `${pct}%`, transition: 'width 1s linear' }} />
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+          <FlexRow justify="between" className="mt-1">
             <span style={{ fontSize: 10, color: timeColor }}>{fmtTime(progress)}</span>
             <span style={{ fontSize: 10, color: timeColor }}>{fmtTime(track.durationMs)}</span>
-          </div>
+          </FlexRow>
         </div>
 
-        {/* Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginTop: 2 }}>
-          <CtrlBtn
-            onClick={() => control('previous')}
-            title="Previous"
-            bg={ctrlSecondaryBg}
-            color={ctrlSecondaryColor}
-          >
+        {/* Playback controls */}
+        <FlexRow align="center" className="gap-5">
+          <CtrlBtn onClick={() => control('previous')} title="Previous" bg={ctrlSecondaryBg} color={ctrlSecondaryColor}>
             <Icon icon="SkipBack" size={16} weight="fill" />
           </CtrlBtn>
           <CtrlBtn
@@ -272,21 +248,16 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
             color="#fff"
           >
             {track.isPlaying
-              ? <Icon icon="Pause" size={18} weight="fill" />
-              : <Icon icon="Play"  size={18} weight="fill" style={{ marginLeft: 2 }} />
+              ? <Icon icon="Pause"  size={18} weight="fill" />
+              : <Icon icon="Play"   size={18} weight="fill" style={{ marginLeft: 2 }} />
             }
           </CtrlBtn>
-          <CtrlBtn
-            onClick={() => control('next')}
-            title="Next"
-            bg={ctrlSecondaryBg}
-            color={ctrlSecondaryColor}
-          >
+          <CtrlBtn onClick={() => control('next')} title="Next" bg={ctrlSecondaryBg} color={ctrlSecondaryColor}>
             <Icon icon="SkipForward" size={16} weight="fill" />
           </CtrlBtn>
-        </div>
-      </div>
-    </div>
+        </FlexRow>
+      </FlexCol>
+    </Container>
   )
 }
 
@@ -300,98 +271,87 @@ export function SpotifySettings({ widgetId }: { widgetId: string }) {
     spotifyFetch('/status').then((d: any) => setConnected(!!d?.connected))
   }, [])
 
-  const inp = (label: string, key: keyof SpotifyWidgetSettings, placeholder: string) => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <label style={{ fontSize: 11, color: 'var(--wt-text-muted)', fontWeight: 500 }}>{label}</label>
-      <input
-        value={settings[key]}
-        onChange={(e) => set({ [key]: e.target.value })}
-        placeholder={placeholder}
-        style={{
-          padding: '6px 10px', fontSize: 12, borderRadius: 8,
-          border: '1px solid var(--wt-border)', background: 'var(--wt-surface)',
-          color: 'var(--wt-text)', outline: 'none', width: '100%', boxSizing: 'border-box',
-        }}
-      />
-    </div>
-  )
+  async function startAuth() {
+    if (!settings.clientId || !settings.clientSecret) return
+    const r = await fetch('/api/spotify/start-auth', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        clientId:     settings.clientId,
+        clientSecret: settings.clientSecret,
+        redirectUri:  settings.redirectUri || 'http://localhost:3001/api/spotify/callback',
+      }),
+    }).then((r) => r.json()) as any
+    if (r.url) {
+      window.open(r.url, '_blank', 'width=500,height=700')
+      const poll = setInterval(async () => {
+        const s = await spotifyFetch('/status') as any
+        if (s?.connected) { setConnected(true); clearInterval(poll) }
+      }, 2000)
+    }
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <p style={{ fontSize: 11, color: 'var(--wt-text-muted)', margin: 0, lineHeight: 1.5 }}>
-        Create an app at{' '}
-        <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer"
-          style={{ color: '#1DB954' }}>
-          developer.spotify.com
-        </a>
-        {' '}and add <code style={{ fontSize: 10 }}>http://localhost:3001/api/spotify/callback</code> as a redirect URI.
-      </p>
+    <SettingsSection label="Spotify Connection">
+      <FlexCol gap="sm">
+        <Text variant="body" size="small" color="muted">
+          Create an app at{' '}
+          <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer" style={{ color: '#1DB954' }}>
+            developer.spotify.com
+          </a>
+          {' '}and add{' '}
+          <code style={{ fontSize: 10 }}>http://localhost:3001/api/spotify/callback</code>
+          {' '}as a redirect URI.
+        </Text>
 
-      {inp('Client ID', 'clientId', 'Your Spotify app client ID')}
-      {inp('Client Secret', 'clientSecret', 'Your Spotify app client secret')}
-      {inp('Redirect URI', 'redirectUri', 'http://localhost:3001/api/spotify/callback')}
+        <Input
+          label="Client ID"
+          value={settings.clientId}
+          onChange={(e) => set({ clientId: e.target.value })}
+          placeholder="Your Spotify app client ID"
+          size="sm"
+          onPointerDown={(e) => e.stopPropagation()}
+        />
+        <Input
+          label="Client Secret"
+          value={settings.clientSecret}
+          onChange={(e) => set({ clientSecret: e.target.value })}
+          placeholder="Your Spotify app client secret"
+          size="sm"
+          onPointerDown={(e) => e.stopPropagation()}
+        />
+        <Input
+          label="Redirect URI"
+          value={settings.redirectUri}
+          onChange={(e) => set({ redirectUri: e.target.value })}
+          placeholder="http://localhost:3001/api/spotify/callback"
+          size="sm"
+          onPointerDown={(e) => e.stopPropagation()}
+        />
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-        <button
-          onClick={async () => {
-            if (!settings.clientId || !settings.clientSecret) return
-            const r = await fetch('/api/spotify/start-auth', {
-              method:  'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body:    JSON.stringify({
-                clientId:     settings.clientId,
-                clientSecret: settings.clientSecret,
-                redirectUri:  settings.redirectUri || 'http://localhost:3001/api/spotify/callback',
-              }),
-            }).then((r) => r.json()) as any
-            if (r.url) {
-              window.open(r.url, '_blank', 'width=500,height=700')
-              const poll = setInterval(async () => {
-                const s = await spotifyFetch('/status') as any
-                if (s?.connected) { setConnected(true); clearInterval(poll) }
-              }, 2000)
-            }
-          }}
-          disabled={!settings.clientId || !settings.clientSecret}
-          style={{
-            flex: 1, padding: '7px 0', borderRadius: 8,
-            background: connected ? 'var(--wt-surface)' : '#1DB954',
-            color: connected ? 'var(--wt-text)' : '#fff',
-            border: connected ? '1px solid var(--wt-border)' : 'none',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer', opacity: (!settings.clientId || !settings.clientSecret) ? 0.5 : 1,
-          }}
-        >
-          {connected ? 'Re-connect Spotify' : 'Connect Spotify'}
-        </button>
-
-        {connected && (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 4,
-            fontSize: 11, color: '#1DB954', fontWeight: 500,
-          }}>
-            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1DB954' }} />
-            Connected
-          </div>
-        )}
-      </div>
-    </div>
+        <FlexRow align="center" gap="sm">
+          <Button
+            variant={connected ? 'outline' : 'accent'}
+            size="sm"
+            fullWidth
+            disabled={!settings.clientId || !settings.clientSecret}
+            onClick={startAuth}
+          >
+            {connected ? 'Re-connect Spotify' : 'Connect Spotify'}
+          </Button>
+          {connected && (
+            <FlexRow align="center" gap="xs" className="flex-shrink-0">
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1DB954', flexShrink: 0 }} />
+              <Text variant="caption" size="small" style={{ color: '#1DB954', fontWeight: 500 }}>Connected</Text>
+            </FlexRow>
+          )}
+        </FlexRow>
+      </FlexCol>
+    </SettingsSection>
   )
 }
 
 // ── Small UI pieces ───────────────────────────────────────────────────────────
-
-function Centered({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{
-      width: '100%', height: '100%',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      background: 'var(--wt-bg)', gap: 6,
-    }}>
-      {children}
-    </div>
-  )
-}
 
 function Spinner() {
   return (
@@ -407,27 +367,22 @@ function Spinner() {
 function CtrlBtn({
   onClick, children, large, title, bg, color,
 }: {
-  onClick: () => void
+  onClick:  () => void
   children: React.ReactNode
-  large?: boolean
-  title?: string
-  bg: string
-  color: string
+  large?:   boolean
+  title?:   string
+  bg:       string
+  color:    string
 }) {
   return (
     <button
       onClick={onClick}
       title={title}
+      className="flex items-center justify-center rounded-full border-none cursor-pointer flex-shrink-0 transition-transform active:scale-90"
       style={{
         width: large ? 44 : 32, height: large ? 44 : 32,
-        borderRadius: '50%', border: 'none', cursor: 'pointer',
-        background: bg,
-        color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        transition: 'transform 0.1s, opacity 0.1s',
-        flexShrink: 0,
+        background: bg, color,
       }}
-      onMouseDown={(e) => (e.currentTarget.style.transform = 'scale(0.92)')}
-      onMouseUp={(e)   => (e.currentTarget.style.transform = 'scale(1)')}
     >
       {children}
     </button>
