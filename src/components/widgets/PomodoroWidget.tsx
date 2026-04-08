@@ -175,35 +175,46 @@ function PomodoroContent({ widgetId }: { widgetId: string }) {
       </div>
 
       {/* Controls */}
-      <FlexRow align="center" className="gap-3">
-        <IconButton
-          icon="ArrowCounterClockwise"
-          size="lg"
-          onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
-          onClick={reset}
-          title="Reset"
-        />
-        {/* Play/pause — dynamic phase color, kept as raw button */}
-        <button
-          className="flex items-center justify-center rounded-full cursor-pointer"
-          style={{
-            width: 52, height: 52,
-            backgroundColor: color,
-            color: 'var(--wt-accent-text)',
-            border: 'none',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.22)',
-            flexShrink: 0,
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-          onClick={() => setRunning((r) => !r)}
-        >
-          {running
-            ? <Icon icon="Pause" size={22} weight="fill" />
-            : <Icon icon="Play"  size={22} weight="fill" style={{ marginLeft: 2 }} />
-          }
-        </button>
-        {/* Cycle dots */}
-        <FlexRow align="center" className="gap-1" style={{ minWidth: 32 }}>
+      <FlexCol align="center" gap="xs">
+        <FlexRow align="center" justify="center" gap="md">
+          <IconButton
+            icon="ArrowCounterClockwise"
+            size="lg"
+            onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
+            onClick={reset}
+            title="Reset"
+          />
+          {/* Play/pause — dynamic phase color, kept as raw button */}
+          <button
+            className="flex items-center justify-center rounded-full cursor-pointer"
+            style={{
+              width: 52, height: 52,
+              backgroundColor: color,
+              color: 'var(--wt-accent-text)',
+              border: 'none',
+              boxShadow: '0 2px 12px rgba(0,0,0,0.22)',
+              flexShrink: 0,
+            }}
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={() => setRunning((r) => !r)}
+          >
+            {running
+              ? <Icon icon="Pause" size={22} weight="fill" />
+              : <Icon icon="Play"  size={22} weight="fill" style={{ marginLeft: 2 }} />
+            }
+          </button>
+          <IconButton
+            icon="SkipForward"
+            size="lg"
+            onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
+            onClick={() => completePhaseRef.current()}
+            title="Skip phase"
+            variant="ghost"
+          />
+        </FlexRow>
+
+        {/* Cycle dots — sessions completed this round */}
+        <FlexRow align="center" justify="center" gap="xs">
           {Array.from({ length: settings.cyclesBeforeLongBreak }).map((_, i) => (
             <span
               key={i}
@@ -218,7 +229,7 @@ function PomodoroContent({ widgetId }: { widgetId: string }) {
             />
           ))}
         </FlexRow>
-      </FlexRow>
+      </FlexCol>
 
     </FlexCol>
   )

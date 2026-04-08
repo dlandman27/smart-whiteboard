@@ -27,7 +27,7 @@ const justifyClass: Record<FlexJustify, string> = {
   evenly:  'justify-evenly',
 }
 const gapClass: Record<FlexGap, string> = {
-  none: 'gap-0',
+  none: '',      // no class — lets className="gap-X" work without conflict
   xs:   'gap-1',
   sm:   'gap-2',
   md:   'gap-4',
