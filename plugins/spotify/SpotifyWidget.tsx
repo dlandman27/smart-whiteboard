@@ -1,4 +1,4 @@
-import { Icon } from '../../src/ui/web'
+import { Icon } from '@whiteboard/ui-kit'
 import type { WidgetProps } from '@whiteboard/sdk'
 import { useSpotifyStatus } from '../../src/hooks/useSpotify'
 import { useSpotifyNowPlaying } from './hooks'
