@@ -44,7 +44,10 @@
       "Bash(winget list:*)",
       "Bash(pip --version)",
       "Bash(python -c ':*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(git mv:*)",
+      "Bash(git rm:*)",
+      "Bash(./node_modules/.bin/tsc --noEmit)"
     ]
   }
 }
