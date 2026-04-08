@@ -1,8 +1,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
-import { Icon } from '../../ui/web'
-import { FlexCol, FlexRow, Center, ScrollArea, Box } from '../../ui/layouts'
-import { Text } from '../../ui/web'
+import { Icon } from '@whiteboard/ui-kit'
+import { FlexCol, FlexRow, Center, ScrollArea, Box } from '@whiteboard/ui-kit'
+import { Text } from '@whiteboard/ui-kit'
 
 // ── ESPN API ──────────────────────────────────────────────────────────────────
 

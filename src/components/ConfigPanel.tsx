@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Panel, PanelHeader, Input, Button, Text } from '../ui/web'
+import { Panel, PanelHeader, Input, Button, Text } from '@whiteboard/ui-kit'
 import { useGCalStatus, startGCalAuth } from '../hooks/useGCal'
 import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
 import { useGCalCredentials } from '../store/gcal'

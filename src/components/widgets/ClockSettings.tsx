@@ -1,5 +1,5 @@
-import { SegmentedControl, SettingsSection, Toggle } from '../../ui/web'
-import { FlexCol } from '../../ui/layouts'
+import { SegmentedControl, SettingsSection, Toggle } from '@whiteboard/ui-kit'
+import { FlexCol } from '@whiteboard/ui-kit'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { DEFAULT_CLOCK_SETTINGS, type ClockWidgetSettings } from './ClockWidget'
 import type { WidgetProps } from './registry'

@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Button, Icon, IconButton, Input, Text } from '../../ui/web'
-import { FlexCol, FlexRow, Box, Center, ScrollArea } from '../../ui/layouts'
+import { Button, Icon, IconButton, Input, Text } from '@whiteboard/ui-kit'
+import { FlexCol, FlexRow, Box, Center, ScrollArea } from '@whiteboard/ui-kit'
 import { useNotionPages, useUpdatePage, useCreatePage, useArchivePage } from '../../hooks/useNotion'
 import { useWidgetSettings, type WidgetProps } from '@whiteboard/sdk'
 

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { soundWidgetDrop, soundWidgetPickup } from '../lib/sounds'
-import { Text } from '../ui/web'
+import { Text } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useLayout } from '../hooks/useLayout'
 import { Widget } from './Widget'

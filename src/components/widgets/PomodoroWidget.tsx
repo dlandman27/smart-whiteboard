@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { Icon } from '../../ui/web'
+import { Icon } from '@whiteboard/ui-kit'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { useNotificationStore } from '../../store/notifications'
-import { Text, Input, SettingsSection } from '../../ui/web'
-import { FlexCol, FlexRow } from '../../ui/layouts'
+import { Text, Input, SettingsSection } from '@whiteboard/ui-kit'
+import { FlexCol, FlexRow } from '@whiteboard/ui-kit'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

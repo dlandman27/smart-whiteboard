@@ -1,6 +1,6 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Checkbox, SegmentedControl, SettingsSection } from '../../ui/web'
-import { FlexCol } from '../../ui/layouts'
+import { Checkbox, SegmentedControl, SettingsSection } from '@whiteboard/ui-kit'
+import { FlexCol } from '@whiteboard/ui-kit'
 import { DEFAULT_QUOTE_SETTINGS, type QuoteSettings } from './QuoteWidget'
 
 export function QuoteSettings({ widgetId }: { widgetId: string }) {

@@ -5,8 +5,8 @@ import {
 } from 'recharts'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { useNotionView } from '../../../hooks/useNotion'
-import { FlexCol, FlexRow, Box, Center } from '../../../ui/layouts'
-import { Text } from '../../../ui/web'
+import { FlexCol, FlexRow, Box, Center } from '@whiteboard/ui-kit'
+import { Text } from '@whiteboard/ui-kit'
 import type { NotionViewSettings, TemplateProps, NotionPage } from './types'
 import { getProp, formatDate, formatValue } from './utils'
 

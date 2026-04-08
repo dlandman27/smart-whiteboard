@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Panel, PanelHeader, Slider, Text } from '../ui/web'
+import { Panel, PanelHeader, Slider, Text } from '@whiteboard/ui-kit'
 import { ThemePicker } from './ThemePicker'
 import { BackgroundPicker } from './BackgroundPicker'
 import { LAYOUT_PRESETS, getLayoutPreset } from '../layouts/presets'

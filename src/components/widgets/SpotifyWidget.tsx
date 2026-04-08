@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Icon } from '../../ui/web'
+import { Icon } from '@whiteboard/ui-kit'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

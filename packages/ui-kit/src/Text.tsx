@@ -1,7 +1,7 @@
 import React from 'react'
 import { cn } from './utils/cn'
-import { typography, type TextVariant, type TextSize } from '../theme/typography'
-import { textColor, type TextColor } from '../theme/color'
+import { typography, type TextVariant, type TextSize } from './theme/typography'
+import { textColor, type TextColor } from './theme/color'
 
 export type { TextVariant, TextSize, TextColor }
 export type TextAlign     = 'left' | 'center' | 'right' | 'justify'

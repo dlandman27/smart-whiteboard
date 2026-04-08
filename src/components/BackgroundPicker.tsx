@@ -1,7 +1,7 @@
 import React, { useRef } from 'react'
 import { useThemeStore } from '../store/theme'
 import { BACKGROUNDS, type Background, type BackgroundPattern } from '../constants/backgrounds'
-import { Icon } from '../ui/web'
+import { Icon } from '@whiteboard/ui-kit'
 
 const PATTERN_LABELS: Record<BackgroundPattern, string> = {
   dots:     'Dots',

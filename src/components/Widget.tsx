@@ -3,7 +3,7 @@ import { soundWidgetRemoved } from '../lib/sounds'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 import { useUndoStore } from '../store/undo'
-import { Icon, IconButton, Input } from '../ui/web'
+import { Icon, IconButton, Input } from '@whiteboard/ui-kit'
 import type { PluginPreference } from '@whiteboard/sdk'
 
 // ── Preference fields ─────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '../web/utils/cn'
+import { cn } from '../utils/cn'
 
 export type BoxOverflow = 'hidden' | 'auto' | 'y-auto' | 'x-auto' | 'visible'
 

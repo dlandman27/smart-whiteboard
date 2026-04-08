@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '../ui/web/utils/cn'
+import { cn } from '@whiteboard/ui-kit'
 
 type Props = React.HTMLAttributes<HTMLDivElement>
 

@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Icon, Text } from '../../ui/web'
-import { Center } from '../../ui/layouts'
-import { fontFamily } from '../../ui/theme'
+import { Icon, Text } from '@whiteboard/ui-kit'
+import { Center } from '@whiteboard/ui-kit'
+import { fontFamily } from '@whiteboard/ui-kit'
 import { useWeather } from '../../hooks/useWeather'
 import type { WidgetProps } from './registry'
 

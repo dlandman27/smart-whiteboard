@@ -1,7 +1,7 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { useNFLScores, useNBAScores } from '../../hooks/useSports'
-import { Center, FlexCol, FlexRow, Box, ScrollArea } from '../../ui/layouts'
-import { Text } from '../../ui/web'
+import { Center, FlexCol, FlexRow, Box, ScrollArea } from '@whiteboard/ui-kit'
+import { Text } from '@whiteboard/ui-kit'
 import type { Game } from '../../hooks/useSports'
 
 type League = 'nfl' | 'nba'

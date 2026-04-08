@@ -1,6 +1,6 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Center } from '../../ui/layouts'
-import { Text } from '../../ui/web'
+import { Center } from '@whiteboard/ui-kit'
+import { Text } from '@whiteboard/ui-kit'
 
 interface HtmlWidgetSettings {
   html:  string

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { getAllWidgetDefs } from './widgets/registry'
-import { Icon, Panel, PanelHeader, MenuItem, Text } from '../ui/web'
+import { Icon, Panel, PanelHeader, MenuItem, Text } from '@whiteboard/ui-kit'
 import { useNotionDatabases, useNotionHealth } from '../hooks/useNotion'
 import { useGCalStatus, useGCalCalendars } from '../hooks/useGCal'
 import { useSpotifyStatus } from '../hooks/useSpotify'

@@ -1,0 +1,306 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── @whiteboard/ui-kit — Design System Global Styles ──────────────────────── */
+/* This file is the single source of truth for the --wt-* CSS variable          */
+/* contract, component utility classes, and shared animations.                  */
+/*                                                                               */
+/* Consumers: import this file once at the app entry point.                     */
+/* Storybook:  preview.ts imports this file directly.                           */
+
+
+/* ── Theme CSS custom properties (Minimal / default theme) ─────────────────── */
+:root {
+  --wt-bg:               #ffffff;
+  --wt-border:           #e7e5e4;
+  --wt-border-active:    #d6d3d1;
+  --wt-shadow-sm:        0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+  --wt-shadow-md:        0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+  --wt-shadow-lg:        0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.08);
+  --wt-backdrop:         none;
+  --wt-text:             #1c1917;
+  --wt-text-muted:       #a8a29e;
+  --wt-surface:          #fafaf9;
+  --wt-surface-hover:    #f5f5f4;
+  --wt-surface-danger:   #fef2f2;
+  --wt-surface-subtle:   #f5f5f4;
+  --wt-accent:           #3b82f6;
+  --wt-accent-text:      #ffffff;
+  --wt-danger:           #f87171;
+  --wt-success:          #22c55e;
+  --wt-info:             #60a5fa;
+  --wt-action-bg:        #ffffff;
+  --wt-action-border:    #e7e5e4;
+  --wt-settings-bg:      #ffffff;
+  --wt-settings-border:  #e7e5e4;
+  --wt-settings-divider: #f5f5f4;
+  --wt-settings-label:   #a8a29e;
+  --wt-scroll-thumb:     #d6d3d1;
+  /* Widget-specific vars */
+  --wt-clock-face:       #ffffff;
+  --wt-clock-stroke:     #e7e5e4;
+  --wt-clock-tick-major: #a8a29e;
+  --wt-clock-tick-minor: #d6d3d1;
+  --wt-clock-hands:      #1c1917;
+  --wt-clock-second:     #ef4444;
+  --wt-clock-center:     #1c1917;
+  --wt-note-bg:          #fef9c3;
+}
+
+
+/* ── Global reset ───────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
+
+
+/* ── Theme transition (applied while theme changes) ─────────────────────────── */
+.theme-transitioning,
+.theme-transitioning *,
+.theme-transitioning *::before,
+.theme-transitioning *::after {
+  transition:
+    background-color 0.4s ease,
+    background       0.4s ease,
+    border-color     0.4s ease,
+    color            0.4s ease,
+    fill             0.4s ease,
+    stroke           0.4s ease,
+    box-shadow       0.4s ease !important;
+}
+
+
+/* ── Pill / toolbar surface ─────────────────────────────────────────────────── */
+.wt-pill {
+  background:      var(--wt-bg);
+  border:          1px solid var(--wt-border);
+  backdrop-filter: var(--wt-backdrop);
+  box-shadow:
+    0 20px 40px rgba(0,0,0,0.28), 0 8px 16px rgba(0,0,0,0.16),
+    inset 0  2px 0 rgba(255,255,255,0.18),
+    inset 0 -2px 0 rgba(0,0,0,0.45),
+    inset  2px 0 0 rgba(255,255,255,0.08),
+    inset -2px 0 0 rgba(0,0,0,0.25);
+}
+
+
+/* ── Button — 3D press mechanic ─────────────────────────────────────────────── */
+.wt-btn-3d {
+  transform:  translateY(-2px);
+  transition: opacity 0.08s, transform 0.08s, box-shadow 0.08s;
+  box-shadow:
+    0 3px 0 rgba(0,0,0,0.40),
+    inset 0 1px 0 rgba(255,255,255,0.16);
+}
+.wt-btn-3d:hover:not(:disabled) {
+  transform:  translateY(-3px);
+  box-shadow:
+    0 4px 0 rgba(0,0,0,0.40),
+    inset 0 1px 0 rgba(255,255,255,0.16);
+}
+.wt-btn-3d:active:not(:disabled) {
+  transform:  translateY(1px);
+  box-shadow: 0 0px 0 rgba(0,0,0,0.40);
+}
+
+
+/* ── IconButton — 3D press mechanic ─────────────────────────────────────────── */
+.wt-ibtn {
+  color:            var(--wt-text);
+  background-color: var(--wt-surface-hover);
+  transform:        translateY(-2px);
+  transition:       background-color 0.08s, color 0.08s, transform 0.08s, box-shadow 0.08s;
+  position:         relative;
+  box-shadow:
+    0 3px 0 rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 1px 0 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.14),
+    inset -1px 0 0 rgba(0,0,0,0.1);
+}
+.wt-ibtn::before {
+  content:        '';
+  position:       absolute;
+  inset:          0;
+  border-radius:  inherit;
+  pointer-events: none;
+  border-top:     3px solid rgba(255,255,255,0.1);
+  border-left:    3px solid rgba(255,255,255,0.07);
+  border-bottom:  3px solid rgba(0,0,0,0.08);
+  border-right:   3px solid rgba(0,0,0,0.06);
+}
+.wt-ibtn:active::before,
+.wt-ibtn-active::before { display: none; }
+.wt-ibtn:hover:not(:disabled) {
+  background-color: var(--wt-surface-hover);
+  color:            var(--wt-text);
+  transform:        translateY(-4px);
+  box-shadow:
+    0 5px 0 rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.22),
+    inset 1px 0 0 rgba(255,255,255,0.14),
+    inset 0 -1px 0 rgba(0,0,0,0.14),
+    inset -1px 0 0 rgba(0,0,0,0.1);
+}
+.wt-ibtn:active:not(:disabled) {
+  transform:        translateY(1px);
+  background-color: var(--wt-border);
+  box-shadow:       inset 0 2px 4px rgba(0,0,0,0.12);
+}
+.wt-ibtn:disabled { opacity: 0.2; cursor: not-allowed; }
+.wt-ibtn-active {
+  color:            var(--wt-text);
+  transform:        translateY(1px);
+  background-color: color-mix(in srgb, var(--wt-accent) 15%, var(--wt-border));
+  box-shadow:       inset 0 2px 4px rgba(0,0,0,0.12);
+}
+.wt-ibtn-ghost { color: var(--wt-text-muted); background: transparent; box-shadow: none; transform: none; transition: color 0.12s; }
+.wt-ibtn-ghost:hover { color: var(--wt-text); }
+
+
+/* ── Nav / inline text button ───────────────────────────────────────────────── */
+.wt-nav-btn { color: var(--wt-text); transition: background-color 0.12s; }
+.wt-nav-btn:hover { background-color: var(--wt-surface-hover); }
+
+
+/* ── Input ──────────────────────────────────────────────────────────────────── */
+.wt-input {
+  background-color: var(--wt-surface);
+  color:            var(--wt-text);
+  border:           1px solid var(--wt-border-active);
+  outline:          none;
+}
+.wt-input::placeholder { color: var(--wt-text-muted); }
+.wt-input:focus { border-color: var(--wt-accent); }
+
+
+/* ── Logo / config button ───────────────────────────────────────────────────── */
+.wt-logo-btn {
+  background-color: var(--wt-bg);
+  border:           1px solid var(--wt-border);
+  box-shadow:       var(--wt-shadow-lg);
+  backdrop-filter:  var(--wt-backdrop);
+  transition:       background-color 0.12s;
+}
+.wt-logo-btn:hover { background-color: var(--wt-surface-hover); }
+
+
+/* ── Widget frame bezel ─────────────────────────────────────────────────────── */
+.wt-widget-frame { position: relative; }
+.wt-widget-frame::after {
+  content:        '';
+  position:       absolute;
+  inset:          0;
+  border-radius:  inherit;
+  pointer-events: none;
+  z-index:        10;
+  border-top:     3px solid rgba(255,255,255,0.12);
+  border-left:    3px solid rgba(255,255,255,0.08);
+  border-bottom:  3px solid rgba(0,0,0,0.1);
+  border-right:   3px solid rgba(0,0,0,0.07);
+}
+
+
+/* ── Widget entrance / settle animations ────────────────────────────────────── */
+@keyframes wt-entrance {
+  0%   { opacity: 0; transform: scale(0.88); }
+  55%  { opacity: 1; transform: scale(1.03); }
+  75%  { transform: scale(0.985); }
+  100% { transform: scale(1); }
+}
+@keyframes wt-settle {
+  0%   { transform: scale(1); }
+  30%  { transform: scale(1.025); }
+  65%  { transform: scale(0.988); }
+  100% { transform: scale(1); }
+}
+@keyframes wt-remove {
+  0%   { transform: scale(1);    opacity: 1; filter: brightness(1); }
+  15%  { transform: scale(1.04); opacity: 1; filter: brightness(1.1); }
+  100% { transform: scale(0.75); opacity: 0; filter: brightness(0.8); }
+}
+@keyframes wt-flash {
+  0%, 100% { box-shadow: 0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm); }
+  50%       { box-shadow: 0 0 0 3px var(--wt-danger), 0 0 28px 8px rgba(239,68,68,0.25); }
+}
+.wt-widget-entrance { animation: wt-entrance 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+.wt-widget-settle   { animation: wt-settle   0.4s  cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+
+/* ── Action buttons (inside widgets) ────────────────────────────────────────── */
+.wt-action-btn {
+  display:         flex;
+  align-items:     center;
+  justify-content: center;
+  width:           2rem;
+  height:          2rem;
+  border-radius:   0.5rem;
+  color:           var(--wt-text-muted);
+  transition:      background-color 0.12s, color 0.12s;
+  cursor:          pointer;
+  border:          none;
+  background:      transparent;
+}
+.wt-action-btn:hover        { background-color: var(--wt-surface-hover); color: var(--wt-text); }
+.wt-action-btn-danger:hover { background-color: var(--wt-surface-danger); color: var(--wt-danger); }
+
+
+/* ── Segmented control ──────────────────────────────────────────────────────── */
+.wt-seg-track { background-color: var(--wt-border); border: 1px solid var(--wt-border-active); }
+.wt-seg-btn   { color: var(--wt-text-muted); transition: color 0.12s; }
+.wt-seg-btn:hover { color: var(--wt-text); }
+.wt-seg-active { background-color: var(--wt-bg); color: var(--wt-text); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
+
+
+/* ── List row button ────────────────────────────────────────────────────────── */
+.wt-row-btn { transition: background-color 0.12s; color: inherit; }
+.wt-row-btn:not(:disabled):hover { background-color: var(--wt-surface-hover); }
+.wt-row-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+
+/* ── Settings panel inside widgets ─────────────────────────────────────────── */
+.wt-settings-panel   { background-color: var(--wt-settings-bg);      border-color: var(--wt-settings-border); }
+.wt-settings-divider { border-color: var(--wt-settings-divider); }
+
+
+/* ── Scroll fade overlay ────────────────────────────────────────────────────── */
+.wt-content-fade { position: relative; overflow-y: auto; }
+.wt-content-fade::after {
+  content:        '';
+  position:       sticky;
+  bottom:         0;
+  left:           0;
+  right:          0;
+  display:        block;
+  height:         40px;
+  margin-top:     -40px;
+  pointer-events: none;
+  background:     linear-gradient(to bottom, transparent, var(--wt-bg));
+  border-radius:  0 0 inherit inherit;
+}
+
+
+/* ── Custom scrollbars ──────────────────────────────────────────────────────── */
+.settings-scroll { scrollbar-width: thin; scrollbar-color: var(--wt-accent) transparent; }
+.settings-scroll::-webkit-scrollbar       { width: 3px; }
+.settings-scroll::-webkit-scrollbar-track { background: transparent; }
+.settings-scroll::-webkit-scrollbar-thumb { background: var(--wt-accent); border-radius: 2px; }
+
+.note-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.15) transparent; }
+.note-scroll::-webkit-scrollbar       { width: 3px; }
+.note-scroll::-webkit-scrollbar-track { background: transparent; }
+.note-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
+.note-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+
+
+/* ── Shared animations ──────────────────────────────────────────────────────── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}

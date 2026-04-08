@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { fontFamily } from '../../ui/theme'
+import { fontFamily } from '@whiteboard/ui-kit'
 import type { WidgetProps } from './registry'
 
 export interface ClockWidgetSettings {

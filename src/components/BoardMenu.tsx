@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useWhiteboardStore } from '../store/whiteboard'
-import { Icon, IconButton, Panel, PanelHeader, Input, Button, Text } from '../ui/web'
+import { Icon, IconButton, Panel, PanelHeader, Input, Button, Text } from '@whiteboard/ui-kit'
 import { BoardThumbnail } from './BoardThumbnail'
 
 interface Props {

@@ -11,8 +11,8 @@
     "server": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "storybook": "storybook dev -p 6006 --config-dir packages/ui-kit/.storybook",
+    "build-storybook": "storybook build --config-dir packages/ui-kit/.storybook"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",

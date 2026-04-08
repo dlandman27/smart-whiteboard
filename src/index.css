@@ -1,350 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ── App entry CSS ───────────────────────────────────────────────────────────── */
+/* Design-system globals (Tailwind, --wt-* vars, component utility classes)     */
+/* live in the ui-kit package and are imported here as a single file.            */
+@import '../packages/ui-kit/src/global.css';
 
-/* ── Widget theme CSS variables (defaults = Minimal theme) ─────────────────── */
-:root {
-  --wt-bg:              #ffffff;
-  --wt-border:          #e7e5e4;
-  --wt-border-active:   #d6d3d1;
-  --wt-shadow-sm:       0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
-  --wt-shadow-md:       0 4px 12px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
-  --wt-shadow-lg:       0 20px 40px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.08);
-  --wt-backdrop:        none;
-  --wt-text:            #1c1917;
-  --wt-text-muted:      #a8a29e;
-  --wt-surface:         #fafaf9;
-  --wt-surface-hover:   #f5f5f4;
-  --wt-surface-danger:  #fef2f2;
-  --wt-accent:          #3b82f6;
-  --wt-accent-text:     #ffffff;
-  --wt-danger:          #f87171;
-  --wt-success:         #22c55e;  /* green — completion, break states */
-  --wt-info:            #60a5fa;  /* blue  — pomodoro long-break, informational */
-  --wt-action-bg:       #ffffff;
-  --wt-action-border:   #e7e5e4;
-  --wt-settings-bg:     #ffffff;
-  --wt-settings-border: #e7e5e4;
-  --wt-settings-divider:#f5f5f4;
-  --wt-settings-label:  #a8a29e;
-  --wt-scroll-thumb:    #d6d3d1;
-  --wt-clock-face:      #ffffff;
-  --wt-clock-stroke:    #e7e5e4;
-  --wt-clock-tick-major:#a8a29e;
-  --wt-clock-tick-minor:#d6d3d1;
-  --wt-clock-hands:     #1c1917;
-  --wt-clock-second:    #ef4444;
-  --wt-clock-center:    #1c1917;
-  --wt-note-bg:         #fef9c3;
-}
 
-/* ── Shared utility animations ─────────────────────────────────────────────── */
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
-}
-
-/* ── Siri-style voice overlay ─────────────────────────────────────────────── */
-@keyframes siriEdge {
-  0%   { box-shadow: inset 0 0 0 3px #3b82f6, inset 0 0 60px 18px rgba(59,130,246,0.4),  inset 0 0 120px 40px rgba(168,85,247,0.15); }
-  33%  { box-shadow: inset 0 0 0 3px #a855f7, inset 0 0 60px 18px rgba(168,85,247,0.4),  inset 0 0 120px 40px rgba(236,72,153,0.15); }
-  66%  { box-shadow: inset 0 0 0 3px #ec4899, inset 0 0 60px 18px rgba(236,72,153,0.4),  inset 0 0 120px 40px rgba(59,130,246,0.15); }
-  100% { box-shadow: inset 0 0 0 3px #3b82f6, inset 0 0 60px 18px rgba(59,130,246,0.4),  inset 0 0 120px 40px rgba(168,85,247,0.15); }
-}
-@keyframes siriProcess {
-  0%, 100% { box-shadow: inset 0 0 0 3px #a855f7, inset 0 0 40px 10px rgba(168,85,247,0.5); }
-  50%       { box-shadow: inset 0 0 0 3px #7c3aed, inset 0 0 80px 30px rgba(124,58,237,0.3); }
-}
-@keyframes siriBlip {
-  0%   { transform: scale(0.5); opacity: 0.5; }
-  100% { transform: scale(4);   opacity: 0;   }
-}
-
-/* ── Theme fade transition ────────────────────────────────────────────────── */
-.theme-transitioning,
-.theme-transitioning *,
-.theme-transitioning *::before,
-.theme-transitioning *::after {
-  transition:
-    background-color 0.4s ease,
-    background      0.4s ease,
-    border-color    0.4s ease,
-    color           0.4s ease,
-    fill            0.4s ease,
-    stroke          0.4s ease,
-    box-shadow      0.4s ease !important;
-}
-
-/* ── Pill / toolbar themed styles ─────────────────────────────────────────── */
-.wt-pill {
-  background:      var(--wt-bg);
-  border:          1px solid var(--wt-border);
-  backdrop-filter: var(--wt-backdrop);
-  box-shadow:
-    0 20px 40px rgba(0,0,0,0.28), 0 8px 16px rgba(0,0,0,0.16),
-    inset 0  2px 0 rgba(255, 255, 255, 0.18),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.45),
-    inset  2px 0 0 rgba(255, 255, 255, 0.08),
-    inset -2px 0 0 rgba(0, 0, 0, 0.25);
-}
-
-/* Solid/accent Button — 3D press mechanic */
-.wt-btn-3d {
-  transform:  translateY(-2px);
-  transition: opacity 0.08s, transform 0.08s, box-shadow 0.08s;
-  box-shadow:
-    0 3px 0 rgba(0,0,0,0.40),
-    inset 0 1px 0 rgba(255,255,255,0.16);
-}
-.wt-btn-3d:hover:not(:disabled) {
-  transform:  translateY(-3px);
-  box-shadow:
-    0 4px 0 rgba(0,0,0,0.40),
-    inset 0 1px 0 rgba(255,255,255,0.16);
-}
-.wt-btn-3d:active:not(:disabled) {
-  transform:  translateY(1px);
-  box-shadow: 0 0px 0 rgba(0,0,0,0.40);
-}
-
-/* Icon buttons — 3D press mechanic */
-.wt-ibtn {
-  color:            var(--wt-text);
-  background-color: var(--wt-surface-hover);
-  transform:        translateY(-2px);
-  transition:       background-color 0.08s, color 0.08s, transform 0.08s, box-shadow 0.08s;
-  position:         relative;
-  box-shadow:
-    0 3px 0 rgba(0,0,0,0.45),
-    inset 0 1px 0 rgba(255,255,255,0.22),
-    inset 1px 0 0 rgba(255,255,255,0.14),
-    inset 0 -1px 0 rgba(0,0,0,0.14),
-    inset -1px 0 0 rgba(0,0,0,0.1);
-}
-.wt-ibtn::before {
-  content:        '';
-  position:       absolute;
-  inset:          0;
-  border-radius:  inherit;
-  pointer-events: none;
-  border-top:     3px solid rgba(255,255,255,0.1);
-  border-left:    3px solid rgba(255,255,255,0.07);
-  border-bottom:  3px solid rgba(0,0,0,0.08);
-  border-right:   3px solid rgba(0,0,0,0.06);
-}
-.wt-ibtn:active::before,
-.wt-ibtn-active::before {
-  display: none;
-}
-.wt-ibtn:hover:not(:disabled) {
-  background-color: var(--wt-surface-hover);
-  color:            var(--wt-text);
-  transform:        translateY(-4px);
-  box-shadow:
-    0 5px 0 rgba(0,0,0,0.45),
-    inset 0 1px 0 rgba(255,255,255,0.22),
-    inset 1px 0 0 rgba(255,255,255,0.14),
-    inset 0 -1px 0 rgba(0,0,0,0.14),
-    inset -1px 0 0 rgba(0,0,0,0.1);
-}
-.wt-ibtn:active:not(:disabled) {
-  transform:        translateY(1px);
-  background-color: var(--wt-border);
-  box-shadow:       inset 0 2px 4px rgba(0,0,0,0.12);
-}
-.wt-ibtn:disabled { opacity: 0.2; cursor: not-allowed; }
-.wt-ibtn-active {
-  color:            var(--wt-text);
-  transform:        translateY(1px);
-  background-color: color-mix(in srgb, var(--wt-accent) 15%, var(--wt-border));
-  box-shadow:       inset 0 2px 4px rgba(0,0,0,0.12);
-}
-.wt-ibtn-ghost { color: var(--wt-text-muted); background: transparent; box-shadow: none; transform: none; transition: color 0.12s; }
-.wt-ibtn-ghost:hover { color: var(--wt-text); }
-
-/* Generic nav / inline text button */
-.wt-nav-btn {
-  color: var(--wt-text);
-  transition: background-color 0.12s;
-}
-.wt-nav-btn:hover { background-color: var(--wt-surface-hover); }
-
-/* Inputs */
-.wt-input {
-  background-color: var(--wt-surface);
-  color:            var(--wt-text);
-  border:           1px solid var(--wt-border-active);
-  outline:          none;
-}
-.wt-input::placeholder { color: var(--wt-text-muted); }
-.wt-input:focus { border-color: var(--wt-accent); }
-
-/* Logo / top-left settings button */
-.wt-logo-btn {
-  background-color: var(--wt-bg);
-  border:           1px solid var(--wt-border);
-  box-shadow:       var(--wt-shadow-lg);
-  backdrop-filter:  var(--wt-backdrop);
-  transition:       background-color 0.12s;
-}
-.wt-logo-btn:hover { background-color: var(--wt-surface-hover); }
-
-/* ── Widget frame bezel + animations ───────────────────────────────────────── */
-.wt-widget-frame {
-  position: relative;
-}
-.wt-widget-frame::after {
-  content:        '';
-  position:       absolute;
-  inset:          0;
-  border-radius:  inherit;
-  pointer-events: none;
-  z-index:        10;
-  border-top:     3px solid rgba(255,255,255,0.12);
-  border-left:    3px solid rgba(255,255,255,0.08);
-  border-bottom:  3px solid rgba(0,0,0,0.1);
-  border-right:   3px solid rgba(0,0,0,0.07);
-}
-
-@keyframes wt-entrance {
-  0%   { opacity: 0; transform: scale(0.88); }
-  55%  { opacity: 1; transform: scale(1.03); }
-  75%  { transform: scale(0.985); }
-  100% { transform: scale(1); }
-}
-@keyframes wt-settle {
-  0%   { transform: scale(1); }
-  30%  { transform: scale(1.025); }
-  65%  { transform: scale(0.988); }
-  100% { transform: scale(1); }
-}
-.wt-widget-entrance { animation: wt-entrance 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-.wt-widget-settle   { animation: wt-settle   0.4s  cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-
-@keyframes toolbar-drop-in {
-  0%   { opacity: 0; transform: translateY(-16px) scale(0.82); }
-  55%  { opacity: 1; transform: translateY(4px)   scale(1.05); }
-  75%  { transform: translateY(-2px) scale(0.98); }
-  100% { opacity: 1; transform: translateY(0)     scale(1); }
-}
-.toolbar-drop-in {
-  animation: toolbar-drop-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-}
-
-@keyframes wt-settings-in {
-  from { transform: translateX(100%); }
-  to   { transform: translateX(0); }
-}
-@keyframes wt-settings-out {
-  from { transform: translateX(0); }
-  to   { transform: translateX(100%); }
-}
-
-@keyframes wt-remove {
-  0%   { transform: scale(1);    opacity: 1; filter: brightness(1); }
-  15%  { transform: scale(1.04); opacity: 1; filter: brightness(1.1); }
-  100% { transform: scale(0.75); opacity: 0; filter: brightness(0.8); }
-}
-
-@keyframes wt-flash {
-  0%, 100% { box-shadow: 0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm); }
-  50%       { box-shadow: 0 0 0 3px var(--wt-danger), 0 0 28px 8px rgba(239,68,68,0.25); }
-}
-
-@keyframes voicePulse {
-  0%   { transform: scale(1);    opacity: 0.7; }
-  100% { transform: scale(2.4);  opacity: 0;   }
-}
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0);   }
-}
-@keyframes walli-bubble-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.96); }
-  to   { opacity: 1; transform: translateY(0)    scale(1);    }
-}
-@keyframes walli-typing {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
-  40%           { transform: scale(1);   opacity: 1;   }
-}
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Content fade-out at bottom of scrollable widget areas */
-.wt-content-fade {
-  position:   relative;
-  overflow-y: auto;
-}
-.wt-content-fade::after {
-  content:        '';
-  position:       sticky;
-  bottom:         0;
-  left:           0;
-  right:          0;
-  display:        block;
-  height:         40px;
-  margin-top:     -40px;
-  pointer-events: none;
-  background:     linear-gradient(to bottom, transparent, var(--wt-bg));
-  border-radius:  0 0 inherit inherit;
-}
-
-/* ── Widget action button styles (themed via CSS vars) ─────────────────────── */
-.wt-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
-  color: var(--wt-text-muted);
-  transition: background-color 0.12s, color 0.12s;
-  cursor: pointer;
-  border: none;
-  background: transparent;
-}
-.wt-action-btn:hover {
-  background-color: var(--wt-surface-hover);
-  color: var(--wt-text);
-}
-.wt-action-btn-danger:hover {
-  background-color: var(--wt-surface-danger);
-  color: var(--wt-danger);
-}
-
-/* ── Segmented control ─────────────────────────────────────────────────────── */
-.wt-seg-track { background-color: var(--wt-border); border: 1px solid var(--wt-border-active); }
-.wt-seg-btn   { color: var(--wt-text-muted); transition: color 0.12s; }
-.wt-seg-btn:hover { color: var(--wt-text); }
-.wt-seg-active { background-color: var(--wt-bg); color: var(--wt-text); box-shadow: 0 1px 3px rgba(0,0,0,0.15); }
-
-/* ── List row button (DatabasePicker widget rows) ──────────────────────────── */
-.wt-row-btn { transition: background-color 0.12s; color: inherit; }
-.wt-row-btn:not(:disabled):hover { background-color: var(--wt-surface-hover); }
-.wt-row-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-/* ── Settings panel inside widgets (themed via CSS vars) ───────────────────── */
-.wt-settings-panel {
-  background-color: var(--wt-settings-bg);
-  border-color: var(--wt-settings-border);
-}
-.wt-settings-divider {
-  border-color: var(--wt-settings-divider);
-}
-
-* {
-  box-sizing: border-box;
-}
-
+/* ── App body ────────────────────────────────────────────────────────────────── */
 body {
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif; /* mirrors fontFamily.base token */
+  margin:      0;
+  padding:     0;
+  overflow:    hidden;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
-/* Board slide animations */
+
+/* ── Board navigation animations ────────────────────────────────────────────── */
 @keyframes boardSlideInRight {
   from { opacity: 0; transform: translateX(32px); }
   to   { opacity: 1; transform: translateX(0); }
@@ -362,54 +31,71 @@ body {
 }
 .slide-up { animation: slideUp 0.18s ease-out; }
 
-@keyframes petBob {
-  0%, 100% { transform: scale(1.08) translateY(0); }
-  50%       { transform: scale(1.08) translateY(-4px); }
-}
-
-@keyframes petPopIn {
-  from { opacity: 0; transform: translateX(-50%) scale(0.85); }
-  to   { opacity: 1; transform: translateX(-50%) scale(1); }
-}
-
 @keyframes slideDown {
   from { opacity: 0; transform: translateY(-8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Settings panel animations */
-@keyframes settingsOpenRight {
-  from { opacity: 0; transform: translateX(-10px) scale(0.97); }
-  to   { opacity: 1; transform: translateX(0)     scale(1);    }
+
+/* ── Toolbar ─────────────────────────────────────────────────────────────────── */
+@keyframes toolbar-drop-in {
+  0%   { opacity: 0; transform: translateY(-16px) scale(0.82); }
+  55%  { opacity: 1; transform: translateY(4px)   scale(1.05); }
+  75%  { transform: translateY(-2px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0)     scale(1); }
 }
-@keyframes settingsOpenLeft {
-  from { opacity: 0; transform: translateX(10px)  scale(0.97); }
-  to   { opacity: 1; transform: translateX(0)     scale(1);    }
-}
-@keyframes settingsCloseRight {
-  from { opacity: 1; transform: translateX(0)     scale(1);    }
-  to   { opacity: 0; transform: translateX(-8px)  scale(0.97); }
-}
-@keyframes settingsCloseLeft {
-  from { opacity: 1; transform: translateX(0)     scale(1);    }
-  to   { opacity: 0; transform: translateX(8px)   scale(0.97); }
-}
+.toolbar-drop-in { animation: toolbar-drop-in 0.42s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+
+
+/* ── Settings panel animations ───────────────────────────────────────────────── */
+@keyframes wt-settings-in  { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes wt-settings-out { from { transform: translateX(0); } to { transform: translateX(100%); } }
+
+@keyframes settingsOpenRight  { from { opacity: 0; transform: translateX(-10px) scale(0.97); } to { opacity: 1; transform: translateX(0) scale(1); } }
+@keyframes settingsOpenLeft   { from { opacity: 0; transform: translateX(10px)  scale(0.97); } to { opacity: 1; transform: translateX(0) scale(1); } }
+@keyframes settingsCloseRight { from { opacity: 1; transform: translateX(0)     scale(1);    } to { opacity: 0; transform: translateX(-8px) scale(0.97); } }
+@keyframes settingsCloseLeft  { from { opacity: 1; transform: translateX(0)     scale(1);    } to { opacity: 0; transform: translateX(8px)  scale(0.97); } }
 .settings-open-right  { animation: settingsOpenRight  0.2s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; }
 .settings-open-left   { animation: settingsOpenLeft   0.2s cubic-bezier(0.34, 1.4, 0.64, 1) forwards; }
 .settings-close-right { animation: settingsCloseRight 0.13s ease-in forwards; }
 .settings-close-left  { animation: settingsCloseLeft  0.13s ease-in forwards; }
 
-/* Custom scrollbar for settings panel */
-.settings-scroll { scrollbar-width: thin; scrollbar-color: var(--wt-accent) transparent; }
-.settings-scroll::-webkit-scrollbar       { width: 3px; }
-.settings-scroll::-webkit-scrollbar-track { background: transparent; }
-.settings-scroll::-webkit-scrollbar-thumb { background: var(--wt-accent); border-radius: 2px; opacity: 0.6; }
-.settings-scroll::-webkit-scrollbar-thumb:hover { background: var(--wt-accent); opacity: 1; }
 
-/* Custom scrollbar for note textarea */
-.note-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.15) transparent; }
-.note-scroll::-webkit-scrollbar       { width: 3px; }
-.note-scroll::-webkit-scrollbar-track { background: transparent; }
-.note-scroll::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 2px; }
-.note-scroll::-webkit-scrollbar-thumb:hover { background: rgba(0,0,0,0.25); }
+/* ── AI / voice overlay ─────────────────────────────────────────────────────── */
+@keyframes siriEdge {
+  0%   { box-shadow: inset 0 0 0 3px #3b82f6, inset 0 0 60px 18px rgba(59,130,246,0.4),  inset 0 0 120px 40px rgba(168,85,247,0.15); }
+  33%  { box-shadow: inset 0 0 0 3px #a855f7, inset 0 0 60px 18px rgba(168,85,247,0.4),  inset 0 0 120px 40px rgba(236,72,153,0.15); }
+  66%  { box-shadow: inset 0 0 0 3px #ec4899, inset 0 0 60px 18px rgba(236,72,153,0.4),  inset 0 0 120px 40px rgba(59,130,246,0.15); }
+  100% { box-shadow: inset 0 0 0 3px #3b82f6, inset 0 0 60px 18px rgba(59,130,246,0.4),  inset 0 0 120px 40px rgba(168,85,247,0.15); }
+}
+@keyframes siriProcess {
+  0%, 100% { box-shadow: inset 0 0 0 3px #a855f7, inset 0 0 40px 10px rgba(168,85,247,0.5); }
+  50%       { box-shadow: inset 0 0 0 3px #7c3aed, inset 0 0 80px 30px rgba(124,58,237,0.3); }
+}
+@keyframes siriBlip {
+  0%   { transform: scale(0.5); opacity: 0.5; }
+  100% { transform: scale(4);   opacity: 0;   }
+}
+@keyframes voicePulse {
+  0%   { transform: scale(1);   opacity: 0.7; }
+  100% { transform: scale(2.4); opacity: 0;   }
+}
 
+
+/* ── Walli companion animations ─────────────────────────────────────────────── */
+@keyframes petBob {
+  0%, 100% { transform: scale(1.08) translateY(0); }
+  50%       { transform: scale(1.08) translateY(-4px); }
+}
+@keyframes petPopIn {
+  from { opacity: 0; transform: translateX(-50%) scale(0.85); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1); }
+}
+@keyframes walli-bubble-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+@keyframes walli-typing {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40%           { transform: scale(1);   opacity: 1;   }
+}

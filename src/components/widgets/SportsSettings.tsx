@@ -1,6 +1,6 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { FlexCol } from '../../ui/layouts'
-import { Text, Input } from '../../ui/web'
+import { FlexCol } from '@whiteboard/ui-kit'
+import { Text, Input } from '@whiteboard/ui-kit'
 
 interface SportsWidgetSettings {
   league:       'nfl' | 'nba'

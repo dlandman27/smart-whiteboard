@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNotificationStore } from '../store/notifications'
-import { IconButton, Panel, PanelHeader, Text } from '../ui/web'
+import { IconButton, Panel, PanelHeader, Text } from '@whiteboard/ui-kit'
 
 interface TimerEntry {
   id:         string

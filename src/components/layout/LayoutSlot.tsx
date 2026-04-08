@@ -1,4 +1,4 @@
-import { Icon } from '../../ui/web'
+import { Icon } from '@whiteboard/ui-kit'
 
 export type SlotMode = 'hidden' | 'place' | 'swap'
 

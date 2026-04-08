@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { IconButton, Text, Button, SegmentedControl } from '../../ui/web'
-import { FlexCol, FlexRow, Box, Grid, Center, ScrollArea } from '../../ui/layouts'
+import { IconButton, Text, Button, SegmentedControl } from '@whiteboard/ui-kit'
+import { FlexCol, FlexRow, Box, Grid, Center, ScrollArea } from '@whiteboard/ui-kit'
 import { useGCalEvents, type GCalEvent } from '../../hooks/useGCal'
 import { useWidgetSettings, type WidgetProps } from '@whiteboard/sdk'
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Icon, Text } from '../../ui/web'
-import { FlexCol } from '../../ui/layouts'
+import { Icon, Text } from '@whiteboard/ui-kit'
+import { FlexCol } from '@whiteboard/ui-kit'
 
 export interface QuoteSettings {
   showRefresh: boolean

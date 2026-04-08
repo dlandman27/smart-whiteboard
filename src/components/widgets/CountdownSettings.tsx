@@ -1,6 +1,6 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Checkbox, Input, SettingsSection } from '../../ui/web'
-import { FlexCol } from '../../ui/layouts'
+import { Checkbox, Input, SettingsSection } from '@whiteboard/ui-kit'
+import { FlexCol } from '@whiteboard/ui-kit'
 import { DEFAULT_COUNTDOWN_SETTINGS, type CountdownSettings } from './CountdownWidget'
 
 export function CountdownSettings({ widgetId }: { widgetId: string }) {

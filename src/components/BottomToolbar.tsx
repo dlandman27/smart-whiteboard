@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { soundPanelOpen, soundSwipe, soundClick } from '../lib/sounds'
-import { Icon, IconButton } from '../ui/web'
+import { Icon, IconButton } from '@whiteboard/ui-kit'
 import { DEFAULT_COLOR, DEFAULT_STROKE, DEFAULT_ERASER_SIZE } from '../constants/drawing'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useVoiceStore } from '../store/voice'

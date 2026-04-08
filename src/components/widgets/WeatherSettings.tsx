@@ -1,6 +1,6 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { SegmentedControl, SettingsSection, Toggle } from '../../ui/web'
-import { FlexCol } from '../../ui/layouts'
+import { SegmentedControl, SettingsSection, Toggle } from '@whiteboard/ui-kit'
+import { FlexCol } from '@whiteboard/ui-kit'
 import { DEFAULT_WEATHER_SETTINGS, type WeatherWidgetSettings } from './WeatherWidget'
 import type { WidgetProps } from './registry'
 

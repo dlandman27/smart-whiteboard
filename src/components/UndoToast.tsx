@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useUndoStore } from '../store/undo'
 import { useWhiteboardStore } from '../store/whiteboard'
-import { Icon } from '../ui/web'
+import { Icon } from '@whiteboard/ui-kit'
 
 const UNDO_DURATION = 5000
 

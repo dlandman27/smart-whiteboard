@@ -16,8 +16,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "@whiteboard/sdk": ["./src/sdk/index.ts"]
+      "@whiteboard/sdk":    ["./src/sdk/index.ts"],
+      "@whiteboard/ui-kit": ["./packages/ui-kit/src/index.ts"]
     }
   },
-  "include": ["src"]
+  "include": ["src", "packages"]
 }

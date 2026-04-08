@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Icon } from '../ui/web'
+import { Icon } from '@whiteboard/ui-kit'
 import { useNotificationStore, type Notification } from '../store/notifications'
 import { soundAlert } from '../lib/sounds'
 

@@ -7,8 +7,8 @@ export default defineConfig({
   plugins: [react(), basicSsl()],
   resolve: {
     alias: {
-      // Phase 1: local SDK — swap for npm package in Phase 2 (just delete this alias)
-      '@whiteboard/sdk': path.resolve(__dirname, 'src/sdk/index.ts'),
+      '@whiteboard/sdk':    path.resolve(__dirname, 'src/sdk/index.ts'),
+      '@whiteboard/ui-kit': path.resolve(__dirname, 'packages/ui-kit/src/index.ts'),
     },
   },
   server: {

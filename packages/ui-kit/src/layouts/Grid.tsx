@@ -1,5 +1,5 @@
 import React from 'react'
-import { cn } from '../web/utils/cn'
+import { cn } from '../utils/cn'
 
 export type GridGap = 'none' | 'xs' | 'sm' | 'md' | 'lg' | 'xl'
 

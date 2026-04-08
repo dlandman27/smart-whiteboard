@@ -1,6 +1,6 @@
 import React from 'react'
 import { cn } from './utils/cn'
-import { typography } from '../theme/typography'
+import { typography } from './theme/typography'
 
 export type ButtonVariant = 'solid' | 'outline' | 'ghost' | 'link' | 'accent'
 export type ButtonSize    = 'sm' | 'md' | 'lg'

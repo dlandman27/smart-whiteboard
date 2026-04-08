@@ -1,8 +1,8 @@
-import colors      from './src/ui/tokens/color.json'
-import fontFamily  from './src/ui/tokens/fontFamily.json'
-import fontSizeRaw from './src/ui/tokens/fontSize.json'
-import spaceRaw    from './src/ui/tokens/space.json'
-import radiusRaw   from './src/ui/tokens/radius.json'
+import colors      from './packages/ui-kit/src/tokens/color.json'
+import fontFamily  from './packages/ui-kit/src/tokens/fontFamily.json'
+import fontSizeRaw from './packages/ui-kit/src/tokens/fontSize.json'
+import spaceRaw    from './packages/ui-kit/src/tokens/space.json'
+import radiusRaw   from './packages/ui-kit/src/tokens/radius.json'
 
 // Convert px numbers to rem strings for Tailwind
 const px = (n) => `${n / 16}rem`
@@ -10,11 +10,9 @@ const px = (n) => `${n / 16}rem`
 const fontSize = Object.fromEntries(
   Object.entries(fontSizeRaw).map(([k, v]) => [k, px(v)])
 )
-
 const spacing = Object.fromEntries(
   Object.entries(spaceRaw).map(([k, v]) => [k, px(v)])
 )
-
 const borderRadius = Object.fromEntries(
   Object.entries(radiusRaw).map(([k, v]) => [k, v === 999 ? '9999px' : px(v)])
 )
@@ -24,6 +22,7 @@ export default {
   content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',
+    './packages/ui-kit/src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     extend: {

@@ -3,7 +3,7 @@ import { LAYOUT_PRESETS, getLayoutPreset } from '../../layouts/presets'
 import { useWhiteboardStore } from '../../store/whiteboard'
 import { useLayout, computeSlotRect, TOOLBAR_RESERVED } from '../../hooks/useLayout'
 import { LayoutThumbnail } from './LayoutThumbnail'
-import { Panel, PanelHeader, Slider, Text } from '../../ui/web'
+import { Panel, PanelHeader, Slider, Text } from '@whiteboard/ui-kit'
 
 interface Props {
   onClose: () => void

@@ -1,4 +1,4 @@
-import { Icon, Text } from '../ui/web'
+import { Icon, Text } from '@whiteboard/ui-kit'
 
 export function NetworkStatusBanner() {
   return (

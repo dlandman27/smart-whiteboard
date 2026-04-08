@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Text } from '../../ui/web'
-import { FlexCol, FlexRow } from '../../ui/layouts'
-import { fontFamily } from '../../ui/theme'
+import { Text } from '@whiteboard/ui-kit'
+import { FlexCol, FlexRow } from '@whiteboard/ui-kit'
+import { fontFamily } from '@whiteboard/ui-kit'
 
 export interface CountdownSettings {
   title:      string

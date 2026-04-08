@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { FlexCol } from '../../../ui/layouts'
-import { SettingsSection, SegmentedControl } from '../../../ui/web'
+import { FlexCol } from '@whiteboard/ui-kit'
+import { SettingsSection, SegmentedControl } from '@whiteboard/ui-kit'
 import type { NotionViewSettings, TemplateType } from './types'
 
 const DEFAULTS: NotionViewSettings = {

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { IconButton } from '../ui/web'
+import { IconButton } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { Pill } from './Pill'
 
