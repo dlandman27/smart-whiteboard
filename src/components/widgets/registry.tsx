@@ -1,4 +1,5 @@
 import type { PluginPreference } from '@whiteboard/sdk'
+import type { WidgetConstraints } from '@whiteboard/ui-kit'
 import { ClockWidget } from './ClockWidget'
 import { ClockSettings } from './ClockSettings'
 import { WeatherWidget } from './WeatherWidget'
@@ -34,6 +35,7 @@ export interface StaticWidgetDef {
   keywords:           string[]
   defaultSize:        { width: number; height: number }
   scalable?:          boolean
+  constraints?:       WidgetConstraints
   preferences?:       PluginPreference[]
   component:          React.ComponentType<{ widgetId: string }>
   settingsComponent?: React.ComponentType<{ widgetId: string }>
@@ -50,6 +52,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     iconClass:          'text-stone-500',
     keywords:           ['clock', 'time', 'date'],
     defaultSize:        { width: 320, height: 200 },
+    constraints:        { minWidth: 200, minHeight: 160, maxWidth: 600, maxHeight: 480 },
     component:          ClockWidget,
     settingsComponent:  ClockSettings,
   },
@@ -61,6 +64,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     iconClass:         'text-violet-500',
     keywords:          ['countdown', 'timer', 'deadline', 'birthday', 'vacation', 'event'],
     defaultSize:       { width: 300, height: 240 },
+    constraints:       { minWidth: 200, minHeight: 180, maxWidth: 500, maxHeight: 400 },
     component:         CountdownWidget,
     settingsComponent: CountdownSettings,
   },
@@ -83,6 +87,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     iconClass:         'text-amber-500',
     keywords:          ['weather', 'temperature', 'forecast', 'rain', 'sun'],
     defaultSize:       { width: 300, height: 220 },
+    constraints:       { minWidth: 220, minHeight: 180, maxWidth: 480, maxHeight: 360 },
     component:         WeatherWidget,
     settingsComponent: WeatherSettings,
   },
@@ -94,6 +99,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     iconClass:        'text-orange-500',
     keywords:         ['nfl', 'football', 'scores', 'sports'],
     defaultSize:      { width: 340, height: 420 },
+    constraints:      { minWidth: 280, minHeight: 320, maxWidth: 500, maxHeight: 700 },
     component:        NFLWidget,
     settingsComponent: NFLSettings,
   },
@@ -105,6 +111,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     iconClass:        'text-blue-500',
     keywords:         ['nba', 'basketball', 'scores', 'sports'],
     defaultSize:      { width: 340, height: 420 },
+    constraints:      { minWidth: 280, minHeight: 320, maxWidth: 500, maxHeight: 700 },
     component:        NBAWidget,
     settingsComponent: NBASettings,
   },
@@ -116,6 +123,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     iconClass:   'text-yellow-500',
     keywords:    ['note', 'text', 'memo', 'sticky', 'write'],
     defaultSize: { width: 320, height: 200 },
+    constraints: { minWidth: 160, minHeight: 120, maxWidth: 800, maxHeight: 800 },
     component:   NoteWidget,
   },
   {
@@ -126,6 +134,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     iconClass:         'text-red-500',
     keywords:          ['pomodoro', 'timer', 'focus', 'productivity', 'work', 'break'],
     defaultSize:       { width: 280, height: 340 },
+    constraints:       { minWidth: 240, minHeight: 300, maxWidth: 480, maxHeight: 560 },
     component:         PomodoroWidget,
     settingsComponent: PomodoroSettings,
   },
@@ -202,6 +211,7 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     iconClass:   'text-orange-500',
     keywords:    ['timer', 'alarm', 'reminder', 'countdown', 'alert'],
     defaultSize: { width: 300, height: 320 },
+    constraints: { minWidth: 240, minHeight: 240, maxWidth: 600, maxHeight: 700 },
     component:   TimersWidget,
   },
   {

@@ -47,7 +47,14 @@
       "Bash(node:*)",
       "Bash(git mv:*)",
       "Bash(git rm:*)",
-      "Bash(./node_modules/.bin/tsc --noEmit)"
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "mcp__claude_ai_Linear__research",
+      "mcp__claude_ai_Linear__list_issues",
+      "Bash(npm run:*)",
+      "mcp__claude_ai_Linear__save_issue",
+      "Bash(git add:*)",
+      "Bash(ls \"C:/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/.eslintrc\"*)",
+      "Bash(ls \"C:/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/eslint.config\"*)"
     ]
   }
 }

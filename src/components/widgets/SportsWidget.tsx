@@ -1,6 +1,6 @@
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { useNFLScores, useNBAScores } from '../../hooks/useSports'
-import { Center, FlexCol, FlexRow, Box, ScrollArea } from '@whiteboard/ui-kit'
+import { Center, FlexCol, FlexRow, Box, ScrollArea, Container } from '@whiteboard/ui-kit'
 import { Text } from '@whiteboard/ui-kit'
 import type { Game } from '../../hooks/useSports'
 
@@ -159,10 +159,10 @@ function SportsShell({ league, settings }: { league: League; settings: SportsWid
 
 export function NFLWidget({ widgetId }: { widgetId: string }) {
   const [settings] = useWidgetSettings<SportsWidgetSettings>(widgetId, NFL_DEFAULTS)
-  return <SportsShell league="nfl" settings={settings} />
+  return <Container><SportsShell league="nfl" settings={settings} /></Container>
 }
 
 export function NBAWidget({ widgetId }: { widgetId: string }) {
   const [settings] = useWidgetSettings<SportsWidgetSettings>(widgetId, NBA_DEFAULTS)
-  return <SportsShell league="nba" settings={settings} />
+  return <Container><SportsShell league="nba" settings={settings} /></Container>
 }

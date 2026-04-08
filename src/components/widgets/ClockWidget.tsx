@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { fontFamily } from '@whiteboard/ui-kit'
+import { Container, useWidgetSizeContext, fontFamily } from '@whiteboard/ui-kit'
 import type { WidgetProps } from './registry'
 
 export interface ClockWidgetSettings {
@@ -246,11 +246,13 @@ function DateDisplay({ timezone, containerW }: { timezone: string; containerW: n
 // ── Widget ────────────────────────────────────────────────────────────────────
 
 export function ClockWidget({ widgetId }: WidgetProps) {
+  return <Container><ClockContent widgetId={widgetId} /></Container>
+}
+
+function ClockContent({ widgetId }: WidgetProps) {
   const [settings] = useWidgetSettings<ClockWidgetSettings>(widgetId, DEFAULT_CLOCK_SETTINGS)
   const [tick,     setTick]     = useState(0)
-  const [containerW, setContainerW] = useState(320)
-  const [containerH, setContainerH] = useState(200)
-  const containerRef = useRef<HTMLDivElement>(null)
+  const { containerWidth: containerW, containerHeight: containerH } = useWidgetSizeContext()
   const rafRef = useRef<number | null>(null)
 
   // Use rAF for smooth analog second hand; tick every ~16ms
@@ -265,18 +267,6 @@ export function ClockWidget({ widgetId }: WidgetProps) {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
   }, [])
 
-  // Measure container for responsive sizing
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const ro = new ResizeObserver(([entry]) => {
-      setContainerW(entry.contentRect.width)
-      setContainerH(entry.contentRect.height)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
   void tick  // consumed by rAF to trigger re-renders
   const { h, m, s, ms } = getTimeParts(settings.timezone)
   const tzLabel = settings.showTimezone ? getTzLabel(settings.timezone) : ''
@@ -285,19 +275,14 @@ export function ClockWidget({ widgetId }: WidgetProps) {
   const analogSize = Math.min(containerW * 0.78, containerH * (settings.showDate ? 0.6 : 0.78))
 
   return (
-    <div
-      ref={containerRef}
+    <Container
       style={{
-        width:          '100%',
-        height:         '100%',
         display:        'flex',
         flexDirection:  'column',
         alignItems:     'center',
         justifyContent: 'center',
         gap:            Math.round(containerH * 0.05),
         padding:        '12px 16px',
-        userSelect:     'none',
-        boxSizing:      'border-box',
       }}
     >
       {settings.display === 'analog' ? (
@@ -326,6 +311,6 @@ export function ClockWidget({ widgetId }: WidgetProps) {
           {tzLabel}
         </div>
       )}
-    </div>
+    </Container>
   )
 }
