@@ -54,7 +54,8 @@
       "mcp__claude_ai_Linear__save_issue",
       "Bash(git add:*)",
       "Bash(ls \"C:/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/.eslintrc\"*)",
-      "Bash(ls \"C:/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/eslint.config\"*)"
+      "Bash(ls \"C:/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/eslint.config\"*)",
+      "Bash(python3 -c \"import json,sys; data=json.load\\(sys.stdin\\); issues=json.loads\\(data[0]['text']\\)['issues']; [print\\(i['id'], '-', i['title'][:80]\\) for i in issues]\")"
     ]
   }
 }

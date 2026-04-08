@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Text, Container } from '@whiteboard/ui-kit'
-import { FlexCol, FlexRow } from '@whiteboard/ui-kit'
-import { fontFamily } from '@whiteboard/ui-kit'
+import { Text, Container, FlexCol, FlexRow, fontFamily, useWidgetSizeContext } from '@whiteboard/ui-kit'
 
 export interface CountdownSettings {
   title:      string
@@ -51,6 +49,7 @@ export function CountdownWidget({ widgetId }: { widgetId: string }) {
 function CountdownContent({ widgetId }: { widgetId: string }) {
   const [settings] = useWidgetSettings<CountdownSettings>(widgetId, DEFAULT_COUNTDOWN_SETTINGS)
   const [, tick]   = useState(0)
+  const { containerWidth: containerW, containerHeight: containerH } = useWidgetSizeContext()
 
   useEffect(() => {
     const id = setInterval(() => tick((n) => n + 1), 1000)
@@ -61,8 +60,13 @@ function CountdownContent({ widgetId }: { widgetId: string }) {
   const isPast  = delta !== null && delta.total < 0
   const isToday = delta !== null && Math.abs(delta.total) < 86_400_000 && !isPast
 
+  // Scale the big number to fill available space
+  const daysSize = Math.max(48, Math.min(Math.round(containerW * 0.42), Math.round(containerH * 0.38), 140))
+  const unitSize = Math.max(14, Math.round(daysSize * 0.28))
+  const subSize  = Math.max(12, Math.round(containerW * 0.065))
+
   return (
-    <FlexCol align="center" justify="center" fullHeight noSelect className="gap-3 px-5">
+    <FlexCol align="center" justify="center" fullHeight noSelect className="gap-2 px-5">
       <Text
         variant="label"
         size="small"
@@ -76,8 +80,8 @@ function CountdownContent({ widgetId }: { widgetId: string }) {
       {!settings.targetDate ? (
         <Text variant="body" size="small" color="muted">Set a date in settings</Text>
       ) : isToday ? (
-        <FlexCol align="center" className="gap-1">
-          <Text as="span" style={{ fontSize: '48px' }}>🎉</Text>
+        <FlexCol align="center" gap="xs">
+          <Text as="span" style={{ fontSize: Math.round(daysSize * 0.5) }}>🎉</Text>
           <Text variant="heading" size="large" color="accent">Today!</Text>
         </FlexCol>
       ) : (
@@ -85,13 +89,11 @@ function CountdownContent({ widgetId }: { widgetId: string }) {
           <FlexRow align="baseline" justify="center" className="gap-1.5">
             <Text
               as="span"
-              variant="display"
-              size="large"
-              style={{ fontSize: '96px', fontWeight: '100', lineHeight: '1', fontVariantNumeric: 'tabular-nums' }}
+              style={{ fontSize: daysSize, fontWeight: '100', lineHeight: '1', fontVariantNumeric: 'tabular-nums' }}
             >
               {delta!.days}
             </Text>
-            <Text as="span" variant="body" size="large" color="muted" style={{ fontWeight: '300' }}>
+            <Text as="span" color="muted" style={{ fontSize: unitSize, fontWeight: '300' }}>
               {isPast
                 ? (delta!.days === 1 ? 'day ago' : 'days ago')
                 : (delta!.days === 1 ? 'day' : 'days')}
@@ -100,10 +102,8 @@ function CountdownContent({ widgetId }: { widgetId: string }) {
 
           {settings.showTime && delta && (
             <Text
-              variant="heading"
-              size="small"
               color="muted"
-              style={{ fontFamily: fontFamily.mono, fontWeight: '300', fontVariantNumeric: 'tabular-nums' }}
+              style={{ fontSize: subSize, fontFamily: fontFamily.mono, fontWeight: '300', fontVariantNumeric: 'tabular-nums' }}
             >
               {pad(delta.hours)}:{pad(delta.minutes)}:{pad(delta.seconds)}
             </Text>

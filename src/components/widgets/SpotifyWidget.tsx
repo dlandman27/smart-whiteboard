@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import {
   Container, Center, FlexCol, FlexRow, Text,
-  Input, SettingsSection, Button, Icon,
+  Input, SettingsSection, Button, Icon, useWidgetSizeContext,
 } from '@whiteboard/ui-kit'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -51,6 +51,15 @@ async function spotifyFetch(path: string, method = 'GET', body?: object) {
 // ── Widget ────────────────────────────────────────────────────────────────────
 
 export function SpotifyWidget({ widgetId }: { widgetId: string }) {
+  return (
+    <Container style={{ background: 'var(--wt-bg)', borderRadius: 'inherit', overflow: 'hidden', position: 'relative' }}>
+      <SpotifyContent widgetId={widgetId} />
+    </Container>
+  )
+}
+
+function SpotifyContent({ widgetId }: { widgetId: string }) {
+  const { containerWidth: containerW, containerHeight: containerH } = useWidgetSizeContext()
   const [settings] = useWidgetSettings<SpotifyWidgetSettings>(widgetId, DEFAULT_SETTINGS)
   const [connected, setConnected]     = useState<boolean | null>(null)
   const [track,     setTrack]         = useState<NowPlaying | null>(null)
@@ -118,18 +127,12 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
   }
 
   // ── Not yet checked ──
-  if (connected === null) {
-    return (
-      <Center fullHeight style={{ background: 'var(--wt-bg)' }}>
-        <Spinner />
-      </Center>
-    )
-  }
+  if (connected === null) return <Center fullHeight><Spinner /></Center>
 
   // ── Not configured ──
   if (!settings.clientId || !settings.clientSecret) {
     return (
-      <Center fullHeight gap="sm" style={{ background: 'var(--wt-bg)' }}>
+      <Center fullHeight gap="sm">
         <SpotifyIcon size={36} />
         <Text variant="body" size="small" color="muted" align="center">
           Open settings to connect{'\n'}your Spotify account
@@ -141,15 +144,11 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
   // ── Not authenticated ──
   if (!connected) {
     return (
-      <Center fullHeight gap="sm" style={{ background: 'var(--wt-bg)' }}>
+      <Center fullHeight gap="sm">
         <SpotifyIcon size={36} />
         <button
           onClick={startAuth}
-          style={{
-            padding: '8px 20px', borderRadius: 20,
-            background: '#1DB954', color: '#fff', border: 'none',
-            fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}
+          style={{ padding: '8px 20px', borderRadius: 20, background: '#1DB954', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
         >
           Connect Spotify
         </button>
@@ -160,7 +159,7 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
   // ── Nothing playing ──
   if (!track) {
     return (
-      <Center fullHeight gap="sm" style={{ background: 'var(--wt-bg)' }}>
+      <Center fullHeight gap="sm">
         <SpotifyIcon size={32} />
         <Text variant="body" size="small" color="muted">Nothing playing</Text>
       </Center>
@@ -170,6 +169,8 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
   const pct    = track.durationMs > 0 ? (progress / track.durationMs) * 100 : 0
   const hasArt = !!track.albumArt
 
+  // Scale album art to fill available space
+  const artSize            = Math.max(72, Math.min(Math.round(containerW * 0.5), Math.round(containerH * 0.3), 180))
   const textColor          = hasArt ? '#fff'                   : 'var(--wt-text)'
   const textMutedColor     = hasArt ? 'rgba(255,255,255,0.7)'  : 'var(--wt-text-muted)'
   const timeColor          = hasArt ? 'rgba(255,255,255,0.5)'  : 'var(--wt-text-muted)'
@@ -178,7 +179,7 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
   const ctrlSecondaryColor = hasArt ? '#fff'                   : 'var(--wt-text)'
 
   return (
-    <Container style={{ background: 'var(--wt-bg)', borderRadius: 'inherit', overflow: 'hidden', position: 'relative' }}>
+    <>
       {/* Blurred album art backdrop */}
       {track.albumArt && (
         <div style={{
@@ -196,11 +197,11 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
           <img
             src={track.albumArt}
             alt={track.album}
-            style={{ width: 96, height: 96, borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)', flexShrink: 0 }}
+            style={{ width: artSize, height: artSize, borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)', flexShrink: 0 }}
           />
         ) : (
-          <Center style={{ width: 96, height: 96, borderRadius: 8, background: 'var(--wt-surface)' }}>
-            <SpotifyIcon size={40} />
+          <Center style={{ width: artSize, height: artSize, borderRadius: 8, background: 'var(--wt-surface)' }}>
+            <SpotifyIcon size={Math.round(artSize * 0.42)} />
           </Center>
         )}
 
@@ -240,16 +241,10 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
           <CtrlBtn onClick={() => control('previous')} title="Previous" bg={ctrlSecondaryBg} color={ctrlSecondaryColor}>
             <Icon icon="SkipBack" size={16} weight="fill" />
           </CtrlBtn>
-          <CtrlBtn
-            onClick={() => control(track.isPlaying ? 'pause' : 'play')}
-            large
-            title={track.isPlaying ? 'Pause' : 'Play'}
-            bg="#1DB954"
-            color="#fff"
-          >
+          <CtrlBtn onClick={() => control(track.isPlaying ? 'pause' : 'play')} large title={track.isPlaying ? 'Pause' : 'Play'} bg="#1DB954" color="#fff">
             {track.isPlaying
-              ? <Icon icon="Pause"  size={18} weight="fill" />
-              : <Icon icon="Play"   size={18} weight="fill" style={{ marginLeft: 2 }} />
+              ? <Icon icon="Pause" size={18} weight="fill" />
+              : <Icon icon="Play"  size={18} weight="fill" style={{ marginLeft: 2 }} />
             }
           </CtrlBtn>
           <CtrlBtn onClick={() => control('next')} title="Next" bg={ctrlSecondaryBg} color={ctrlSecondaryColor}>
@@ -257,7 +252,7 @@ export function SpotifyWidget({ widgetId }: { widgetId: string }) {
           </CtrlBtn>
         </FlexRow>
       </FlexCol>
-    </Container>
+    </>
   )
 }
 

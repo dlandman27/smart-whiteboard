@@ -49,7 +49,7 @@ function unitSymbol(unit: WeatherWidgetSettings['unit']) {
 
 export function WeatherWidget({ widgetId }: WidgetProps) {
   return (
-    <Container className="flex flex-col justify-between p-4">
+    <Container className="flex flex-col justify-between p-4 overflow-hidden">
       <WeatherContent widgetId={widgetId} />
     </Container>
   )
@@ -111,11 +111,11 @@ function WeatherContent({ widgetId }: WidgetProps) {
     <>
       {/* Top: city name + weather icon */}
       <FlexRow justify="between" align="start">
-        <FlexCol gap="none">
-          <Text as="span" style={{ fontSize: citySize, fontWeight: 600, fontFamily: fontFamily.base, lineHeight: 1.2 }}>
+        <FlexCol gap="none" style={{ minWidth: 0, flex: 1, marginRight: 8 }}>
+          <Text as="span" style={{ fontSize: citySize, fontWeight: 600, fontFamily: fontFamily.base, lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {data.city}
           </Text>
-          <Text as="span" color="muted" style={{ fontSize: labelSize, fontFamily: fontFamily.base, lineHeight: 1.3, marginTop: 3 }}>
+          <Text as="span" color="muted" style={{ fontSize: labelSize, fontFamily: fontFamily.base, lineHeight: 1.3, marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {label}
           </Text>
         </FlexCol>

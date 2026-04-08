@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Icon, IconButton, Container, Text, Input, SettingsSection, FlexCol, FlexRow } from '@whiteboard/ui-kit'
+import { Icon, IconButton, Container, Text, Input, SettingsSection, FlexCol, FlexRow, useWidgetSizeContext } from '@whiteboard/ui-kit'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { useNotificationStore } from '../../store/notifications'
 
@@ -124,19 +124,27 @@ function PomodoroContent({ widgetId }: { widgetId: string }) {
     setTimeLeft(settingsRef.current.workMinutes * 60)
   }
 
+  const { containerWidth: containerW, containerHeight: containerH } = useWidgetSizeContext()
+
   const total    = phaseDuration(phase, settings)
   const progress = 1 - timeLeft / total
   const minutes  = Math.floor(timeLeft / 60)
   const seconds  = timeLeft % 60
   const color    = PHASE_COLORS[phase]
 
-  // SVG ring
-  const R         = 56
-  const CIRC      = 2 * Math.PI * R
+  // Scale ring to fill available space
+  const ringSize   = Math.max(80, Math.min(containerW * 0.62, containerH * 0.44, 240))
+  const R          = ringSize * 0.4
+  const CIRC       = 2 * Math.PI * R
   const dashOffset = CIRC * (1 - progress)
+  const timeSize   = Math.max(18, Math.round(ringSize * 0.22))
+  const playSize   = Math.max(36, Math.round(ringSize * 0.38))
+  const iconSize   = Math.max(14, Math.round(playSize * 0.42))
+  const cx         = ringSize / 2
+  const cy         = ringSize / 2
 
   return (
-    <FlexCol align="center" justify="center" fullHeight noSelect className="gap-4 px-5">
+    <FlexCol align="center" justify="center" fullHeight noSelect className="gap-3 px-5">
 
       {/* Phase label */}
       <Text
@@ -151,13 +159,13 @@ function PomodoroContent({ widgetId }: { widgetId: string }) {
 
       {/* Ring + time */}
       <div className="relative flex items-center justify-center">
-        <svg width={140} height={140} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={70} cy={70} r={R} fill="none" stroke="var(--wt-surface-subtle)" strokeWidth={6} />
+        <svg width={ringSize} height={ringSize} style={{ transform: 'rotate(-90deg)' }}>
+          <circle cx={cx} cy={cy} r={R} fill="none" stroke="var(--wt-surface-subtle)" strokeWidth={Math.max(4, ringSize * 0.043)} />
           <circle
-            cx={70} cy={70} r={R}
+            cx={cx} cy={cy} r={R}
             fill="none"
             stroke={color}
-            strokeWidth={6}
+            strokeWidth={Math.max(4, ringSize * 0.043)}
             strokeLinecap="round"
             strokeDasharray={CIRC}
             strokeDashoffset={dashOffset}
@@ -165,10 +173,8 @@ function PomodoroContent({ widgetId }: { widgetId: string }) {
           />
         </svg>
         <Text
-          variant="heading"
-          size="large"
           className="absolute font-mono font-light tabular-nums"
-          style={{ fontSize: 32, letterSpacing: '0.02em' }}
+          style={{ fontSize: timeSize, letterSpacing: '0.02em' }}
         >
           {pad(minutes)}:{pad(seconds)}
         </Text>
@@ -188,7 +194,7 @@ function PomodoroContent({ widgetId }: { widgetId: string }) {
           <button
             className="flex items-center justify-center rounded-full cursor-pointer"
             style={{
-              width: 52, height: 52,
+              width: playSize, height: playSize,
               backgroundColor: color,
               color: 'var(--wt-accent-text)',
               border: 'none',
@@ -199,8 +205,8 @@ function PomodoroContent({ widgetId }: { widgetId: string }) {
             onClick={() => setRunning((r) => !r)}
           >
             {running
-              ? <Icon icon="Pause" size={22} weight="fill" />
-              : <Icon icon="Play"  size={22} weight="fill" style={{ marginLeft: 2 }} />
+              ? <Icon icon="Pause" size={iconSize} weight="fill" />
+              : <Icon icon="Play"  size={iconSize} weight="fill" style={{ marginLeft: 2 }} />
             }
           </button>
           <IconButton
