@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { Container, useWidgetSizeContext, fontFamily } from '@whiteboard/ui-kit'
+import { Container, useWidgetSizeContext, fontFamily, FlexRow, FlexCol, Text } from '@whiteboard/ui-kit'
 import type { WidgetProps } from './registry'
 
 export interface ClockWidgetSettings {
@@ -172,55 +172,60 @@ function DigitalFace({ h, m, s, settings, containerW }: {
   const ampmSize = Math.max(11, Math.round(containerW * 0.065))
 
   return (
-    <div
-      style={{
-        display:        'flex',
-        alignItems:     'baseline',
-        justifyContent: 'center',
-        gap:            Math.round(containerW * 0.02),
-      }}
+    <FlexRow
+      align="baseline"
+      justify="center"
+      style={{ gap: Math.round(containerW * 0.02) }}
     >
-      <span style={{
-        fontSize:            timeSize,
-        lineHeight:          1,
-        fontFamily:          ff,
-        fontWeight:          fw,
-        fontVariantNumeric:  'tabular-nums',
-        color:               'var(--wt-text)',
-        letterSpacing:       font === 'mono' ? '-0.02em' : '-0.03em',
-      }}>
+      <Text
+        as="span"
+        style={{
+          fontSize:           timeSize,
+          lineHeight:         1,
+          fontFamily:         ff,
+          fontWeight:         fw,
+          fontVariantNumeric: 'tabular-nums',
+          letterSpacing:      font === 'mono' ? '-0.02em' : '-0.03em',
+        }}
+      >
         {pad(displayH)}:{pad(m)}
-      </span>
+      </Text>
 
       {(showSeconds || !use24h) && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 2, paddingBottom: 2 }}>
+        <FlexCol align="start" style={{ gap: 2, paddingBottom: 2 }}>
           {showSeconds && (
-            <span style={{
-              fontSize:           subSize,
-              lineHeight:         1,
-              fontFamily:         ff,
-              fontWeight:         fw,
-              fontVariantNumeric: 'tabular-nums',
-              color:              'var(--wt-text-muted)',
-            }}>
+            <Text
+              as="span"
+              color="muted"
+              style={{
+                fontSize:           subSize,
+                lineHeight:         1,
+                fontFamily:         ff,
+                fontWeight:         fw,
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
               {pad(s)}
-            </span>
+            </Text>
           )}
           {!use24h && (
-            <span style={{
-              fontSize:   ampmSize,
-              lineHeight: 1,
-              fontFamily: fontFamily.base,
-              fontWeight: '500',
-              color:      'var(--wt-text-muted)',
-              letterSpacing: '0.04em',
-            }}>
+            <Text
+              as="span"
+              color="muted"
+              style={{
+                fontSize:      ampmSize,
+                lineHeight:    1,
+                fontFamily:    fontFamily.base,
+                fontWeight:    '500',
+                letterSpacing: '0.04em',
+              }}
+            >
               {ampm}
-            </span>
+            </Text>
           )}
-        </div>
+        </FlexCol>
       )}
-    </div>
+    </FlexRow>
   )
 }
 
@@ -232,14 +237,14 @@ function DateDisplay({ timezone, containerW }: { timezone: string; containerW: n
   const dateSize = Math.max(10, Math.round(containerW * 0.045))
 
   return (
-    <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: daySize, fontWeight: 500, fontFamily: fontFamily.base, color: 'var(--wt-text-muted)', lineHeight: 1.3 }}>
+    <FlexCol align="center" gap="none">
+      <Text as="span" color="muted" style={{ fontSize: daySize, fontWeight: 500, fontFamily: fontFamily.base, lineHeight: 1.3 }}>
         {dayName}
-      </div>
-      <div style={{ fontSize: dateSize, fontWeight: 400, fontFamily: fontFamily.base, color: 'var(--wt-text-muted)', opacity: 0.65, lineHeight: 1.3 }}>
+      </Text>
+      <Text as="span" color="muted" style={{ fontSize: dateSize, fontWeight: 400, fontFamily: fontFamily.base, opacity: 0.65, lineHeight: 1.3 }}>
         {dateStr}
-      </div>
-    </div>
+      </Text>
+    </FlexCol>
   )
 }
 
@@ -276,14 +281,8 @@ function ClockContent({ widgetId }: WidgetProps) {
 
   return (
     <Container
-      style={{
-        display:        'flex',
-        flexDirection:  'column',
-        alignItems:     'center',
-        justifyContent: 'center',
-        gap:            Math.round(containerH * 0.05),
-        padding:        '12px 16px',
-      }}
+      className="flex flex-col items-center justify-center px-4 py-3"
+      style={{ gap: Math.round(containerH * 0.05) }}
     >
       {settings.display === 'analog' ? (
         <div style={{ width: analogSize, height: analogSize, flexShrink: 0 }}>
@@ -298,18 +297,21 @@ function ClockContent({ widgetId }: WidgetProps) {
       )}
 
       {tzLabel && (
-        <div style={{
-          fontSize:      Math.max(9, Math.round(containerW * 0.04)),
-          fontWeight:    500,
-          fontFamily:    fontFamily.base,
-          color:         'var(--wt-accent)',
-          letterSpacing: '0.06em',
-          textTransform: 'uppercase',
-          opacity:       0.8,
-          lineHeight:    1,
-        }}>
+        <Text
+          as="span"
+          color="accent"
+          textTransform="uppercase"
+          style={{
+            fontSize:      Math.max(9, Math.round(containerW * 0.04)),
+            fontWeight:    500,
+            fontFamily:    fontFamily.base,
+            letterSpacing: '0.06em',
+            opacity:       0.8,
+            lineHeight:    1,
+          }}
+        >
           {tzLabel}
-        </div>
+        </Text>
       )}
     </Container>
   )

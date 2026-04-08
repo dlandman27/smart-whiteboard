@@ -112,63 +112,55 @@ function WeatherContent({ widgetId }: WidgetProps) {
       {/* Top: city name + weather icon */}
       <FlexRow justify="between" align="start">
         <FlexCol gap="none">
-          <span style={{ fontSize: citySize, fontWeight: 600, fontFamily: fontFamily.base, color: 'var(--wt-text)', lineHeight: 1.2 }}>
+          <Text as="span" style={{ fontSize: citySize, fontWeight: 600, fontFamily: fontFamily.base, lineHeight: 1.2 }}>
             {data.city}
-          </span>
-          <span style={{ fontSize: labelSize, fontWeight: 400, fontFamily: fontFamily.base, color: 'var(--wt-text-muted)', lineHeight: 1.3, marginTop: 3 }}>
+          </Text>
+          <Text as="span" color="muted" style={{ fontSize: labelSize, fontFamily: fontFamily.base, lineHeight: 1.3, marginTop: 3 }}>
             {label}
-          </span>
+          </Text>
         </FlexCol>
         <Icon icon={icon} size={iconSize} style={{ color, flexShrink: 0 }} weight="duotone" />
       </FlexRow>
 
       {/* Middle: temperature */}
       <FlexRow align="baseline" className="gap-0.5">
-        <span style={{ fontSize: tempSize, lineHeight: 1, fontFamily: fontFamily.base, fontWeight: '300', fontVariantNumeric: 'tabular-nums', color: 'var(--wt-text)', letterSpacing: '-0.03em' }}>
+        <Text as="span" style={{ fontSize: tempSize, lineHeight: 1, fontFamily: fontFamily.base, fontWeight: '300', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>
           {data.temperature}
-        </span>
-        <span style={{ fontSize: unitSize, fontFamily: fontFamily.base, fontWeight: '400', color: 'var(--wt-text-muted)', marginBottom: Math.round(unitSize * 0.2) }}>
+        </Text>
+        <Text as="span" color="muted" style={{ fontSize: unitSize, fontFamily: fontFamily.base, fontWeight: '400', marginBottom: Math.round(unitSize * 0.2) }}>
           {sym}
-        </span>
+        </Text>
       </FlexRow>
 
       {/* Feels like */}
       {settings.showFeelsLike && (
-        <span style={{ fontSize: detailSize, fontFamily: fontFamily.base, fontWeight: 400, color: 'var(--wt-text-muted)', marginTop: -4 }}>
+        <Text as="span" color="muted" style={{ fontSize: detailSize, fontFamily: fontFamily.base, marginTop: -4 }}>
           Feels like {data.apparentTemperature}{sym}
           {Math.abs(tempDiff) >= 3 && (
-            <span style={{ marginLeft: 4, opacity: 0.6 }}>
+            <Text as="span" color="muted" style={{ marginLeft: 4, opacity: 0.6 }}>
               ({tempDiff > 0 ? 'warmer' : 'colder'})
-            </span>
+            </Text>
           )}
-        </span>
+        </Text>
       )}
 
       {/* Bottom: H/L + humidity/wind */}
       <FlexRow justify="between" align="center">
         <FlexRow align="center" className="gap-2">
-          <span style={{ fontSize: detailSize, fontFamily: fontFamily.base, fontWeight: 500, color: 'var(--wt-text-muted)' }}>
-            H: {data.tempMax}{sym}
-          </span>
-          <span style={{ fontSize: detailSize, fontFamily: fontFamily.base, fontWeight: 500, color: 'var(--wt-text-muted)' }}>
-            L: {data.tempMin}{sym}
-          </span>
+          <Text as="span" color="muted" style={{ fontSize: detailSize, fontFamily: fontFamily.base, fontWeight: 500 }}>H: {data.tempMax}{sym}</Text>
+          <Text as="span" color="muted" style={{ fontSize: detailSize, fontFamily: fontFamily.base, fontWeight: 500 }}>L: {data.tempMin}{sym}</Text>
         </FlexRow>
         <FlexRow align="center" className="gap-2.5">
           {settings.showHumidity && (
             <FlexRow align="center" className="gap-0.5">
               <Icon icon="Drop" size={Math.max(10, detailSize - 1)} style={{ color: 'var(--wt-text-muted)' }} />
-              <span style={{ fontSize: detailSize, fontFamily: fontFamily.base, color: 'var(--wt-text-muted)' }}>
-                {data.humidity}%
-              </span>
+              <Text as="span" color="muted" style={{ fontSize: detailSize, fontFamily: fontFamily.base }}>{data.humidity}%</Text>
             </FlexRow>
           )}
           {settings.showWind && (
             <FlexRow align="center" className="gap-0.5">
               <Icon icon="Wind" size={Math.max(10, detailSize - 1)} style={{ color: 'var(--wt-text-muted)' }} />
-              <span style={{ fontSize: detailSize, fontFamily: fontFamily.base, color: 'var(--wt-text-muted)' }}>
-                {data.windSpeed} {windUnitLabel}
-              </span>
+              <Text as="span" color="muted" style={{ fontSize: detailSize, fontFamily: fontFamily.base }}>{data.windSpeed} {windUnitLabel}</Text>
             </FlexRow>
           )}
         </FlexRow>

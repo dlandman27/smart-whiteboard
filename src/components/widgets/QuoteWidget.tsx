@@ -94,17 +94,15 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
   return (
     <Container className="relative">
       {settings.showRefresh && (
-        <div className="absolute top-3 right-3 z-[1]">
-          <IconButton
-            icon="ArrowsClockwise"
-            size="sm"
-            variant="ghost"
-            className="opacity-25 hover:opacity-70 transition-opacity"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={() => load(true)}
-            title="New quote"
-          />
-        </div>
+        <IconButton
+          icon="ArrowsClockwise"
+          size="sm"
+          variant="ghost"
+          className="absolute top-3 right-3 z-[1] opacity-25 hover:opacity-70 transition-opacity"
+          onMouseDown={(e) => e.stopPropagation()}
+          onClick={() => load(true)}
+          title="New quote"
+        />
       )}
 
       <FlexCol justify="center" align={flexAlign} fullHeight noSelect gap="md" className="px-6 py-5">

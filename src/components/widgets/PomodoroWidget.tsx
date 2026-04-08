@@ -254,12 +254,12 @@ export function PomodoroSettings({ widgetId }: { widgetId: string }) {
 
   return (
     <SettingsSection label="Durations">
-      <div className="space-y-3">
+      <FlexCol gap="sm">
         {field('Focus (minutes)',           'workMinutes',           1, 120)}
         {field('Short break (minutes)',     'breakMinutes',          1, 60)}
         {field('Long break (minutes)',      'longBreakMinutes',      1, 60)}
         {field('Cycles before long break',  'cyclesBeforeLongBreak', 1, 10)}
-      </div>
+      </FlexCol>
     </SettingsSection>
   )
 }
