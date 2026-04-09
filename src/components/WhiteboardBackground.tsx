@@ -66,7 +66,7 @@ export function WhiteboardBackground({ background, children }: Props) {
   const dim = background.pattern === 'image' ? (background.imageDim ?? 0) : 0
 
   return (
-    <div className="relative w-screen h-screen" style={{ ...getBgStyle(background, themeBg), transition: 'background-color 0.4s ease, background 0.4s ease' }}>
+    <div className="relative w-full h-full" style={{ ...getBgStyle(background, themeBg), transition: 'background-color 0.4s ease, background 0.4s ease' }}>
       {/* Dim overlay for image backgrounds */}
       {dim > 0 && (
         <div

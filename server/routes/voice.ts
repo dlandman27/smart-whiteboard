@@ -7,12 +7,75 @@ import { getBoardSnapshot } from '../services/board-utils.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
 import { normalizeTtsText } from '../services/tts-normalize.js'
 
+// ── Domain classifier ─────────────────────────────────────────────────────────
+
+type AgentDomain = 'health' | 'tasks' | 'habits' | 'calendar' | 'brief' | null
+
+function classifyAgentDomain(text: string): AgentDomain {
+  const t = text.toLowerCase()
+
+  if (['brief me', 'morning brief', 'daily summary', 'what do i need to know'].some(kw => t.includes(kw)))
+    return 'brief'
+
+  if (['step', 'steps', 'walk', 'exercise', 'workout', 'weight', 'calories',
+       'heart rate', 'health', 'fitness', 'active energy', 'apollo'].some(kw => t.includes(kw)))
+    return 'health'
+
+  if (['task', 'tasks', 'todo', 'to-do', 'to do', 'todoist', 'overdue',
+       'check off', 'my list', 'add to my', 'miles'].some(kw => t.includes(kw)))
+    return 'tasks'
+
+  if (['routine', 'routines', 'habit', 'habits', 'morning routine', 'evening routine',
+       'brush', 'shower', 'streak', 'harvey'].some(kw => t.includes(kw)))
+    return 'habits'
+
+  if (['my calendar', 'my schedule', 'what meetings', 'what events', 'alfred'].some(kw => t.includes(kw)))
+    return 'calendar'
+
+  return null
+}
+
+// ── Route to walli agent service ──────────────────────────────────────────────
+
+async function routeToWalli(text: string, domain: AgentDomain): Promise<string> {
+  const walliUrl = process.env.WALLI_API_URL ?? 'http://localhost:8080'
+
+  const endpoint = domain === 'brief'    ? '/agents/walli/brief'
+                 : domain === 'health'   ? '/agents/apollo/message'
+                 : domain === 'tasks'    ? '/agents/miles/message'
+                 : domain === 'habits'   ? '/agents/harvey/message'
+                 : domain === 'calendar' ? '/agents/alfred/message'
+                 : '/agents/message'
+
+  const isGet = domain === 'brief'
+  const res = await fetch(`${walliUrl}${endpoint}`, {
+    method:  isGet ? 'GET' : 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    ...(isGet ? {} : { body: JSON.stringify({ text }) }),
+  })
+
+  if (!res.ok) throw new Error(`Walli service error: ${res.status}`)
+  const data = await res.json() as { response: string }
+  return data.response
+}
+
 export function voiceRouter(notion: Client): Router {
   const router = Router()
 
   router.post('/voice', asyncRoute(async (req, res) => {
     const { text, history = [] } = req.body as { text?: string; history?: { role: string; content: string }[] }
     if (!text?.trim()) return res.json({ response: '' })
+
+    // Route agent-domain queries directly to the walli service
+    const agentDomain = classifyAgentDomain(text.trim())
+    if (agentDomain) {
+      try {
+        const response = await routeToWalli(text.trim(), agentDomain)
+        return res.json({ response })
+      } catch {
+        // Walli service unavailable — fall through to local handler
+      }
+    }
 
     const apiKey = process.env.VITE_ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new AppError(503, 'ANTHROPIC_API_KEY not set', 'MISSING_CONFIG')

@@ -23,6 +23,7 @@ import { RoutinesWidget, RoutinesSettings } from './RoutinesWidget'
 import { TimersWidget } from './TimersWidget'
 import { CalendarWidget } from './CalendarWidget'
 import { DatabaseWidget } from './DatabaseWidget'
+import { WalliAgentWidget, WalliAgentSettings } from './WalliAgentWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 
@@ -245,6 +246,18 @@ const BUILTIN_WIDGETS: StaticWidgetDef[] = [
     keywords:    ['notion', 'database', 'table', 'data'],
     defaultSize: { width: 600, height: 400 },
     component:   DatabaseWidget,
+  },
+  {
+    type:              '@whiteboard/walli-agent',
+    label:             'Agent Widget',
+    Icon:              'Robot',
+    iconBg:            'bg-purple-50',
+    iconClass:         'text-purple-500',
+    keywords:          ['walli', 'agent', 'apollo', 'miles', 'harvey', 'health', 'tasks', 'habits'],
+    defaultSize:       { width: 300, height: 280 },
+    constraints:       { minWidth: 220, minHeight: 200, maxWidth: 600, maxHeight: 600 },
+    component:         WalliAgentWidget,
+    settingsComponent: WalliAgentSettings,
   },
 ]
 

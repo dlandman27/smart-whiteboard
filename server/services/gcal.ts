@@ -1,21 +1,23 @@
 import { google } from 'googleapis'
 import { loadTokens, saveTokens } from './tokens.js'
 
-export let pendingGCalAuth: { clientId: string; clientSecret: string; redirectUri: string } | null = null
+const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID     ?? ''
+const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ''
+const REDIRECT_URI  = process.env.GOOGLE_REDIRECT_URI  ?? 'http://localhost:3001/api/gcal/callback'
 
-export function setPendingGCalAuth(auth: typeof pendingGCalAuth) {
-  pendingGCalAuth = auth
+export function getGCalOAuth2Client() {
+  return new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
 }
 
 export function getGCalClient() {
-  const tokens       = loadTokens()
-  const clientId     = tokens?.gcal_client_id
-  const clientSecret = tokens?.gcal_client_secret
-  const redirectUri  = tokens?.gcal_redirect_uri ?? 'http://localhost:3001/api/gcal/callback'
-  if (!clientId || !clientSecret) return null
+  if (!CLIENT_ID || !CLIENT_SECRET) return null
+  const tokens = loadTokens()
+  if (!tokens?.access_token && !tokens?.refresh_token) return null
 
-  const client = new google.auth.OAuth2(clientId, clientSecret, redirectUri)
-  client.setCredentials({ access_token: tokens?.access_token, refresh_token: tokens?.refresh_token })
+  const client = getGCalOAuth2Client()
+  client.setCredentials({ access_token: tokens.access_token, refresh_token: tokens.refresh_token })
   client.on('tokens', (newTokens: any) => saveTokens(newTokens))
   return client
 }
+
+export { CLIENT_ID, REDIRECT_URI }

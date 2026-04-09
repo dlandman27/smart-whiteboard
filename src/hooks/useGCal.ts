@@ -4,7 +4,7 @@ async function apiFetch<T>(path: string): Promise<T> {
   const res = await fetch(path)
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.error || `HTTP ${res.status}`)
+    throw new Error((err as any).error || `HTTP ${res.status}`)
   }
   return res.json()
 }
@@ -23,6 +23,8 @@ export interface GCalEvent {
   start: { dateTime?: string; date?: string; timeZone?: string }
   end:   { dateTime?: string; date?: string; timeZone?: string }
   allDay?: boolean
+  // Client-side annotation: which calendar this event came from
+  _calendarId?: string
 }
 
 export interface GCalCalendar {
@@ -38,26 +40,25 @@ export function useGCalStatus() {
     queryKey: ['gcal-status'],
     queryFn: () => apiFetch<GCalStatus>('/api/gcal/status'),
     retry: false,
-    enabled: false,
   })
 }
 
-export async function startGCalAuth(clientId: string, clientSecret: string, redirectUri: string): Promise<string> {
-  const res = await fetch('/api/gcal/start-auth', {
-    method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ clientId, clientSecret, redirectUri }),
-  })
-  if (!res.ok) throw new Error('Failed to start auth')
+export async function startGCalAuth(): Promise<string> {
+  const res = await fetch('/api/gcal/connect', { method: 'POST' })
+  if (!res.ok) throw new Error('Failed to start Google Calendar auth')
   const { url } = await res.json()
   return url
+}
+
+export async function disconnectGCal(): Promise<void> {
+  await fetch('/api/gcal/disconnect', { method: 'POST' })
 }
 
 export function useGCalCalendars() {
   return useQuery({
     queryKey: ['gcal-calendars'],
     queryFn: () => apiFetch<{ items: GCalCalendar[] }>('/api/gcal/calendars'),
-    enabled: false,
+    retry: false,
   })
 }
 
@@ -70,5 +71,53 @@ export function useGCalEvents(timeMin: string, timeMax: string, calendarId = 'pr
       ),
     enabled: !!(timeMin && timeMax),
     refetchInterval: 5 * 60_000,
+  })
+}
+
+// Fetches events from multiple calendars in parallel and merges them.
+// Each event is annotated with _calendarId so colors can be applied.
+export function useAllCalendarEvents(timeMin: string, timeMax: string, calendarIds: string[]) {
+  const key = [...calendarIds].sort().join(',')
+  return useQuery({
+    queryKey: ['gcal-events-all', key, timeMin, timeMax],
+    queryFn: async () => {
+      const results = await Promise.all(
+        calendarIds.map(id =>
+          apiFetch<{ items: GCalEvent[] }>(
+            `/api/gcal/events?calendarId=${encodeURIComponent(id)}&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
+          ).then(data => (data.items ?? []).map(ev => ({ ...ev, _calendarId: id })))
+        )
+      )
+      return results.flat()
+    },
+    enabled: calendarIds.length > 0 && !!(timeMin && timeMax),
+    refetchInterval: 5 * 60_000,
+  })
+}
+
+export async function createGCalEvent(
+  calendarId: string,
+  event: {
+    summary:      string
+    description?: string
+    start:        { dateTime?: string; date?: string; timeZone?: string }
+    end:          { dateTime?: string; date?: string; timeZone?: string }
+  }
+): Promise<GCalEvent> {
+  const res = await fetch('/api/gcal/events', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ calendarId, ...event }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error((err as any).error || 'Failed to create event')
+  }
+  return res.json()
+}
+
+export async function deleteGCalEvent(calendarId: string, eventId: string): Promise<void> {
+  await fetch(`/api/gcal/events/${encodeURIComponent(calendarId)}/${encodeURIComponent(eventId)}`, {
+    method: 'DELETE',
   })
 }

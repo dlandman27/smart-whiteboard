@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Panel, PanelHeader, Input, Button, Text } from '@whiteboard/ui-kit'
-import { useGCalStatus, startGCalAuth } from '../hooks/useGCal'
+import { useQueryClient } from '@tanstack/react-query'
+import { useGCalStatus, startGCalAuth, disconnectGCal } from '../hooks/useGCal'
 import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
-import { useGCalCredentials } from '../store/gcal'
 import { useSpotifyCredentials } from '../store/spotify'
 
 interface Props {
@@ -109,7 +109,7 @@ function ConnectionRow({
           className="text-xs font-medium transition-colors"
           style={{ color: 'var(--wt-accent)', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}
         >
-          {connected ? 'Manage' : 'Set up'}
+          {connected ? 'Disconnect' : 'Connect'}
         </button>
       </div>
       {children}
@@ -120,37 +120,44 @@ function ConnectionRow({
 // ── GCal setup ────────────────────────────────────────────────────────────────
 
 function GCalSection() {
-  const creds  = useGCalCredentials()
-  const status = useGCalStatus()
-  const [expanded, setExpanded] = useState(!creds.clientId)
-  const connected   = !!status.data?.connected
-  const configured  = !!(creds.clientId && creds.clientSecret)
+  const qc        = useQueryClient()
+  const { data }  = useGCalStatus()
+  const connected = !!data?.connected
+  const configured = !!data?.configured
 
-  async function connect() {
-    const url = await startGCalAuth(creds.clientId, creds.clientSecret, creds.redirectUri)
-    window.open(url, '_blank', 'width=500,height=600')
+  function openPopup() {
+    startGCalAuth().then(url => {
+      const popup = window.open(url, 'gcal-auth', 'width=500,height=620,left=200,top=100')
+      const onMessage = (e: MessageEvent) => {
+        if (e.data?.type === 'gcal-connected') {
+          qc.invalidateQueries({ queryKey: ['gcal-status'] })
+          qc.invalidateQueries({ queryKey: ['gcal-events'] })
+          window.removeEventListener('message', onMessage)
+          popup?.close()
+        }
+      }
+      window.addEventListener('message', onMessage)
+    })
+  }
+
+  async function disconnect() {
+    await disconnectGCal()
+    qc.invalidateQueries({ queryKey: ['gcal-status'] })
+    qc.invalidateQueries({ queryKey: ['gcal-events'] })
   }
 
   return (
-    <ConnectionRow name="Google Calendar" connected={connected} configured={configured} onSetup={() => setExpanded((e) => !e)}>
-      {expanded && (
-        <div className="flex flex-col gap-2 pl-1">
-          <Text variant="body" size="small" color="muted">
-            Create an OAuth 2.0 credential in{' '}
-            <a href="https://console.cloud.google.com" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--wt-accent)' }}>
-              Google Cloud Console
-            </a>{' '}
-            and add{' '}
-            <code className="px-1 rounded text-xs" style={{ backgroundColor: 'var(--wt-surface)' }}>{creds.redirectUri}</code>{' '}
-            as an authorized redirect URI.
-          </Text>
-          <Input label="Client ID"     value={creds.clientId}     onChange={(e) => creds.set({ clientId:     e.target.value })} placeholder="From Google Cloud Console" />
-          <Input label="Client Secret" value={creds.clientSecret} onChange={(e) => creds.set({ clientSecret: e.target.value })} type="password" />
-          <Input label="Redirect URI"  value={creds.redirectUri}  onChange={(e) => creds.set({ redirectUri:  e.target.value })} />
-          <Button variant="accent" fullWidth disabled={!configured} onClick={connect}>
-            {connected ? 'Reconnect Google Calendar' : 'Connect Google Calendar'}
-          </Button>
-        </div>
+    <ConnectionRow
+      name="Google Calendar"
+      connected={connected}
+      configured={configured}
+      onSetup={connected ? disconnect : openPopup}
+    >
+      {!configured && (
+        <Text variant="body" size="small" color="muted">
+          Set <code className="px-1 rounded text-xs" style={{ background: 'var(--wt-surface)' }}>GOOGLE_CLIENT_ID</code> and{' '}
+          <code className="px-1 rounded text-xs" style={{ background: 'var(--wt-surface)' }}>GOOGLE_CLIENT_SECRET</code> in your <code className="px-1 rounded text-xs" style={{ background: 'var(--wt-surface)' }}>.env</code> file to enable Google Calendar.
+        </Text>
       )}
     </ConnectionRow>
   )

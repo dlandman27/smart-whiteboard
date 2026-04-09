@@ -24,6 +24,7 @@ import { briefingRouter }      from './routes/briefing.js'
 import { notificationsRouter } from './routes/notifications.js'
 import { agentsRouter }        from './routes/agents.js'
 import { miscRouter }          from './routes/misc.js'
+import { walliRouter }         from './routes/walli.js'
 
 import { startAllCrons } from './crons/index.js'
 import { errorMiddleware } from './middleware/error.js'
@@ -74,6 +75,7 @@ const agentScheduler = createScheduler({
 })
 
 app.use('/api', agentsRouter(agentScheduler))
+app.use('/api', walliRouter())
 
 // Load persisted user-defined agents
 for (const def of readUserAgents()) {

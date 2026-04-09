@@ -11,12 +11,14 @@ import { getStaticWidgetDef } from './widgets/registry'
 import type { PendingWidget } from '../types'
 
 interface Props {
-  activeTool:     string
-  pendingWidget:  PendingWidget | null
-  onClearPending: () => void
+  activeTool:          string
+  pendingWidget:       PendingWidget | null
+  onClearPending:      () => void
+  onDoubleTap:         (x: number, y: number) => void
+  onWidgetDoubleTap?:  (widgetId: string, x: number, y: number, hasSettings: boolean) => void
 }
 
-export function WidgetCanvas({ activeTool, pendingWidget, onClearPending }: Props) {
+export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoubleTap, onWidgetDoubleTap }: Props) {
   const { boards, activeBoardId, addWidget, updateLayout, assignSlot } = useWhiteboardStore()
   const { slotMap, layout } = useLayout()
 
@@ -31,6 +33,8 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending }: Prop
   const hoveredSlotRef   = useRef<string | null>(null)
   // Capture widget's original rect+slot before drag so we can snap back on miss
   const dragStartRef = useRef<{ x: number; y: number; width: number; height: number; slotId?: string } | null>(null)
+  // Double-tap detection
+  const lastTapRef = useRef<{ x: number; y: number; time: number } | null>(null)
 
   // Cancel pending placement on Escape
   useEffect(() => {
@@ -124,10 +128,24 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending }: Prop
   }
 
   function handleCanvasClick(e: React.MouseEvent<HTMLDivElement>) {
+    const rect  = e.currentTarget.getBoundingClientRect()
+    const cx    = e.clientX - rect.left
+    const cy    = e.clientY - rect.top
+    const now   = Date.now()
+    const last  = lastTapRef.current
+
+    // Double-tap: two clicks within 300ms within 20px of each other on empty canvas
+    if (!pendingWidget && last && (now - last.time) < 300 && Math.abs(cx - last.x) < 20 && Math.abs(cy - last.y) < 20) {
+      lastTapRef.current = null
+      onDoubleTap(cx, cy)
+      return
+    }
+
+    lastTapRef.current = { x: cx, y: cy, time: now }
+
     if (!pendingWidget || !isFreeform) return
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = Math.max(0, e.clientX - rect.left - pendingWidget.width / 2)
-    const y = Math.max(0, e.clientY - rect.top  - pendingWidget.height / 2)
+    const x = Math.max(0, cx - pendingWidget.width  / 2)
+    const y = Math.max(0, cy - pendingWidget.height / 2)
     addWidget({ ...pendingWidget, x, y, slotId: undefined })
     onClearPending()
   }
@@ -135,8 +153,9 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending }: Prop
   return (
     <div
       key={activeBoardId}
-      className="absolute inset-0 board-slide-right"
+      className="absolute inset-0 board-slide-right select-none"
       onClick={handleCanvasClick}
+      onMouseDown={(e) => { if (e.detail >= 2) e.preventDefault() }}
     >
 
       {/* Slot zones — visible when adding a widget or dragging */}
@@ -202,6 +221,7 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending }: Prop
             preferences={def?.preferences}
             refSize={def?.scalable !== false ? def?.defaultSize : undefined}
             slotAssigned={!!slotRect}
+            onDoubleTap={onWidgetDoubleTap}
             onDragStart={() => {
               soundWidgetPickup()
               dragStartRef.current = { x, y, width, height, slotId: widget.slotId }

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import { useWhiteboardStore } from '../store/whiteboard'
+import { useUIStore } from '../store/ui'
 import { getLayoutPreset } from '../layouts/presets'
 import type { LayoutSlot } from '../types'
 
@@ -33,13 +34,6 @@ export function computeSlotRect(slot: LayoutSlot, canvasW: number, canvasH: numb
   }
 }
 
-function getWindowCanvas() {
-  return {
-    w: window.innerWidth,
-    h: window.innerHeight - TOOLBAR_RESERVED,
-  }
-}
-
 export function useLayout() {
   const boards        = useWhiteboardStore((s) => s.boards)
   const activeBoardId = useWhiteboardStore((s) => s.activeBoardId)
@@ -53,13 +47,8 @@ export function useLayout() {
     ? { ...preset, slots: activeBoard.customSlots }
     : preset
 
-  const [canvas, setCanvas] = useState(getWindowCanvas)
-
-  useEffect(() => {
-    function onResize() { setCanvas(getWindowCanvas()) }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
-  }, [])
+  const canvasSize = useUIStore((s) => s.canvasSize)
+  const canvas = { w: canvasSize.w, h: canvasSize.h }
 
   const slotRects = useMemo(
     () => layout.slots.map((s) => computeSlotRect(s, canvas.w, canvas.h, slotGap, slotPad)),

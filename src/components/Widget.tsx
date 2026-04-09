@@ -3,7 +3,7 @@ import { soundWidgetRemoved } from '../lib/sounds'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 import { useUndoStore } from '../store/undo'
-import { Icon, IconButton, Input } from '@whiteboard/ui-kit'
+import { IconButton, Input } from '@whiteboard/ui-kit'
 import type { PluginPreference } from '@whiteboard/sdk'
 
 // ── Preference fields ─────────────────────────────────────────────────────────
@@ -51,16 +51,20 @@ interface Props {
   preferences?:     PluginPreference[]
   refSize?:         { width: number; height: number }
   slotAssigned?:    boolean
+  onDoubleTap?:     (widgetId: string, x: number, y: number, hasSettings: boolean) => void
   onDropped?:       (rect: { x: number; y: number; width: number; height: number }, cursorPt: { x: number; y: number }) => void
   onDragStart?:     () => void
   onDragMove?:      (cx: number, cy: number) => void
   onDragEnd?:       () => void
 }
 
-export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
+export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, onDoubleTap, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
   const { updateLayout, removeWidget } = useWhiteboardStore()
-  const { focusedWidgetId, setFocusedWidget, flashingWidgetId } = useUIStore()
+  const { focusedWidgetId, setFocusedWidget, flashingWidgetId, widgetCommand, clearWidgetCommand, setFullscreenWidget } = useUIStore()
   const isFlashing = flashingWidgetId === id
+
+  const hasPrefs    = !!(preferences && preferences.length > 0)
+  const hasSettings = !!(settingsContent || hasPrefs)
 
   const [active,       setActive]       = useState(false)
   const [zOrder,       setZOrder]       = useState(0)
@@ -70,14 +74,11 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   const [isClosing,    setIsClosing]    = useState(false)
   const [pos,  setPos]  = useState({ x, y })
   const [size, setSize] = useState({ width, height })
-  const [fullscreen,    setFullscreen]   = useState(false)
-  const [fsExpanded,    setFsExpanded]   = useState(false)
-  const [fsRect,        setFsRect]       = useState<{ left: number; top: number; width: number; height: number } | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const [removing,      setRemoving]      = useState(false)
-  const [frameAnim,     setFrameAnim]     = useState<'entrance' | 'settle' | null>('entrance')
-  const fsExitTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const deleteTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [fullscreen,  setFullscreen] = useState(false)
+  const [fsExpanded,  setFsExpanded] = useState(false)
+  const [removing,    setRemoving]   = useState(false)
+  const [frameAnim,   setFrameAnim]  = useState<'entrance' | 'settle' | null>('entrance')
+  const fsExitTimer      = useRef<ReturnType<typeof setTimeout> | null>(null)
   const prevSlotAssigned = useRef(slotAssigned)
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -140,9 +141,9 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
 
   // Cleanup on unmount
   useEffect(() => () => {
-    if (closeTimer.current)   clearTimeout(closeTimer.current)
-    if (fsExitTimer.current)  clearTimeout(fsExitTimer.current)
-    if (tapTimer.current)     clearTimeout(tapTimer.current)
+    if (closeTimer.current)  clearTimeout(closeTimer.current)
+    if (fsExitTimer.current) clearTimeout(fsExitTimer.current)
+    if (tapTimer.current)    clearTimeout(tapTimer.current)
   }, [])
 
   // React to external focus commands (from MCP)
@@ -150,6 +151,28 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     if (focusedWidgetId === id && !fullscreen) enterFullscreen()
     else if (focusedWidgetId !== id && fullscreen) exitFullscreen()
   }, [focusedWidgetId])
+
+  // React to widget commands sent from context menu
+  useEffect(() => {
+    if (!widgetCommand || widgetCommand.id !== id) return
+    const { cmd } = widgetCommand
+    clearWidgetCommand()
+    if (cmd === 'settings') {
+      openSettings()
+    } else if (cmd === 'fullscreen') {
+      if (fullscreen) { exitFullscreen(() => { setFocusedWidget(null); setFullscreenWidget(null) }) }
+      else { enterFullscreen(); setFocusedWidget(id); setFullscreenWidget(id) }
+    } else if (cmd === 'delete') {
+      const state    = useWhiteboardStore.getState()
+      const snapshot = state.boards.find((b) => b.id === state.activeBoardId)?.widgets.find((w) => w.id === id)
+      soundWidgetRemoved()
+      setRemoving(true)
+      setTimeout(() => {
+        removeWidget(id)
+        if (snapshot) useUndoStore.getState().push('Widget removed', snapshot)
+      }, 150)
+    }
+  }, [widgetCommand])
 
   function raise() { setZOrder(++zCounter) }
 
@@ -235,22 +258,19 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
 
   // ── Fullscreen ────────────────────────────────────────────────────
   function enterFullscreen() {
-    const el = containerRef.current
-    if (!el) return
     if (fsExitTimer.current) clearTimeout(fsExitTimer.current)
-    const rect = el.getBoundingClientRect()
-    setFsRect({ left: rect.left, top: rect.top, width: rect.width, height: rect.height })
     setFullscreen(true)
     setFsExpanded(false)
+    setFullscreenWidget(id)
     raise()
-    // Two rAFs: first lets React commit fixed-at-origin rect, second triggers the expand transition
+    // Two rAFs: first lets React commit at current pos, second triggers the expand transition
     requestAnimationFrame(() => requestAnimationFrame(() => setFsExpanded(true)))
   }
   function exitFullscreen(onComplete?: () => void) {
     setFsExpanded(false)
+    setFullscreenWidget(null)
     fsExitTimer.current = setTimeout(() => {
       setFullscreen(false)
-      setFsRect(null)
       onComplete?.()
     }, 300)
   }
@@ -333,17 +353,23 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         posRef.current = { x, y }
       }
     } else {
-      // Tap — double-tap activates dock, triple-tap toggles fullscreen
+      // Tap — single-tap selects, double-tap opens context menu, triple-tap toggles fullscreen
       tapCount.current += 1
       if (tapTimer.current) clearTimeout(tapTimer.current)
       if (tapCount.current >= 3) {
         tapCount.current = 0
-        if (fullscreen) { exitFullscreen(() => setFocusedWidget(null)) }
+        if (fullscreen) { exitFullscreen(() => { setFocusedWidget(null); setFullscreenWidget(null) }) }
         else            { enterFullscreen(); setFocusedWidget(id) }
       } else if (tapCount.current === 2) {
-        setActive((a) => !a)
-        tapTimer.current = setTimeout(() => { tapCount.current = 0 }, 400)
+        tapCount.current = 0
+        if (onDoubleTap) {
+          const pRect = containerRef.current?.parentElement?.getBoundingClientRect()
+          const cx = pRect ? e.clientX - pRect.left : pos.x + size.width  / 2
+          const cy = pRect ? e.clientY - pRect.top  : pos.y + size.height / 2
+          onDoubleTap(id, cx, cy, hasSettings)
+        }
       } else {
+        setActive(true)
         tapTimer.current = setTimeout(() => { tapCount.current = 0 }, 400)
       }
     }
@@ -351,11 +377,10 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   }
 
   // ── Render ────────────────────────────────────────────────────────
-  const hasPrefs    = !!(preferences && preferences.length > 0)
-  const hasSettings = !!(settingsContent || hasPrefs)
   const isActive    = active || showSettings || fullscreen
-  const renderW = fullscreen && fsExpanded ? window.innerWidth  : size.width
-  const renderH = fullscreen && fsExpanded ? window.innerHeight : size.height
+  const canvasSize = useUIStore((s) => s.canvasSize)
+  const renderW = fullscreen && fsExpanded ? canvasSize.w : size.width
+  const renderH = fullscreen && fsExpanded ? canvasSize.h : size.height
   const isSplit     = renderW >= 520
   const scale = refSize ? Math.min(renderW / refSize.width, renderH / refSize.height) : 1
   // When dragging a slot-assigned widget, shrink it to a target footprint for slot-swap UX
@@ -364,16 +389,16 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   const dragScale = slotAssigned ? Math.min(DRAG_TARGET_W / size.width, DRAG_TARGET_H / size.height) : 1
 
   const FS_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)'
-  const fsStyle: React.CSSProperties = fullscreen && fsRect
+  const fsStyle: React.CSSProperties = fullscreen
     ? {
-        position:   'fixed',
-        left:       fsExpanded ? 0             : fsRect.left,
-        top:        fsExpanded ? 0             : fsRect.top,
-        width:      fsExpanded ? '100vw'       : fsRect.width,
-        height:     fsExpanded ? '100vh'       : fsRect.height,
-        zIndex:     9999,
+        position:    'absolute',
+        left:        fsExpanded ? 0          : pos.x,
+        top:         fsExpanded ? 0          : pos.y,
+        width:       fsExpanded ? '100%'     : size.width,
+        height:      fsExpanded ? '100%'     : size.height,
+        zIndex:      9999,
         touchAction: 'none',
-        transition: `left 0.3s ${FS_EASE}, top 0.3s ${FS_EASE}, width 0.3s ${FS_EASE}, height 0.3s ${FS_EASE}`,
+        transition:  `left 0.3s ${FS_EASE}, top 0.3s ${FS_EASE}, width 0.3s ${FS_EASE}, height 0.3s ${FS_EASE}`,
         borderRadius: fsExpanded ? 0 : undefined,
       }
     : {
@@ -395,6 +420,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     <div
       ref={containerRef}
       style={fsStyle}
+      onClick={(e) => e.stopPropagation()}
       onPointerDown={onBodyDown}
       onPointerMove={onBodyMove}
       onPointerUp={onBodyUp}
@@ -486,118 +512,6 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
           </div>
         )}
       </div>
-
-      {/* Bottom action dock */}
-      <div
-        className="wt-pill flex flex-row items-center gap-1 p-1.5"
-        style={{
-          position:     'absolute',
-          bottom:       10,
-          left:         '50%',
-          transform:    isActive ? 'translateX(-50%) translateY(0)' : 'translateX(-50%) translateY(6px)',
-          transition:   'opacity 0.15s ease, transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1)',
-          opacity:      isActive ? 1 : 0,
-          pointerEvents: isActive ? 'auto' : 'none',
-          zIndex:       20,
-          borderRadius: 14,
-          whiteSpace:   'nowrap',
-        }}
-        onPointerDown={(e) => e.stopPropagation()}
-      >
-        {hasSettings && (
-          <IconButton icon="GearSix" size="md" variant={showSettings ? 'active' : 'default'} onClick={toggleSettings} />
-        )}
-        <IconButton
-          icon={fullscreen ? 'ArrowsInSimple' : 'ArrowsOutSimple'}
-          size="md"
-          onClick={() => {
-            if (fullscreen) { exitFullscreen(() => setFocusedWidget(null)) }
-            else            { enterFullscreen(); setFocusedWidget(id) }
-          }}
-        />
-        <div style={{ width: 1, height: 18, background: 'var(--wt-border)', margin: '0 2px' }} />
-        <button
-          className="wt-ibtn rounded-md p-1.5"
-          style={{
-            color:           '#fff',
-            backgroundColor: 'var(--wt-danger)',
-            boxShadow:       '0 3px 0 rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
-            transform:       'translateY(-2px)',
-          }}
-          onClick={() => {
-            setConfirmDelete(true)
-            if (deleteTimer.current) clearTimeout(deleteTimer.current)
-            deleteTimer.current = setTimeout(() => setConfirmDelete(false), 3000)
-          }}
-        >
-          <Icon icon="Trash" size={14} />
-        </button>
-      </div>
-
-      {/* Delete confirmation popup */}
-      {confirmDelete && (
-        <div
-          style={{
-            position:        'absolute',
-            top:             '50%',
-            left:            '50%',
-            transform:       'translate(-50%, -50%)',
-            zIndex:          21,
-            borderRadius:    14,
-            whiteSpace:      'nowrap',
-            display:         'flex',
-            flexDirection:   'column',
-            alignItems:      'center',
-            gap:             8,
-            padding:         12,
-            background:      'var(--wt-bg)',
-            border:          '1px solid var(--wt-border)',
-            backdropFilter:  'var(--wt-backdrop)',
-            boxShadow:       '0 5px 0 rgba(0,0,0,0.18), 0 8px 20px rgba(0,0,0,0.12)',
-            animation:       'wt-entrance 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--wt-text)' }}>Remove widget?</span>
-          <div className="flex gap-2">
-            <button
-              className="wt-ibtn rounded-md px-3 py-1"
-              style={{ fontSize: 12, fontWeight: 500 }}
-              onClick={() => { setConfirmDelete(false) }}
-            >
-              Cancel
-            </button>
-            <button
-              className="wt-ibtn rounded-md px-3 py-1"
-              style={{
-                fontSize:        12,
-                fontWeight:      600,
-                color:           '#fff',
-                backgroundColor: 'var(--wt-danger)',
-                boxShadow:       '0 3px 0 rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.2)',
-                transform:       'translateY(-2px)',
-              }}
-              onClick={() => {
-                if (deleteTimer.current) clearTimeout(deleteTimer.current)
-                setConfirmDelete(false)
-                setRemoving(true)
-                // Snapshot widget before removal so it can be restored
-                const state      = useWhiteboardStore.getState()
-                const snapshot   = state.boards
-                  .find((b) => b.id === state.activeBoardId)
-                  ?.widgets.find((w) => w.id === id)
-                soundWidgetRemoved()
-                setTimeout(() => {
-                  removeWidget(id)
-                  if (snapshot) useUndoStore.getState().push('Widget removed', snapshot)
-                }, 150)
-              }}
-            >
-              Remove
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Resize corner + edge handles — free-floating only */}
       {!slotAssigned && isActive && !dragging && !fullscreen && !(focusedWidgetId && focusedWidgetId !== id) && (

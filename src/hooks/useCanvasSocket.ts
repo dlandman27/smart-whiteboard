@@ -6,6 +6,7 @@ import { soundWidgetAdded, soundWidgetRemoved } from '../lib/sounds'
 import { useBriefingStore } from '../store/briefing'
 import { useNotificationStore } from '../store/notifications'
 import { usePetsStore } from '../store/pets'
+import { useWalliAgentsStore } from '../store/walliAgents'
 import { queryClient } from '../App'
 
 const WS_URL = 'ws://localhost:3001'
@@ -137,6 +138,11 @@ export function useCanvasSocket() {
           const current = usePetsStore.getState().pets[msg.agentId]
           // Don't clear if there's still a message showing
           if (!current?.message) usePetsStore.getState().setPet(msg.agentId, 'idle')
+        } else if (msg.type === 'walli_widget_update') {
+          useWalliAgentsStore.getState().setWidget(msg)
+        } else if (msg.type === 'walli_layout_update') {
+          // layout decisions handled per-widget by WalliAgentWidget
+          useWalliAgentsStore.getState().setWidget({ ...msg, type: undefined })
         } else if (msg.type === 'notion_invalidate') {
           if (msg.databaseId) {
             queryClient.invalidateQueries({ queryKey: ['notion-view', msg.databaseId] })

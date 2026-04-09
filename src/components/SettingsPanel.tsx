@@ -10,7 +10,8 @@ import { useThemeStore } from '../store/theme'
 import { SPRITES, PX, PixelSprite } from './PetBar'
 
 interface Props {
-  onClose: () => void
+  onClose:     () => void
+  defaultTab?: Tab
 }
 
 function LayoutSection() {
@@ -148,8 +149,8 @@ function MiscSection() {
   )
 }
 
-export function SettingsPanel({ onClose }: Props) {
-  const [tab, setTab] = useState<Tab>('theme')
+export function SettingsPanel({ onClose, defaultTab = 'theme' }: Props) {
+  const [tab, setTab] = useState<Tab>(defaultTab)
 
   return (
     <Panel width={460} onClose={onClose}>

@@ -7,6 +7,8 @@ export interface Board {
   id: string
   name: string
   layoutId: string
+  boardType?: 'calendar'
+  calendarId?: string
   widgets: WidgetLayout[]
   slotGap?: number
   slotPad?: number
@@ -18,7 +20,8 @@ interface WhiteboardStore {
   activeBoardId: string
 
   // Board management
-  addBoard:         (name: string, id?: string) => void
+  addBoard:            (name: string, id?: string) => void
+  addCalendarBoard:    (name?: string) => void
   removeBoard:      (id: string) => void
   setActiveBoard:   (id: string) => void
   renameBoard:      (id: string, name: string) => void
@@ -33,20 +36,35 @@ interface WhiteboardStore {
   clearWidgets:     () => void
   assignSlot:       (widgetId: string, slotId: string | null) => void
   setLayoutSpacing: (boardId: string, gap: number, pad: number) => void
+  reorderBoards:    (fromIndex: number, toIndex: number) => void
 }
 
-const DEFAULT_ID = crypto.randomUUID()
+const DEFAULT_ID      = crypto.randomUUID()
+const DEFAULT_CAL_ID  = crypto.randomUUID()
+
+function ensureCalendarBoard(boards: Board[]): Board[] {
+  if (boards.some((b) => b.boardType === 'calendar')) return boards
+  return [...boards, { id: DEFAULT_CAL_ID, name: 'Calendar', layoutId: DEFAULT_LAYOUT_ID, boardType: 'calendar', calendarId: 'primary', widgets: [] }]
+}
 
 export const useWhiteboardStore = create<WhiteboardStore>()(
   persist(
     (set) => ({
-      boards:        [{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
+      boards: ensureCalendarBoard([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }]),
       activeBoardId: DEFAULT_ID,
 
       addBoard: (name, presetId) => {
         const id = presetId ?? crypto.randomUUID()
         set((s) => ({
           boards:        [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
+          activeBoardId: id,
+        }))
+      },
+
+      addCalendarBoard: (name = 'Calendar') => {
+        const id = crypto.randomUUID()
+        set((s) => ({
+          boards:        [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, boardType: 'calendar', calendarId: 'primary', widgets: [] }],
           activeBoardId: id,
         }))
       },
@@ -148,27 +166,36 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         set((s) => ({
           boards: s.boards.map((b) => b.id === boardId ? { ...b, slotGap: gap, slotPad: pad } : b),
         })),
+
+      reorderBoards: (fromIndex, toIndex) =>
+        set((s) => {
+          const next = [...s.boards]
+          const [moved] = next.splice(fromIndex, 1)
+          next.splice(toIndex, 0, moved)
+          return { boards: next }
+        }),
     }),
     {
       name: 'whiteboard-layout',
-      version: 3,
+      version: 5,
       migrate: (state: any, version: number) => {
         if (version < 2) {
           return {
-            boards: [{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: state?.widgets ?? [] }],
+            boards: ensureCalendarBoard([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: state?.widgets ?? [] }]),
             activeBoardId: DEFAULT_ID,
           }
         }
         if (version < 3) {
           return {
             ...state,
-            boards: (state.boards ?? []).map((b: any) => ({
+            boards: ensureCalendarBoard((state.boards ?? []).map((b: any) => ({
               ...b,
               layoutId: b.layoutId ?? DEFAULT_LAYOUT_ID,
-            })),
+            }))),
           }
         }
-        return state
+        // v5: ensure every user has a calendar board
+        return { ...state, boards: ensureCalendarBoard(state.boards ?? []) }
       },
     }
   )

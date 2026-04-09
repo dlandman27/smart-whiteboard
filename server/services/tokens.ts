@@ -11,3 +11,8 @@ export function saveTokens(tokens: Record<string, string>): void {
     for (const [k, v] of Object.entries(tokens)) upsert.run(k, v)
   })()
 }
+
+export function deleteTokens(keys: string[]): void {
+  const del = db.prepare('DELETE FROM kv WHERE key = ?')
+  db.transaction(() => { for (const k of keys) del.run(k) })()
+}

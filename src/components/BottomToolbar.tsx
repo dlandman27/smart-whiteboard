@@ -6,19 +6,18 @@ import { useWhiteboardStore } from '../store/whiteboard'
 import { useVoiceStore } from '../store/voice'
 import { DrawingCanvas } from './DrawingCanvas'
 import { DatabasePicker } from './DatabasePicker'
-import { BoardMenu } from './BoardMenu'
 import { NotificationCenter, NotificationCenterButton } from './NotificationCenter'
-import { SettingsPanel } from './SettingsPanel'
-import { ConfigPanel } from './ConfigPanel'
 import { Pill } from './Pill'
 import type { PendingWidget } from '../types'
 
 type Tool = 'pointer' | 'marker' | 'eraser'
-type ActivePanel = 'customize' | 'settings' | 'picker' | 'notif' | null
+type ActivePanel = 'picker' | 'notif' | null
 
 interface Props {
-  onToolChange:     (tool: Tool) => void
-  onWidgetSelected: (widget: PendingWidget) => void
+  onToolChange:          (tool: Tool) => void
+  onWidgetSelected:      (widget: PendingWidget) => void
+  externalPickerOpen?:   boolean
+  onExternalPickerClose?: () => void
 }
 
 const WAVEFORM_BARS = [
@@ -123,7 +122,7 @@ function Divider() {
   )
 }
 
-export function BottomToolbar({ onToolChange, onWidgetSelected }: Props) {
+export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOpen, onExternalPickerClose }: Props) {
   const { activeBoardId } = useWhiteboardStore()
   const voiceState = useVoiceStore((s) => s.state)
 
@@ -160,6 +159,13 @@ export function BottomToolbar({ onToolChange, onWidgetSelected }: Props) {
     pill.addEventListener('pointerdown', onDown)
     return () => pill.removeEventListener('pointerdown', onDown)
   }, [])
+
+  useEffect(() => {
+    if (externalPickerOpen) {
+      setActivePanel('picker')
+      onExternalPickerClose?.()
+    }
+  }, [externalPickerOpen])
 
   const [openKey, setOpenKey] = useState(0)
 
@@ -220,27 +226,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected }: Props) {
           <Icon icon="CaretDown" size={11} />
         </button>
 
-        {/* ── Left group: navigation ── */}
-        <div key={`customize-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '0ms' }}>
-          <IconButton
-            icon="Palette"
-            size="xl"
-            variant={activePanel === 'customize' ? 'active' : 'default'}
-            onClick={() => togglePanel('customize')}
-            title="Customize"
-          />
-        </div>
-
-        <div key={`settings-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '40ms' }}>
-          <IconButton
-            icon="Gear"
-            size="xl"
-            variant={activePanel === 'settings' ? 'active' : 'default'}
-            onClick={() => togglePanel('settings')}
-            title="Settings"
-          />
-        </div>
-
         <Divider />
 
         {/* ── Center: voice ── */}
@@ -289,9 +274,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected }: Props) {
         <Icon icon="CaretUp" size={11} />
       </button>
 
-      {activePanel === 'customize' && <SettingsPanel onClose={() => setActivePanel(null)} />}
-      {activePanel === 'settings'  && <ConfigPanel   onClose={() => setActivePanel(null)} />}
-      {activePanel === 'notif'     && <NotificationCenter onClose={() => setActivePanel(null)} />}
+      {activePanel === 'notif' && <NotificationCenter onClose={() => setActivePanel(null)} />}
       {activePanel === 'picker' && (
         <DatabasePicker
           onClose={() => setActivePanel(null)}
