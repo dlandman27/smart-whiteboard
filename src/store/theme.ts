@@ -26,7 +26,7 @@ export const useThemeStore = create<ThemeStore>()(
       customOverrides: {},
       customTheme:     null,
       background:      DEFAULT_BACKGROUND,
-      petsEnabled:     true,
+      petsEnabled:     false,
 
       setTheme: (id) => {
         const theme = THEME_MAP[id]
@@ -79,7 +79,7 @@ export const useThemeStore = create<ThemeStore>()(
       migrate: (persisted: unknown, version: number) => {
         const state = (persisted ?? {}) as Record<string, unknown>
         // v0 → v1: petsEnabled didn't exist
-        if (version < 1) state.petsEnabled = true
+        if (version < 1) state.petsEnabled = false
         // v1 → v2: ensure background is always set
         if (version < 2) state.background = state.background ?? DEFAULT_BACKGROUND
         return state
