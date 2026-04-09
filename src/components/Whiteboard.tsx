@@ -38,14 +38,20 @@ export function Whiteboard() {
   const [pickerOpen,        setPickerOpen]        = useState(false)
   const [layoutPickerOpen,  setLayoutPickerOpen]  = useState(false)
   const [bgPickerOpen,      setBgPickerOpen]      = useState(false)
+  const [bgPickerClosing,   setBgPickerClosing]   = useState(false)
   const { background: themeBackground, petsEnabled } = useThemeStore()
   const boardBackground = activeBoard?.background ?? themeBackground
   const boardRef = useRef<HTMLDivElement>(null)
 
+  function closeBgPicker() {
+    setBgPickerClosing(true)
+    setTimeout(() => { setBgPickerOpen(false); setBgPickerClosing(false) }, 120)
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        if (bgPickerOpen)    { setBgPickerOpen(false); return }
+        if (bgPickerOpen)    { closeBgPicker(); return }
         if (boardMenu)       { setBoardMenu(null); return }
         if (focusedWidgetId) { setFocusedWidget(null); return }
       }
@@ -122,7 +128,7 @@ export function Whiteboard() {
                     {/* Backdrop — closes on outside click */}
                     <div
                       className="absolute inset-0 z-[10000]"
-                      onPointerDown={() => setBgPickerOpen(false)}
+                      onPointerDown={closeBgPicker}
                     />
                     <div
                       className="absolute z-[10001] rounded-2xl overflow-hidden"
@@ -132,7 +138,7 @@ export function Whiteboard() {
                         border:          '1px solid var(--wt-settings-border)',
                         boxShadow:       'var(--wt-shadow-lg)',
                         backdropFilter:  'var(--wt-backdrop)',
-                        animation:       'contextMenuIn 0.12s ease-out',
+                        animation:       bgPickerClosing ? 'contextMenuOut 0.12s ease-out forwards' : 'contextMenuIn 0.12s ease-out',
                       }}
                       onPointerDown={(e) => e.stopPropagation()}
                     >
