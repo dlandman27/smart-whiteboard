@@ -5,11 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "start": "NODE_ENV=production tsx server/index.ts",
     "mcp": "tsx mcp/server.ts",
     "start:kiosk": "concurrently \"npm run server\" \"npm run client\" \"node scripts/kiosk.js\"",
     "client": "vite --host",
     "server": "tsx watch server/index.ts",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006 --config-dir packages/ui-kit/.storybook",
     "build-storybook": "storybook build --config-dir packages/ui-kit/.storybook"

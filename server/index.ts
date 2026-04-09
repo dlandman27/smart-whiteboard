@@ -2,6 +2,8 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import { createServer } from 'http'
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { Client } from '@notionhq/client'
 import Anthropic from '@anthropic-ai/sdk'
 import { createScheduler, readUserAgents, buildDynamicAgent } from './agents/index.js'
@@ -83,6 +85,15 @@ for (const def of readUserAgents()) {
 // ── Error handling (must be last middleware) ───────────────────────────────────
 
 app.use(errorMiddleware)
+
+// ── Serve frontend in production ───────────────────────────────────────────────
+
+if (process.env.NODE_ENV === 'production') {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url))
+  const distPath  = path.join(__dirname, '../dist')
+  app.use(express.static(distPath))
+  app.get('*', (_req, res) => res.sendFile(path.join(distPath, 'index.html')))
+}
 
 // ── Crons ──────────────────────────────────────────────────────────────────────
 

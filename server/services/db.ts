@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { log } from '../lib/logger.js'
 
-const DB_PATH = path.join(process.cwd(), 'server/walli.db')
+const DB_PATH = process.env.DB_PATH ?? path.join(process.cwd(), 'server/walli.db')
 
 const db = new Database(DB_PATH)
 db.pragma('journal_mode = WAL')
