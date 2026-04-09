@@ -39,7 +39,7 @@ function HealthView({ data }: { data: Record<string, unknown> }) {
     <FlexCol gap={8} style={{ padding: '8px 0' }}>
       <Stat label="Steps"    value={steps    ? `${steps.toLocaleString()} / ${stepGoal.toLocaleString()}` : '—'} pct={stepPct} />
       <Stat label="Exercise" value={exercise ? `${exercise} / ${exGoal} min` : '—'} pct={exPct} />
-      {weight && <Text size="xs" muted>{weight}</Text>}
+      {weight && <Text size="small" color="muted">{weight}</Text>}
     </FlexCol>
   )
 }
@@ -51,7 +51,7 @@ function TasksView({ data }: { data: Record<string, unknown> }) {
   const dueToday  = (data.due_today as any[]) ?? []
   const all       = [...overdue, ...dueToday].slice(0, 8)
 
-  if (!all.length) return <Text size="sm" muted>No tasks due today</Text>
+  if (!all.length) return <Text size="small" color="muted">No tasks due today</Text>
 
   return (
     <FlexCol gap={4} style={{ padding: '4px 0' }}>
@@ -61,7 +61,7 @@ function TasksView({ data }: { data: Record<string, unknown> }) {
             width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
             background: overdue.includes(t) ? '#E74C3C' : '#43B581',
           }} />
-          <Text size="xs" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <Text size="small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {t.content}
           </Text>
         </FlexRow>
@@ -77,15 +77,15 @@ function HabitsView({ data }: { data: Record<string, unknown> }) {
   const evening = (data.evening_done as string[]) ?? []
   const total   = morning.length + evening.length
 
-  if (!total) return <Text size="sm" muted>No habits logged yet today</Text>
+  if (!total) return <Text size="small" color="muted">No habits logged yet today</Text>
 
   return (
     <FlexCol gap={4} style={{ padding: '4px 0' }}>
       {morning.length > 0 && (
-        <Text size="xs" muted>Morning: {morning.join(', ')}</Text>
+        <Text size="small" color="muted">Morning: {morning.join(', ')}</Text>
       )}
       {evening.length > 0 && (
-        <Text size="xs" muted>Evening: {evening.join(', ')}</Text>
+        <Text size="small" color="muted">Evening: {evening.join(', ')}</Text>
       )}
     </FlexCol>
   )
@@ -95,8 +95,8 @@ function HabitsView({ data }: { data: Record<string, unknown> }) {
 
 function GenericView({ data }: { data: Record<string, unknown> }) {
   const text = data.text ?? data.summary ?? data.response
-  if (typeof text === 'string') return <Text size="sm">{text}</Text>
-  return <Text size="sm" muted>No data</Text>
+  if (typeof text === 'string') return <Text size="small">{text}</Text>
+  return <Text size="small" color="muted">No data</Text>
 }
 
 // ── Stat bar ──────────────────────────────────────────────────────────────────
@@ -105,8 +105,8 @@ function Stat({ label, value, pct }: { label: string; value: string; pct: number
   return (
     <FlexCol gap={2}>
       <FlexRow justify="between">
-        <Text size="xs" muted>{label}</Text>
-        <Text size="xs">{value}</Text>
+        <Text size="small" color="muted">{label}</Text>
+        <Text size="small">{value}</Text>
       </FlexRow>
       <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: '#43B581', transition: 'width 0.4s ease' }} />
@@ -149,15 +149,15 @@ export function WalliAgentWidget({ widgetId }: { widgetId: string }) {
         <FlexRow justify="between" align="center">
           <FlexRow gap={6} align="center">
             <div style={{ width: 8, height: 8, borderRadius: '50%', background: color }} />
-            <Text size="sm" style={{ fontWeight: 600 }}>{label}</Text>
+            <Text size="small" style={{ fontWeight: 600 }}>{label}</Text>
           </FlexRow>
-          {updatedAt && <Text size="xs" muted>{updatedAt}</Text>}
+          {updatedAt && <Text size="small" color="muted">{updatedAt}</Text>}
         </FlexRow>
 
         {/* Content */}
         <div style={{ flex: 1, overflow: 'hidden' }}>
           {!agentState ? (
-            <Text size="sm" muted>Waiting for {label}...</Text>
+            <Text size="small" color="muted">Waiting for {label}...</Text>
           ) : agentId === 'apollo' ? (
             <HealthView data={data} />
           ) : agentId === 'miles' ? (
@@ -188,7 +188,7 @@ export function WalliAgentSettings({ widgetId }: { widgetId: string }) {
 
   return (
     <FlexCol gap={12} style={{ padding: 16 }}>
-      <Text size="sm" style={{ fontWeight: 600 }}>Agent</Text>
+      <Text size="small" style={{ fontWeight: 600 }}>Agent</Text>
       <FlexCol gap={6}>
         {agents.map((a) => (
           <FlexRow
@@ -203,7 +203,7 @@ export function WalliAgentSettings({ widgetId }: { widgetId: string }) {
               background: agentId === a.id ? AGENT_COLORS[a.id] : 'transparent',
               border: `2px solid ${AGENT_COLORS[a.id]}`,
             }} />
-            <Text size="sm">{a.label}</Text>
+            <Text size="small">{a.label}</Text>
           </FlexRow>
         ))}
       </FlexCol>

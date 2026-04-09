@@ -7,7 +7,7 @@ export interface Board {
   id: string
   name: string
   layoutId: string
-  boardType?: 'calendar' | 'settings' | 'connectors'
+  boardType?: 'calendar' | 'settings' | 'connectors' | 'today'
   calendarId?: string
   widgets: WidgetLayout[]
   slotGap?: number
@@ -43,6 +43,7 @@ const DEFAULT_ID           = crypto.randomUUID()
 const DEFAULT_CAL_ID       = crypto.randomUUID()
 export const DEFAULT_SETTINGS_ID   = 'system-settings-board'
 export const DEFAULT_CONNECTORS_ID = 'system-connectors-board'
+export const DEFAULT_TODAY_ID      = 'system-today-board'
 
 function ensureCalendarBoard(boards: Board[]): Board[] {
   if (boards.some((b) => b.boardType === 'calendar')) return boards
@@ -56,6 +57,9 @@ function ensureSystemBoards(boards: Board[]): Board[] {
   }
   if (!result.some((b) => b.boardType === 'connectors')) {
     result = [...result, { id: DEFAULT_CONNECTORS_ID, name: 'Connectors', layoutId: DEFAULT_LAYOUT_ID, boardType: 'connectors', widgets: [] }]
+  }
+  if (!result.some((b) => b.boardType === 'today')) {
+    result = [...result, { id: DEFAULT_TODAY_ID, name: 'Today', layoutId: DEFAULT_LAYOUT_ID, boardType: 'today', widgets: [] }]
   }
   return result
 }
@@ -190,7 +194,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     }),
     {
       name: 'whiteboard-layout',
-      version: 6,
+      version: 7,
       migrate: (state: any, version: number) => {
         if (version < 2) {
           return {
@@ -208,6 +212,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           }
         }
         // v6: ensure every user has calendar, settings, and connectors boards
+        // v7: ensure every user has the today board
         return { ...state, boards: ensureSystemBoards(state.boards ?? []) }
       },
     }

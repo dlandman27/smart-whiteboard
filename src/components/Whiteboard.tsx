@@ -9,12 +9,14 @@ import { WidgetCanvas } from './WidgetCanvas'
 import { CalendarBoardView } from './CalendarBoardView'
 import { SettingsBoardView } from './SettingsBoardView'
 import { ConnectorsBoardView } from './ConnectorsBoardView'
+import { TodayBoardView } from './TodayBoardView'
 import { NotificationToast } from './NotificationToast'
 import { UndoToast } from './UndoToast'
 import { VoiceListener } from './VoiceListener'
 import { PetBar } from './PetBar'
 import { Sidebar } from './Sidebar'
 import { BoardContextMenu } from './BoardContextMenu'
+import { LayoutPicker } from './LayoutPicker'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
 import type { PendingWidget } from '../types'
 
@@ -27,11 +29,13 @@ export function Whiteboard() {
   const isCalendarBoard    = boardType === 'calendar'
   const isSettingsBoard    = boardType === 'settings'
   const isConnectorsBoard  = boardType === 'connectors'
-  const isSystemBoard      = isCalendarBoard || isSettingsBoard || isConnectorsBoard
-  const [activeTool,    setActiveTool]    = useState('pointer')
-  const [pendingWidget, setPendingWidget] = useState<PendingWidget | null>(null)
-  const [boardMenu,     setBoardMenu]     = useState<{ x: number; y: number; widgetCtx?: { id: string; hasSettings: boolean } } | null>(null)
-  const [pickerOpen,    setPickerOpen]    = useState(false)
+  const isTodayBoard       = boardType === 'today'
+  const isSystemBoard      = isCalendarBoard || isSettingsBoard || isConnectorsBoard || isTodayBoard
+  const [activeTool,      setActiveTool]      = useState('pointer')
+  const [pendingWidget,   setPendingWidget]   = useState<PendingWidget | null>(null)
+  const [boardMenu,       setBoardMenu]       = useState<{ x: number; y: number; widgetCtx?: { id: string; hasSettings: boolean } } | null>(null)
+  const [pickerOpen,      setPickerOpen]      = useState(false)
+  const [layoutPickerOpen, setLayoutPickerOpen] = useState(false)
   const { background, petsEnabled } = useThemeStore()
   const boardRef = useRef<HTMLDivElement>(null)
 
@@ -76,6 +80,8 @@ export function Whiteboard() {
               <SettingsBoardView />
             ) : isConnectorsBoard ? (
               <ConnectorsBoardView />
+            ) : isTodayBoard ? (
+              <TodayBoardView />
             ) : (
               <>
                 <WidgetCanvas
@@ -96,9 +102,13 @@ export function Whiteboard() {
                     canvasH={canvasSize.h}
                     onClose={() => setBoardMenu(null)}
                     onAddWidget={() => { setBoardMenu(null); setPickerOpen(true) }}
-                    onChangeLayout={() => { setBoardMenu(null) }}
+                    onChangeLayout={() => { setBoardMenu(null); setLayoutPickerOpen(true) }}
                     widgetCtx={boardMenu.widgetCtx}
                   />
+                )}
+
+                {layoutPickerOpen && (
+                  <LayoutPicker onClose={() => setLayoutPickerOpen(false)} />
                 )}
 
                 <BottomToolbar

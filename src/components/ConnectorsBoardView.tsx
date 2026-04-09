@@ -30,6 +30,26 @@ function useHealthServices() {
   return services
 }
 
+// ── Section label ─────────────────────────────────────────────────────────────
+
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <Text
+      variant="label"
+      size="small"
+      style={{
+        textTransform: 'uppercase',
+        letterSpacing: '0.08em',
+        fontWeight:    700,
+        opacity:       0.5,
+      }}
+      color="muted"
+    >
+      {children}
+    </Text>
+  )
+}
+
 // ── Status badge ──────────────────────────────────────────────────────────────
 
 function StatusBadge({ connected, label }: { connected: boolean; label?: string }) {
@@ -43,9 +63,12 @@ function StatusBadge({ connected, label }: { connected: boolean; label?: string 
         fontSize:     11,
         fontWeight:   600,
         background:   connected
-          ? 'color-mix(in srgb, var(--wt-success, #22c55e) 15%, transparent)'
-          : 'color-mix(in srgb, var(--wt-text) 8%, transparent)',
-        color:        connected ? 'var(--wt-success, #22c55e)' : 'var(--wt-text-muted)',
+          ? 'color-mix(in srgb, var(--wt-success) 12%, transparent)'
+          : 'var(--wt-surface-hover)',
+        color:        connected ? 'var(--wt-success)' : 'var(--wt-text-muted)',
+        border:       connected
+          ? '1px solid color-mix(in srgb, var(--wt-success) 25%, transparent)'
+          : '1px solid var(--wt-border)',
       }}
     >
       {label ?? (connected ? 'Connected' : 'Not connected')}
@@ -77,55 +100,61 @@ function ConnectorCard({
   return (
     <div
       style={{
-        background:   'var(--wt-surface)',
-        border:       '1px solid var(--wt-border)',
-        borderRadius: 12,
-        padding:      20,
-        display:      'flex',
-        flexDirection:'column',
-        gap:          14,
+        background:    'var(--wt-surface)',
+        border:        '1px solid var(--wt-border)',
+        borderRadius:  12,
+        padding:       20,
+        display:       'flex',
+        flexDirection: 'column',
+        gap:           14,
       }}
     >
-      <FlexRow align="center" gap="3">
+      <FlexRow align="center" gap="sm">
         <div
           style={{
-            width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-            background: 'color-mix(in srgb, var(--wt-accent) 12%, transparent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width:           40,
+            height:          40,
+            borderRadius:    10,
+            flexShrink:      0,
+            background:      'var(--wt-surface-hover)',
+            display:         'flex',
+            alignItems:      'center',
+            justifyContent:  'center',
           }}
         >
-          <Icon icon={iconName as any} size={20} style={{ color: 'var(--wt-accent)' }} />
+          <Icon
+            icon={iconName as any}
+            size={20}
+            style={{ color: 'var(--wt-text)', opacity: 0.7 }}
+          />
         </div>
-        <FlexCol gap="0" style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="label" size="medium" style={{ fontWeight: 600, color: 'var(--wt-text)' }}>
+        <FlexCol gap="none" style={{ flex: 1, minWidth: 0 }}>
+          <Text variant="heading" size="small" style={{ fontWeight: 600 }}>
             {name}
           </Text>
           <Text variant="body" size="small" color="muted" style={{ marginTop: 1 }}>
             {description}
           </Text>
         </FlexCol>
-        <div style={{ flexShrink: 0 }}>
+        <FlexRow align="center" gap="sm" style={{ flexShrink: 0 }}>
           {configuredLabel ? (
             <StatusBadge connected={connected} label={configuredLabel} />
           ) : (
             <StatusBadge connected={connected} />
           )}
-        </div>
+          {actionLabel && onAction && (
+            <Button
+              variant={connected ? 'ghost' : 'accent'}
+              size="sm"
+              onClick={onAction}
+            >
+              {actionLabel}
+            </Button>
+          )}
+        </FlexRow>
       </FlexRow>
 
       {children}
-
-      {actionLabel && onAction && (
-        <div>
-          <Button
-            variant={connected ? 'ghost' : 'accent'}
-            size="sm"
-            onClick={onAction}
-          >
-            {actionLabel}
-          </Button>
-        </div>
-      )}
     </div>
   )
 }
@@ -181,8 +210,8 @@ function GCalCard({ googleOauth }: { googleOauth: boolean }) {
 // ── Spotify card ──────────────────────────────────────────────────────────────
 
 function SpotifyCard() {
-  const creds     = useSpotifyCredentials()
-  const status    = useSpotifyStatus()
+  const creds      = useSpotifyCredentials()
+  const status     = useSpotifyStatus()
   const [expanded, setExpanded] = useState(!creds.clientId)
   const connected  = !!status.data?.connected
   const configured = !!(creds.clientId && creds.clientSecret)
@@ -202,7 +231,7 @@ function SpotifyCard() {
       onAction={() => setExpanded((e) => !e)}
     >
       {expanded && (
-        <FlexCol gap="2" style={{ paddingLeft: 4 }}>
+        <FlexCol gap="sm" style={{ paddingLeft: 4 }}>
           <Text variant="body" size="small" color="muted">
             Create a Spotify app at{' '}
             <a
@@ -267,11 +296,6 @@ function EnvCard({
           <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>.env</code> file to enable this service.
         </Text>
       )}
-      {configured && (
-        <Text variant="body" size="small" color="muted">
-          Configured via <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>.env</code>.
-        </Text>
-      )}
     </ConnectorCard>
   )
 }
@@ -294,66 +318,78 @@ export function ConnectorsBoardView() {
       <div
         className="flex-shrink-0 flex items-center px-6 gap-3"
         style={{
-          height:       52,
+          height:       64,
           borderBottom: '1px solid var(--wt-border)',
         }}
       >
-        <Icon icon="Plugs" size={20} style={{ color: 'var(--wt-accent)' }} />
+        <Icon icon="Plugs" size={22} style={{ color: 'var(--wt-accent)', flexShrink: 0 }} />
         <div>
           <Text variant="label" size="medium" style={{ fontWeight: 700, color: 'var(--wt-text)', lineHeight: 1.2 }}>
             Connectors
           </Text>
-          <Text variant="body" size="small" color="muted" style={{ lineHeight: 1.2 }}>
-            Manage your integrations
+          <Text variant="body" size="small" color="muted" style={{ lineHeight: 1.4 }}>
+            Connect services to power your widgets and AI assistant.
           </Text>
         </div>
       </div>
 
       {/* Body */}
       <ScrollArea style={{ flex: 1 }}>
-        <div
-          className="grid gap-4 p-6"
-          style={{
-            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-          }}
-        >
-          <GCalCard googleOauth={s.googleOauth} />
-          <SpotifyCard />
-          <EnvCard
-            iconName="BookOpen"
-            name="Notion"
-            description="Read and write to your Notion databases for tasks and notes."
-            configured={s.notion}
-            envKey="NOTION_API_KEY"
-          />
-          <EnvCard
-            iconName="Robot"
-            name="Anthropic (Walli AI)"
-            description="Powers Walli, the AI assistant built into the whiteboard."
-            configured={s.anthropic}
-            envKey="ANTHROPIC_API_KEY"
-          />
-          <EnvCard
-            iconName="Microphone"
-            name="ElevenLabs (Voice)"
-            description="Text-to-speech voice synthesis for Walli and briefings."
-            configured={s.elevenlabs}
-            envKey="ELEVENLABS_API_KEY"
-          />
-          <EnvCard
-            iconName="YoutubeLogo"
-            name="YouTube"
-            description="Fetch YouTube video data and embed content in widgets."
-            configured={s.youtube}
-            envKey="YOUTUBE_API_KEY"
-          />
-          <EnvCard
-            iconName="MagnifyingGlass"
-            name="Bing Search"
-            description="Web search capability for Walli's research tools."
-            configured={s.bing}
-            envKey="BING_API_KEY"
-          />
+        <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 40px' }}>
+          <FlexCol gap="lg">
+
+            {/* OAuth group */}
+            <FlexCol gap="sm">
+              <SectionLabel>Connected Apps</SectionLabel>
+              <FlexCol gap="sm">
+                <GCalCard googleOauth={s.googleOauth} />
+                <SpotifyCard />
+              </FlexCol>
+            </FlexCol>
+
+            {/* API Keys group */}
+            <FlexCol gap="sm">
+              <SectionLabel>API Services</SectionLabel>
+              <FlexCol gap="sm">
+                <EnvCard
+                  iconName="BookOpen"
+                  name="Notion"
+                  description="Read and write to your Notion databases for tasks and notes."
+                  configured={s.notion}
+                  envKey="NOTION_API_KEY"
+                />
+                <EnvCard
+                  iconName="Robot"
+                  name="Anthropic (Walli AI)"
+                  description="Powers Walli, the AI assistant built into the whiteboard."
+                  configured={s.anthropic}
+                  envKey="ANTHROPIC_API_KEY"
+                />
+                <EnvCard
+                  iconName="Microphone"
+                  name="ElevenLabs (Voice)"
+                  description="Text-to-speech voice synthesis for Walli and briefings."
+                  configured={s.elevenlabs}
+                  envKey="ELEVENLABS_API_KEY"
+                />
+                <EnvCard
+                  iconName="YoutubeLogo"
+                  name="YouTube"
+                  description="Fetch YouTube video data and embed content in widgets."
+                  configured={s.youtube}
+                  envKey="YOUTUBE_API_KEY"
+                />
+                <EnvCard
+                  iconName="MagnifyingGlass"
+                  name="Bing Search"
+                  description="Web search capability for Walli's research tools."
+                  configured={s.bing}
+                  envKey="BING_API_KEY"
+                />
+              </FlexCol>
+            </FlexCol>
+
+          </FlexCol>
         </div>
       </ScrollArea>
     </div>

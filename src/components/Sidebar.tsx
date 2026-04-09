@@ -1,13 +1,13 @@
 import { useState, useRef } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
-import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID } from '../store/whiteboard'
+import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID } from '../store/whiteboard'
 import { Logo } from './Logo'
 
 type AddStep = 'idle' | 'name-board'
 
 export function Sidebar() {
-  const { boards, activeBoardId, setActiveBoard, addBoard, reorderBoards } = useWhiteboardStore()
+  const { boards, activeBoardId, setActiveBoard, addBoard, removeBoard, reorderBoards } = useWhiteboardStore()
 
   const dragIndex   = useRef<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
@@ -16,19 +16,24 @@ export function Sidebar() {
   const [addStep,   setAddStep]   = useState<AddStep>('idle')
   const [newName,   setNewName]   = useState('')
 
-  // Filter to only regular + calendar boards for the list
-  const visibleBoards = boards.filter(
-    (b) => (b as any).boardType !== 'settings' && (b as any).boardType !== 'connectors'
-  )
+  // System boards
+  const settingsBoard   = boards.find((b) => b.boardType === 'settings')
+  const connectorsBoard = boards.find((b) => b.boardType === 'connectors')
+  const todayBoard      = boards.find((b) => b.boardType === 'today')
+  const calendarBoard   = boards.find((b) => b.boardType === 'calendar')
 
-  // Find system board IDs (they may already be in store or use stable IDs)
-  const settingsBoard    = boards.find((b) => (b as any).boardType === 'settings')
-  const connectorsBoard  = boards.find((b) => (b as any).boardType === 'connectors')
-  const settingsId       = settingsBoard?.id    ?? DEFAULT_SETTINGS_ID
-  const connectorsId     = connectorsBoard?.id  ?? DEFAULT_CONNECTORS_ID
+  const settingsId   = settingsBoard?.id   ?? DEFAULT_SETTINGS_ID
+  const connectorsId = connectorsBoard?.id ?? DEFAULT_CONNECTORS_ID
+  const todayId      = todayBoard?.id      ?? DEFAULT_TODAY_ID
+  const calendarId   = calendarBoard?.id   ?? ''
 
-  const isSettingsActive    = activeBoardId === settingsId
-  const isConnectorsActive  = activeBoardId === connectorsId
+  const isSettingsActive   = activeBoardId === settingsId
+  const isConnectorsActive = activeBoardId === connectorsId
+  const isTodayActive      = activeBoardId === todayId
+  const isCalendarActive   = activeBoardId === calendarId
+
+  // Only user-created boards
+  const visibleBoards = boards.filter((b) => !b.boardType)
 
   function handleAdd() {
     if (!newName.trim()) return
@@ -61,24 +66,46 @@ export function Sidebar() {
 
       <div className="mx-3 flex-shrink-0" style={{ height: 1, background: 'var(--wt-border)' }} />
 
+      {/* Top nav — Today + Calendar */}
+      <div className="px-2 pt-2 pb-1 flex flex-col gap-0.5">
+        <NavBtn
+          icon="Sun"
+          label="Today"
+          collapsed={collapsed}
+          active={isTodayActive}
+          onClick={() => setActiveBoard(todayId)}
+          disabled
+        />
+        <NavBtn
+          icon="CalendarBlank"
+          label="Calendar"
+          collapsed={collapsed}
+          active={isCalendarActive}
+          onClick={() => calendarId && setActiveBoard(calendarId)}
+        />
+      </div>
+
+      <div className="mx-3 flex-shrink-0" style={{ height: 1, background: 'var(--wt-border)' }} />
+
       {/* Boards list */}
-      <div className="flex-1 overflow-y-auto pt-3 px-2 flex flex-col gap-0.5">
+      <div className="flex-1 overflow-y-auto pt-2 px-2 flex flex-col gap-0.5">
         {!collapsed && (
-          <span className="px-1.5 pb-1.5 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--wt-text-muted)', opacity: 0.6 }}>
+          <span className="px-1.5 pb-1 block text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'var(--wt-text-muted)', opacity: 0.6 }}>
             Boards
           </span>
         )}
 
         {visibleBoards.map((board, index) => {
-          const isActive   = board.id === activeBoardId
-          const isCalendar = (board as any).boardType === 'calendar'
-          const initial    = board.name.charAt(0).toUpperCase()
+          const isActive     = board.id === activeBoardId
+          const initial      = board.name.charAt(0).toUpperCase()
           const isDropTarget = dragOver === index && dragIndex.current !== index
+          const canDelete    = visibleBoards.length > 1
 
           return (
             <div
               key={board.id}
               draggable
+              className="group"
               onDragStart={() => { dragIndex.current = index }}
               onDragOver={(e) => { e.preventDefault(); setDragOver(index) }}
               onDragLeave={() => setDragOver(null)}
@@ -95,38 +122,60 @@ export function Sidebar() {
                 transition: 'border-color 0.1s',
               }}
             >
-              <button
-                onClick={() => setActiveBoard(board.id)}
-                title={collapsed ? board.name : undefined}
-                className={`w-full flex items-center rounded-lg py-1.5 text-left transition-all ${collapsed ? 'justify-center' : 'gap-2.5 px-1.5'}`}
-                style={{
-                  background: isActive ? 'color-mix(in srgb, var(--wt-accent) 15%, transparent)' : 'transparent',
-                  cursor: 'grab',
-                }}
+              <div
+                className={`w-full flex items-center rounded-lg py-1.5 transition-all ${collapsed ? 'justify-center' : 'gap-2.5 px-1.5'}`}
+                style={{ background: isActive ? 'color-mix(in srgb, var(--wt-accent) 15%, transparent)' : 'transparent' }}
               >
-                <span
-                  className="flex-shrink-0 flex items-center justify-center rounded-md text-xs font-bold"
-                  style={{
-                    width:      26,
-                    height:     26,
-                    background: isActive
-                      ? 'var(--wt-accent)'
-                      : 'color-mix(in srgb, var(--wt-text) 12%, transparent)',
-                    color:      isActive ? '#fff' : 'var(--wt-text)',
-                    border:     `1px solid ${isActive ? 'transparent' : 'color-mix(in srgb, var(--wt-text) 15%, transparent)'}`,
-                  }}
+                <button
+                  onClick={() => setActiveBoard(board.id)}
+                  title={collapsed ? board.name : undefined}
+                  className={`flex items-center text-left flex-1 min-w-0 ${collapsed ? 'justify-center' : 'gap-2.5'}`}
+                  style={{ background: 'none', border: 'none', cursor: 'grab', padding: 0 }}
                 >
-                  {isCalendar ? <Icon icon="CalendarBlank" size={13} /> : initial}
-                </span>
-                {!collapsed && (
                   <span
-                    className="text-sm font-medium truncate flex-1"
-                    style={{ color: isActive ? 'var(--wt-text)' : 'color-mix(in srgb, var(--wt-text) 70%, transparent)' }}
+                    className="flex-shrink-0 flex items-center justify-center rounded-md text-xs font-bold"
+                    style={{
+                      width:      26,
+                      height:     26,
+                      background: isActive
+                        ? 'var(--wt-accent)'
+                        : 'color-mix(in srgb, var(--wt-text) 12%, transparent)',
+                      color:      isActive ? '#fff' : 'var(--wt-text)',
+                      border:     `1px solid ${isActive ? 'transparent' : 'color-mix(in srgb, var(--wt-text) 15%, transparent)'}`,
+                    }}
                   >
-                    {board.name}
+                    {initial}
                   </span>
+                  {!collapsed && (
+                    <span
+                      className="text-sm font-medium truncate flex-1"
+                      style={{ color: isActive ? 'var(--wt-text)' : 'color-mix(in srgb, var(--wt-text) 70%, transparent)' }}
+                    >
+                      {board.name}
+                    </span>
+                  )}
+                </button>
+
+                {!collapsed && canDelete && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); removeBoard(board.id) }}
+                    title="Delete board"
+                    className="flex-shrink-0 flex items-center justify-center rounded-md opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{
+                      width:      22,
+                      height:     22,
+                      background: 'none',
+                      border:     'none',
+                      cursor:     'pointer',
+                      color:      'var(--wt-text-muted)',
+                    }}
+                    onPointerEnter={(e) => { e.currentTarget.style.color = 'var(--wt-danger)' }}
+                    onPointerLeave={(e) => { e.currentTarget.style.color = 'var(--wt-text-muted)' }}
+                  >
+                    <Icon icon="Trash" size={13} />
+                  </button>
                 )}
-              </button>
+              </div>
             </div>
           )
         })}
@@ -185,18 +234,20 @@ export function Sidebar() {
 }
 
 function NavBtn({
-  icon, label, collapsed, active, onClick,
+  icon, label, collapsed, active, onClick, disabled,
 }: {
-  icon: string; label: string; collapsed: boolean; active: boolean; onClick: () => void
+  icon: string; label: string; collapsed: boolean; active: boolean; onClick: () => void; disabled?: boolean
 }) {
   return (
     <button
-      onClick={onClick}
+      onClick={disabled ? undefined : onClick}
       title={collapsed ? label : undefined}
-      className={`w-full flex items-center rounded-lg py-2 transition-all hover:opacity-80 text-left ${collapsed ? 'justify-center' : 'gap-3 px-2'}`}
+      disabled={disabled}
+      className={`w-full flex items-center rounded-lg py-2 transition-all text-left ${collapsed ? 'justify-center' : 'gap-3 px-2'} ${disabled ? 'cursor-not-allowed' : 'hover:opacity-80'}`}
       style={{
         color:      'var(--wt-text)',
         background: active ? 'color-mix(in srgb, var(--wt-accent) 15%, transparent)' : 'transparent',
+        opacity:    disabled ? 0.35 : 1,
       }}
     >
       <Icon
