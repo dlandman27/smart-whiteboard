@@ -118,27 +118,35 @@ export function Whiteboard() {
 
                 {/* Board background picker panel */}
                 {bgPickerOpen && (
-                  <div
-                    className="absolute z-[10001] rounded-2xl overflow-hidden"
-                    style={{
-                      right: 16, bottom: 72, width: 380,
-                      backgroundColor: 'var(--wt-settings-bg)',
-                      border:          '1px solid var(--wt-settings-border)',
-                      boxShadow:       'var(--wt-shadow-lg)',
-                      backdropFilter:  'var(--wt-backdrop)',
-                    }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                  >
-                    <div style={{ padding: '14px 16px 6px', borderBottom: '1px solid var(--wt-settings-border)' }}>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--wt-text)' }}>Board Background</span>
+                  <>
+                    {/* Backdrop — closes on outside click */}
+                    <div
+                      className="absolute inset-0 z-[10000]"
+                      onPointerDown={() => setBgPickerOpen(false)}
+                    />
+                    <div
+                      className="absolute z-[10001] rounded-2xl overflow-hidden"
+                      style={{
+                        right: 16, bottom: 72, width: 380,
+                        backgroundColor: 'var(--wt-settings-bg)',
+                        border:          '1px solid var(--wt-settings-border)',
+                        boxShadow:       'var(--wt-shadow-lg)',
+                        backdropFilter:  'var(--wt-backdrop)',
+                        animation:       'contextMenuIn 0.12s ease-out',
+                      }}
+                      onPointerDown={(e) => e.stopPropagation()}
+                    >
+                      <div style={{ padding: '14px 16px 6px', borderBottom: '1px solid var(--wt-settings-border)' }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--wt-text)' }}>Board Background</span>
+                      </div>
+                      <div style={{ padding: 16 }}>
+                        <BackgroundPicker
+                          background={boardBackground}
+                          onSelect={(bg) => setBoardBackground(activeBoardId, bg)}
+                        />
+                      </div>
                     </div>
-                    <div style={{ padding: 16 }}>
-                      <BackgroundPicker
-                        background={boardBackground}
-                        onSelect={(bg) => setBoardBackground(activeBoardId, bg)}
-                      />
-                    </div>
-                  </div>
+                  </>
                 )}
 
                 <BottomToolbar
