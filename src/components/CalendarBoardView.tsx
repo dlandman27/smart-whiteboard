@@ -90,8 +90,8 @@ function padTime(h: number, m = 0): string {
 
 // ── Time grid constants ───────────────────────────────────────────────────────
 
-const START_HOUR = 6
-const END_HOUR   = 22
+const START_HOUR = 0
+const END_HOUR   = 24
 const HOUR_H     = 64
 const HOURS      = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i)
 const TOTAL_H    = HOURS.length * HOUR_H
@@ -127,7 +127,7 @@ function TimeGutter() {
           style={{ height: HOUR_H, paddingRight: 8, paddingTop: 2 }}
         >
           <Text variant="caption" size="medium" color="muted" style={{ opacity: 0.55, lineHeight: 1 }}>
-            {h === 12 ? '12 PM' : h < 12 ? `${h} AM` : `${h - 12} PM`}
+            {h === 0 ? '12 AM' : h === 12 ? '12 PM' : h < 12 ? `${h} AM` : `${h - 12} PM`}
           </Text>
         </FlexRow>
       ))}
@@ -217,42 +217,39 @@ function WeekGrid({
   }
 
   return (
-    <FlexRow flex1 overflow="hidden" align="stretch" className="min-h-0">
-      <Box className="flex-shrink-0 overflow-hidden" style={{ paddingTop: 56 }}>
-        <TimeGutter />
-      </Box>
-
-      <FlexCol flex1 overflow="hidden" className="min-h-0">
-        {/* Day headers */}
-        <FlexRow className="flex-shrink-0" style={{ borderBottom: '1px solid var(--wt-border)' }}>
-          {days.map(day => {
-            const isToday = day.toDateString() === today.toDateString()
-            return (
-              <FlexCol key={day.toISOString()} flex1 align="center" className="py-2">
-                <Text
-                  variant="label" size="small"
-                  color={isToday ? 'accent' : 'muted'}
-                  textTransform="uppercase"
-                  style={{ opacity: isToday ? 1 : 0.55 }}
-                >
-                  {day.toLocaleDateString('en-US', { weekday: 'short' })}
+    <FlexCol flex1 overflow="hidden" className="min-h-0">
+      {/* Fixed day headers (left-padded to align with columns past the gutter) */}
+      <FlexRow className="flex-shrink-0" style={{ paddingLeft: 52, borderBottom: '1px solid var(--wt-border)' }}>
+        {days.map(day => {
+          const isToday = day.toDateString() === today.toDateString()
+          return (
+            <FlexCol key={day.toISOString()} flex1 align="center" className="py-2">
+              <Text
+                variant="label" size="small"
+                color={isToday ? 'accent' : 'muted'}
+                textTransform="uppercase"
+                style={{ opacity: isToday ? 1 : 0.55 }}
+              >
+                {day.toLocaleDateString('en-US', { weekday: 'short' })}
+              </Text>
+              <Box style={{
+                width: 34, height: 34, borderRadius: '50%',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2,
+                background: isToday ? 'var(--wt-accent)' : 'transparent',
+              }}>
+                <Text variant="heading" size="small" color={isToday ? 'onAccent' : 'default'} style={{ lineHeight: 1 }}>
+                  {day.getDate()}
                 </Text>
-                <Box style={{
-                  width: 34, height: 34, borderRadius: '50%',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2,
-                  background: isToday ? 'var(--wt-accent)' : 'transparent',
-                }}>
-                  <Text variant="heading" size="small" color={isToday ? 'onAccent' : 'default'} style={{ lineHeight: 1 }}>
-                    {day.getDate()}
-                  </Text>
-                </Box>
-              </FlexCol>
-            )
-          })}
-        </FlexRow>
+              </Box>
+            </FlexCol>
+          )
+        })}
+      </FlexRow>
 
-        {/* Scrollable time grid */}
-        <FlexRow flex1 overflow="y-auto" className="min-h-0">
+      {/* Scrollable area — gutter + day columns scroll together */}
+      <ScrollArea className="rounded-b-2xl wt-scroll">
+        <FlexRow align="stretch" className="pt-3 pb-6">
+          <TimeGutter />
           {days.map(day => {
             const s       = new Date(day); s.setHours(0, 0, 0, 0)
             const e       = new Date(day); e.setHours(23, 59, 59, 999)
@@ -291,8 +288,8 @@ function WeekGrid({
             )
           })}
         </FlexRow>
-      </FlexCol>
-    </FlexRow>
+      </ScrollArea>
+    </FlexCol>
   )
 }
 
@@ -327,30 +324,30 @@ function DayGrid({
   }
 
   return (
-    <FlexRow flex1 overflow="hidden" align="stretch" className="min-h-0">
-      <Box className="flex-shrink-0 overflow-hidden" style={{ paddingTop: allDay.length > 0 ? 44 : 0 }}>
-        <TimeGutter />
-      </Box>
-      <FlexCol flex1 overflow="hidden" className="min-h-0">
-        {allDay.length > 0 && (
-          <FlexRow wrap gap="xs" className="flex-shrink-0 px-2 py-1.5" style={{ borderBottom: '1px solid var(--wt-border)' }}>
-            {allDay.map(ev => (
-              <Box
-                key={ev.id}
-                onClick={() => onEventClick(ev)}
-                style={{
-                  fontSize: 12, padding: '2px 10px', borderRadius: 12, cursor: 'pointer',
-                  background: `color-mix(in srgb, ${eventColor(ev, calColors)} 20%, var(--wt-surface))`,
-                  border:     `1px solid color-mix(in srgb, ${eventColor(ev, calColors)} 30%, transparent)`,
-                }}
-              >
-                <Text variant="label" size="medium">{ev.summary || '(No title)'}</Text>
-              </Box>
-            ))}
-          </FlexRow>
-        )}
-        <ScrollArea>
+    <FlexCol flex1 overflow="hidden" className="min-h-0">
+      {allDay.length > 0 && (
+        <FlexRow wrap gap="xs" className="flex-shrink-0 px-2 py-1.5" style={{ paddingLeft: 60, borderBottom: '1px solid var(--wt-border)' }}>
+          {allDay.map(ev => (
+            <Box
+              key={ev.id}
+              onClick={() => onEventClick(ev)}
+              style={{
+                fontSize: 12, padding: '2px 10px', borderRadius: 12, cursor: 'pointer',
+                background: `color-mix(in srgb, ${eventColor(ev, calColors)} 20%, var(--wt-surface))`,
+                border:     `1px solid color-mix(in srgb, ${eventColor(ev, calColors)} 30%, transparent)`,
+              }}
+            >
+              <Text variant="label" size="medium">{ev.summary || '(No title)'}</Text>
+            </Box>
+          ))}
+        </FlexRow>
+      )}
+      {/* Scrollable area — gutter + day column scroll together */}
+      <ScrollArea className="rounded-b-2xl wt-scroll">
+        <FlexRow align="stretch" className="pt-3 pb-6">
+          <TimeGutter />
           <Box
+            flex1
             onClick={handleClick}
             style={{
               position: 'relative', height: TOTAL_H, cursor: 'crosshair',
@@ -370,9 +367,9 @@ function DayGrid({
             ))}
             {isToday && <NowLine />}
           </Box>
-        </ScrollArea>
-      </FlexCol>
-    </FlexRow>
+        </FlexRow>
+      </ScrollArea>
+    </FlexCol>
   )
 }
 

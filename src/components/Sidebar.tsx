@@ -1,16 +1,12 @@
 import { useState, useRef } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
+import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID } from '../store/whiteboard'
 import { Logo } from './Logo'
 
 type AddStep = 'idle' | 'name-board'
 
-interface Props {
-  onOpenCustomize: () => void
-  onOpenSettings:  () => void
-}
-
-export function Sidebar({ onOpenCustomize, onOpenSettings }: Props) {
+export function Sidebar() {
   const { boards, activeBoardId, setActiveBoard, addBoard, reorderBoards } = useWhiteboardStore()
 
   const dragIndex   = useRef<number | null>(null)
@@ -19,6 +15,20 @@ export function Sidebar({ onOpenCustomize, onOpenSettings }: Props) {
   const [collapsed, setCollapsed] = useState(false)
   const [addStep,   setAddStep]   = useState<AddStep>('idle')
   const [newName,   setNewName]   = useState('')
+
+  // Filter to only regular + calendar boards for the list
+  const visibleBoards = boards.filter(
+    (b) => (b as any).boardType !== 'settings' && (b as any).boardType !== 'connectors'
+  )
+
+  // Find system board IDs (they may already be in store or use stable IDs)
+  const settingsBoard    = boards.find((b) => (b as any).boardType === 'settings')
+  const connectorsBoard  = boards.find((b) => (b as any).boardType === 'connectors')
+  const settingsId       = settingsBoard?.id    ?? DEFAULT_SETTINGS_ID
+  const connectorsId     = connectorsBoard?.id  ?? DEFAULT_CONNECTORS_ID
+
+  const isSettingsActive    = activeBoardId === settingsId
+  const isConnectorsActive  = activeBoardId === connectorsId
 
   function handleAdd() {
     if (!newName.trim()) return
@@ -59,7 +69,7 @@ export function Sidebar({ onOpenCustomize, onOpenSettings }: Props) {
           </span>
         )}
 
-        {boards.map((board, index) => {
+        {visibleBoards.map((board, index) => {
           const isActive   = board.id === activeBoardId
           const isCalendar = (board as any).boardType === 'calendar'
           const initial    = board.name.charAt(0).toUpperCase()
@@ -81,7 +91,7 @@ export function Sidebar({ onOpenCustomize, onOpenSettings }: Props) {
               }}
               onDragEnd={() => { dragIndex.current = null; setDragOver(null) }}
               style={{
-                borderTop: isDropTarget ? '2px solid var(--wt-accent)' : '2px solid transparent',
+                borderTop:  isDropTarget ? '2px solid var(--wt-accent)' : '2px solid transparent',
                 transition: 'border-color 0.1s',
               }}
             >
@@ -153,19 +163,31 @@ export function Sidebar({ onOpenCustomize, onOpenSettings }: Props) {
         )}
       </div>
 
-      {/* Bottom nav — Customize + Settings */}
+      {/* Bottom nav — Connectors + Settings */}
       <div className="px-2 pt-1.5 pb-2 flex flex-col gap-0.5" style={{ borderTop: '1px solid var(--wt-border)' }}>
-        <NavBtn icon="Palette" label="Customize" collapsed={collapsed} onClick={onOpenCustomize} />
-        <NavBtn icon="Gear"    label="Settings"  collapsed={collapsed} onClick={onOpenSettings}  />
+        <NavBtn
+          icon="Plugs"
+          label="Connectors"
+          collapsed={collapsed}
+          active={isConnectorsActive}
+          onClick={() => setActiveBoard(connectorsId)}
+        />
+        <NavBtn
+          icon="Gear"
+          label="Settings"
+          collapsed={collapsed}
+          active={isSettingsActive}
+          onClick={() => setActiveBoard(settingsId)}
+        />
       </div>
     </div>
   )
 }
 
 function NavBtn({
-  icon, label, collapsed, onClick,
+  icon, label, collapsed, active, onClick,
 }: {
-  icon: string; label: string; collapsed: boolean; onClick: () => void
+  icon: string; label: string; collapsed: boolean; active: boolean; onClick: () => void
 }) {
   return (
     <button
@@ -174,11 +196,26 @@ function NavBtn({
       className={`w-full flex items-center rounded-lg py-2 transition-all hover:opacity-80 text-left ${collapsed ? 'justify-center' : 'gap-3 px-2'}`}
       style={{
         color:      'var(--wt-text)',
-        background: 'transparent',
+        background: active ? 'color-mix(in srgb, var(--wt-accent) 15%, transparent)' : 'transparent',
       }}
     >
-      <Icon icon={icon} size={18} style={{ opacity: 0.75, flexShrink: 0 }} />
-      {!collapsed && <span className="text-sm font-medium">{label}</span>}
+      <Icon
+        icon={icon}
+        size={18}
+        style={{
+          opacity:    active ? 1 : 0.75,
+          flexShrink: 0,
+          color:      active ? 'var(--wt-accent)' : undefined,
+        }}
+      />
+      {!collapsed && (
+        <span
+          className="text-sm font-medium"
+          style={{ color: active ? 'var(--wt-text)' : undefined }}
+        >
+          {label}
+        </span>
+      )}
     </button>
   )
 }

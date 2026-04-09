@@ -7,7 +7,7 @@ export interface Board {
   id: string
   name: string
   layoutId: string
-  boardType?: 'calendar'
+  boardType?: 'calendar' | 'settings' | 'connectors'
   calendarId?: string
   widgets: WidgetLayout[]
   slotGap?: number
@@ -39,18 +39,31 @@ interface WhiteboardStore {
   reorderBoards:    (fromIndex: number, toIndex: number) => void
 }
 
-const DEFAULT_ID      = crypto.randomUUID()
-const DEFAULT_CAL_ID  = crypto.randomUUID()
+const DEFAULT_ID           = crypto.randomUUID()
+const DEFAULT_CAL_ID       = crypto.randomUUID()
+export const DEFAULT_SETTINGS_ID   = 'system-settings-board'
+export const DEFAULT_CONNECTORS_ID = 'system-connectors-board'
 
 function ensureCalendarBoard(boards: Board[]): Board[] {
   if (boards.some((b) => b.boardType === 'calendar')) return boards
   return [...boards, { id: DEFAULT_CAL_ID, name: 'Calendar', layoutId: DEFAULT_LAYOUT_ID, boardType: 'calendar', calendarId: 'primary', widgets: [] }]
 }
 
+function ensureSystemBoards(boards: Board[]): Board[] {
+  let result = ensureCalendarBoard(boards)
+  if (!result.some((b) => b.boardType === 'settings')) {
+    result = [...result, { id: DEFAULT_SETTINGS_ID, name: 'Settings', layoutId: DEFAULT_LAYOUT_ID, boardType: 'settings', widgets: [] }]
+  }
+  if (!result.some((b) => b.boardType === 'connectors')) {
+    result = [...result, { id: DEFAULT_CONNECTORS_ID, name: 'Connectors', layoutId: DEFAULT_LAYOUT_ID, boardType: 'connectors', widgets: [] }]
+  }
+  return result
+}
+
 export const useWhiteboardStore = create<WhiteboardStore>()(
   persist(
     (set) => ({
-      boards: ensureCalendarBoard([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }]),
+      boards: ensureSystemBoards([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }]),
       activeBoardId: DEFAULT_ID,
 
       addBoard: (name, presetId) => {
@@ -177,25 +190,25 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     }),
     {
       name: 'whiteboard-layout',
-      version: 5,
+      version: 6,
       migrate: (state: any, version: number) => {
         if (version < 2) {
           return {
-            boards: ensureCalendarBoard([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: state?.widgets ?? [] }]),
+            boards: ensureSystemBoards([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: state?.widgets ?? [] }]),
             activeBoardId: DEFAULT_ID,
           }
         }
         if (version < 3) {
           return {
             ...state,
-            boards: ensureCalendarBoard((state.boards ?? []).map((b: any) => ({
+            boards: ensureSystemBoards((state.boards ?? []).map((b: any) => ({
               ...b,
               layoutId: b.layoutId ?? DEFAULT_LAYOUT_ID,
             }))),
           }
         }
-        // v5: ensure every user has a calendar board
-        return { ...state, boards: ensureCalendarBoard(state.boards ?? []) }
+        // v6: ensure every user has calendar, settings, and connectors boards
+        return { ...state, boards: ensureSystemBoards(state.boards ?? []) }
       },
     }
   )

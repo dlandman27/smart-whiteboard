@@ -32,8 +32,15 @@ export function gcalRouter(): Router {
 
   router.get('/gcal/callback', asyncRoute(async (req, res) => {
     if (!CLIENT_ID) throw new AppError(500, 'Google OAuth credentials not configured')
+    if (req.query.error) throw new AppError(400, `Google OAuth error: ${req.query.error}`)
     const client = getGCalOAuth2Client()
-    const { tokens } = await (client as any).getToken(req.query.code as string)
+    let tokens: any
+    try {
+      const result = await (client as any).getToken(req.query.code as string)
+      tokens = result.tokens
+    } catch (e: any) {
+      throw new AppError(500, `Failed to exchange code: ${e?.response?.data?.error_description ?? e?.message ?? 'unknown error'}`)
+    }
     const { saveTokens } = await import('../services/tokens.js')
     saveTokens(tokens)
     res.send(`

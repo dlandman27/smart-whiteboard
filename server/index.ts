@@ -1,6 +1,6 @@
+import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
-import dotenv from 'dotenv'
 import { createServer } from 'http'
 import { Client } from '@notionhq/client'
 import Anthropic from '@anthropic-ai/sdk'
@@ -29,8 +29,6 @@ import { walliRouter }         from './routes/walli.js'
 import { startAllCrons } from './crons/index.js'
 import { errorMiddleware } from './middleware/error.js'
 import { log, warn } from './lib/logger.js'
-
-dotenv.config()
 
 const app        = express()
 const httpServer = createServer(app)

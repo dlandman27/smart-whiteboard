@@ -7,28 +7,29 @@ import { WalliChatButton } from './WalliChat'
 import { BottomToolbar } from './BottomToolbar'
 import { WidgetCanvas } from './WidgetCanvas'
 import { CalendarBoardView } from './CalendarBoardView'
+import { SettingsBoardView } from './SettingsBoardView'
+import { ConnectorsBoardView } from './ConnectorsBoardView'
 import { NotificationToast } from './NotificationToast'
 import { UndoToast } from './UndoToast'
 import { VoiceListener } from './VoiceListener'
 import { PetBar } from './PetBar'
 import { Sidebar } from './Sidebar'
-import { SettingsPanel } from './SettingsPanel'
-import { ConfigPanel } from './ConfigPanel'
 import { BoardContextMenu } from './BoardContextMenu'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
 import type { PendingWidget } from '../types'
-
-type SidePanel = 'customize' | 'settings' | 'layout' | null
 
 export function Whiteboard() {
   useCanvasSocket()
   const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize } = useUIStore()
   const { boards, activeBoardId } = useWhiteboardStore()
-  const activeBoard   = boards.find(b => b.id === activeBoardId)
-  const isCalendarBoard = (activeBoard as any)?.boardType === 'calendar'
+  const activeBoard        = boards.find(b => b.id === activeBoardId)
+  const boardType          = (activeBoard as any)?.boardType as string | undefined
+  const isCalendarBoard    = boardType === 'calendar'
+  const isSettingsBoard    = boardType === 'settings'
+  const isConnectorsBoard  = boardType === 'connectors'
+  const isSystemBoard      = isCalendarBoard || isSettingsBoard || isConnectorsBoard
   const [activeTool,    setActiveTool]    = useState('pointer')
   const [pendingWidget, setPendingWidget] = useState<PendingWidget | null>(null)
-  const [sidePanel,     setSidePanel]     = useState<SidePanel>(null)
   const [boardMenu,     setBoardMenu]     = useState<{ x: number; y: number; widgetCtx?: { id: string; hasSettings: boolean } } | null>(null)
   const [pickerOpen,    setPickerOpen]    = useState(false)
   const { background, petsEnabled } = useThemeStore()
@@ -39,12 +40,11 @@ export function Whiteboard() {
       if (e.key === 'Escape') {
         if (boardMenu)       { setBoardMenu(null); return }
         if (focusedWidgetId) { setFocusedWidget(null); return }
-        if (sidePanel)       { setSidePanel(null) }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [focusedWidgetId, sidePanel, boardMenu])
+  }, [focusedWidgetId, boardMenu])
 
   useEffect(() => {
     const el = boardRef.current
@@ -59,14 +59,7 @@ export function Whiteboard() {
 
   return (
     <div className="flex w-screen h-screen" style={{ background: 'var(--wt-bg)' }}>
-      {sidePanel === 'customize' && <SettingsPanel onClose={() => setSidePanel(null)} />}
-      {sidePanel === 'settings'  && <ConfigPanel   onClose={() => setSidePanel(null)} />}
-      {sidePanel === 'layout'    && <SettingsPanel onClose={() => setSidePanel(null)} defaultTab="layout" />}
-
-      <Sidebar
-        onOpenCustomize={() => setSidePanel((p) => p === 'customize' ? null : 'customize')}
-        onOpenSettings={() => setSidePanel((p) => p === 'settings'  ? null : 'settings')}
-      />
+      <Sidebar />
 
       {/* Inset board */}
       <div className="flex-1 p-2 min-w-0">
@@ -79,15 +72,18 @@ export function Whiteboard() {
 
             {isCalendarBoard ? (
               <CalendarBoardView />
+            ) : isSettingsBoard ? (
+              <SettingsBoardView />
+            ) : isConnectorsBoard ? (
+              <ConnectorsBoardView />
             ) : (
               <>
                 <WidgetCanvas
                   activeTool={activeTool}
                   pendingWidget={pendingWidget}
                   onClearPending={() => setPendingWidget(null)}
-                  onDoubleTap={(x, y) => { setSidePanel(null); setBoardMenu({ x, y }) }}
+                  onDoubleTap={(x, y) => { setBoardMenu({ x, y }) }}
                   onWidgetDoubleTap={(widgetId, x, y, hasSettings) => {
-                    setSidePanel(null)
                     setBoardMenu({ x, y, widgetCtx: { id: widgetId, hasSettings } })
                   }}
                 />
@@ -100,7 +96,7 @@ export function Whiteboard() {
                     canvasH={canvasSize.h}
                     onClose={() => setBoardMenu(null)}
                     onAddWidget={() => { setBoardMenu(null); setPickerOpen(true) }}
-                    onChangeLayout={() => { setBoardMenu(null); setSidePanel('layout') }}
+                    onChangeLayout={() => { setBoardMenu(null) }}
                     widgetCtx={boardMenu.widgetCtx}
                   />
                 )}
@@ -114,11 +110,13 @@ export function Whiteboard() {
               </>
             )}
 
-            <div className="absolute bottom-4 left-4 z-[9990] select-none">
-              <WalliChatButton />
-            </div>
+            {!isSystemBoard && (
+              <div className="absolute bottom-4 left-4 z-[9990] select-none">
+                <WalliChatButton />
+              </div>
+            )}
 
-            {petsEnabled && <PetBar />}
+            {!isSystemBoard && petsEnabled && <PetBar />}
             <NotificationToast />
             <UndoToast />
             <VoiceListener />

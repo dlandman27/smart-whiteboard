@@ -7,7 +7,18 @@ export function notionRouter(notion: Client): Router {
   const router = Router()
 
   router.get('/health', (_req, res) => {
-    res.json({ ok: true, configured: !!process.env.NOTION_API_KEY })
+    res.json({
+      ok:         true,
+      configured: !!process.env.NOTION_API_KEY,
+      services: {
+        notion:      !!process.env.NOTION_API_KEY,
+        anthropic:   !!process.env.ANTHROPIC_API_KEY,
+        elevenlabs:  !!process.env.ELEVENLABS_API_KEY,
+        youtube:     !!process.env.YOUTUBE_API_KEY,
+        bing:        !!process.env.BING_API_KEY,
+        googleOauth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+      },
+    })
   })
 
   router.get('/databases', asyncRoute(async (_req, res) => {
