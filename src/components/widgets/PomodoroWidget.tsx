@@ -132,21 +132,136 @@ function PomodoroContent({ widgetId }: { widgetId: string }) {
   const seconds  = timeLeft % 60
   const color    = PHASE_COLORS[phase]
 
-  // Scale ring to fill available space
-  const ringSize   = Math.max(80, Math.min(containerW * 0.62, containerH * 0.44, 240))
+  const isWide = containerW / containerH > 1.1
+
+  // Ring fills more of the height in wide mode
+  const ringSize   = isWide
+    ? Math.max(60,  Math.min(containerH * 0.82, containerW * 0.42, 260))
+    : Math.max(80,  Math.min(containerW * 0.62, containerH * 0.44, 240))
   const R          = ringSize * 0.4
   const CIRC       = 2 * Math.PI * R
   const dashOffset = CIRC * (1 - progress)
-  const timeSize   = Math.max(18, Math.round(ringSize * 0.22))
+  const timeSize   = Math.max(16, Math.round(ringSize * 0.22))
   const playSize   = Math.max(36, Math.round(ringSize * 0.38))
   const iconSize   = Math.max(14, Math.round(playSize * 0.42))
   const cx         = ringSize / 2
   const cy         = ringSize / 2
 
+  const ring = (
+    <div className="relative flex items-center justify-center flex-shrink-0">
+      <svg width={ringSize} height={ringSize} style={{ transform: 'rotate(-90deg)' }}>
+        <circle cx={cx} cy={cy} r={R} fill="none" stroke="var(--wt-surface-subtle)" strokeWidth={Math.max(4, ringSize * 0.043)} />
+        <circle
+          cx={cx} cy={cy} r={R}
+          fill="none"
+          stroke={color}
+          strokeWidth={Math.max(4, ringSize * 0.043)}
+          strokeLinecap="round"
+          strokeDasharray={CIRC}
+          strokeDashoffset={dashOffset}
+          style={{ transition: 'stroke-dashoffset 0.8s linear, stroke 0.4s ease' }}
+        />
+      </svg>
+      <Text
+        className="absolute font-mono font-light tabular-nums"
+        style={{ fontSize: timeSize, letterSpacing: '0.02em' }}
+      >
+        {pad(minutes)}:{pad(seconds)}
+      </Text>
+    </div>
+  )
+
+  const cycleDots = (
+    <FlexRow align="center" justify="center" gap="xs">
+      {Array.from({ length: settings.cyclesBeforeLongBreak }).map((_, i) => (
+        <span
+          key={i}
+          className="rounded-full"
+          style={{
+            width: 6, height: 6,
+            backgroundColor: i < cyclesCount % settings.cyclesBeforeLongBreak
+              ? color
+              : 'var(--wt-surface-subtle)',
+            transition: 'background-color 0.3s',
+          }}
+        />
+      ))}
+    </FlexRow>
+  )
+
+  const playControls = (
+    <FlexRow align="center" justify="center" gap="md">
+      <IconButton
+        icon="ArrowCounterClockwise"
+        size="lg"
+        onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
+        onClick={reset}
+        title="Reset"
+      />
+      <button
+        className="flex items-center justify-center rounded-full cursor-pointer"
+        style={{
+          width: playSize, height: playSize,
+          backgroundColor: color,
+          color: 'var(--wt-accent-text)',
+          border: 'none',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.22)',
+          flexShrink: 0,
+        }}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={() => setRunning((r) => !r)}
+      >
+        {running
+          ? <Icon icon="Pause" size={iconSize} weight="fill" />
+          : <Icon icon="Play"  size={iconSize} weight="fill" style={{ marginLeft: 2 }} />
+        }
+      </button>
+      <IconButton
+        icon="SkipForward"
+        size="lg"
+        onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
+        onClick={() => completePhaseRef.current()}
+        title="Skip phase"
+        variant="ghost"
+      />
+    </FlexRow>
+  )
+
+  if (isWide) {
+    const inset = Math.round(containerH * 0.1)
+    return (
+      <FlexRow
+        align="center"
+        justify="center"
+        fullHeight
+        noSelect
+        style={{ padding: `${inset}px ${Math.round(containerW * 0.06)}px`, gap: Math.round(containerW * 0.05) }}
+      >
+        {ring}
+        {/* Right panel: label top, controls center, dots bottom — pinned to ring height */}
+        <FlexCol
+          align="center"
+          justify="between"
+          style={{ height: ringSize, flex: 1 }}
+        >
+          <Text
+            variant="label"
+            size="small"
+            color="muted"
+            textTransform="uppercase"
+            style={{ letterSpacing: '0.12em', opacity: 0.6 }}
+          >
+            {PHASE_LABELS[phase]}
+          </Text>
+          {playControls}
+          {cycleDots}
+        </FlexCol>
+      </FlexRow>
+    )
+  }
+
   return (
     <FlexCol align="center" justify="center" fullHeight noSelect className="gap-3 px-5">
-
-      {/* Phase label */}
       <Text
         variant="label"
         size="small"
@@ -156,87 +271,11 @@ function PomodoroContent({ widgetId }: { widgetId: string }) {
       >
         {PHASE_LABELS[phase]}
       </Text>
-
-      {/* Ring + time */}
-      <div className="relative flex items-center justify-center">
-        <svg width={ringSize} height={ringSize} style={{ transform: 'rotate(-90deg)' }}>
-          <circle cx={cx} cy={cy} r={R} fill="none" stroke="var(--wt-surface-subtle)" strokeWidth={Math.max(4, ringSize * 0.043)} />
-          <circle
-            cx={cx} cy={cy} r={R}
-            fill="none"
-            stroke={color}
-            strokeWidth={Math.max(4, ringSize * 0.043)}
-            strokeLinecap="round"
-            strokeDasharray={CIRC}
-            strokeDashoffset={dashOffset}
-            style={{ transition: 'stroke-dashoffset 0.8s linear, stroke 0.4s ease' }}
-          />
-        </svg>
-        <Text
-          className="absolute font-mono font-light tabular-nums"
-          style={{ fontSize: timeSize, letterSpacing: '0.02em' }}
-        >
-          {pad(minutes)}:{pad(seconds)}
-        </Text>
-      </div>
-
-      {/* Controls */}
+      {ring}
       <FlexCol align="center" gap="xs">
-        <FlexRow align="center" justify="center" gap="md">
-          <IconButton
-            icon="ArrowCounterClockwise"
-            size="lg"
-            onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
-            onClick={reset}
-            title="Reset"
-          />
-          {/* Play/pause — dynamic phase color, kept as raw button */}
-          <button
-            className="flex items-center justify-center rounded-full cursor-pointer"
-            style={{
-              width: playSize, height: playSize,
-              backgroundColor: color,
-              color: 'var(--wt-accent-text)',
-              border: 'none',
-              boxShadow: '0 2px 12px rgba(0,0,0,0.22)',
-              flexShrink: 0,
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => setRunning((r) => !r)}
-          >
-            {running
-              ? <Icon icon="Pause" size={iconSize} weight="fill" />
-              : <Icon icon="Play"  size={iconSize} weight="fill" style={{ marginLeft: 2 }} />
-            }
-          </button>
-          <IconButton
-            icon="SkipForward"
-            size="lg"
-            onPointerDown={(e: React.PointerEvent) => e.stopPropagation()}
-            onClick={() => completePhaseRef.current()}
-            title="Skip phase"
-            variant="ghost"
-          />
-        </FlexRow>
-
-        {/* Cycle dots — sessions completed this round */}
-        <FlexRow align="center" justify="center" gap="xs">
-          {Array.from({ length: settings.cyclesBeforeLongBreak }).map((_, i) => (
-            <span
-              key={i}
-              className="rounded-full"
-              style={{
-                width: 6, height: 6,
-                backgroundColor: i < cyclesCount % settings.cyclesBeforeLongBreak
-                  ? color
-                  : 'var(--wt-surface-subtle)',
-                transition: 'background-color 0.3s',
-              }}
-            />
-          ))}
-        </FlexRow>
+        {playControls}
+        {cycleDots}
       </FlexCol>
-
     </FlexCol>
   )
 }

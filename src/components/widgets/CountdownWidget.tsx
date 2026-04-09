@@ -59,11 +59,83 @@ function CountdownContent({ widgetId }: { widgetId: string }) {
   const delta   = calcDelta(settings.targetDate)
   const isPast  = delta !== null && delta.total < 0
   const isToday = delta !== null && Math.abs(delta.total) < 86_400_000 && !isPast
+  const isWide  = containerW / containerH > 1.1
 
-  // Scale the big number to fill available space
-  const daysSize = Math.max(48, Math.min(Math.round(containerW * 0.42), Math.round(containerH * 0.38), 140))
+  // Portrait: scale number off both dims. Wide: scale off height only.
+  const daysSize = isWide
+    ? Math.max(48, Math.min(Math.round(containerH * 0.52), 140))
+    : Math.max(48, Math.min(Math.round(containerW * 0.42), Math.round(containerH * 0.38), 140))
   const unitSize = Math.max(14, Math.round(daysSize * 0.28))
-  const subSize  = Math.max(12, Math.round(containerW * 0.065))
+  const subSize  = Math.max(12, Math.round(isWide ? containerH * 0.1 : containerW * 0.065))
+  const dateSize = Math.max(10, Math.round(isWide ? containerH * 0.075 : containerW * 0.048))
+
+  const numberBlock = !settings.targetDate ? (
+    <Text variant="body" size="small" color="muted">Set a date in settings</Text>
+  ) : isToday ? (
+    <FlexCol align="center" gap="xs">
+      <Text as="span" style={{ fontSize: Math.round(daysSize * 0.5) }}>🎉</Text>
+      <Text variant="heading" size="large" color="accent">Today!</Text>
+    </FlexCol>
+  ) : (
+    <FlexRow align="baseline" justify="center" className="gap-1.5">
+      <Text
+        as="span"
+        style={{ fontSize: daysSize, fontWeight: '100', lineHeight: '1', fontVariantNumeric: 'tabular-nums' }}
+      >
+        {delta!.days}
+      </Text>
+      <Text as="span" color="muted" style={{ fontSize: unitSize, fontWeight: '300' }}>
+        {isPast
+          ? (delta!.days === 1 ? 'day ago' : 'days ago')
+          : (delta!.days === 1 ? 'day' : 'days')}
+      </Text>
+    </FlexRow>
+  )
+
+  if (isWide && settings.targetDate && !isToday) {
+    const inset = Math.round(containerH * 0.12)
+    return (
+      <FlexRow
+        align="center"
+        justify="center"
+        fullHeight
+        noSelect
+        style={{ padding: `${inset}px ${Math.round(containerW * 0.06)}px`, gap: Math.round(containerW * 0.05) }}
+      >
+        {numberBlock}
+        <FlexCol
+          align="center"
+          justify="between"
+          style={{ height: daysSize * 1.4, flex: 1 }}
+        >
+          <Text
+            variant="label"
+            size="small"
+            color="muted"
+            textTransform="uppercase"
+            style={{ letterSpacing: '0.12em', opacity: 0.6 }}
+          >
+            {settings.title || 'Countdown'}
+          </Text>
+
+          {settings.showTime && delta && (
+            <Text
+              color="muted"
+              style={{ fontSize: subSize, fontFamily: fontFamily.mono, fontWeight: '300', fontVariantNumeric: 'tabular-nums' }}
+            >
+              {pad(delta.hours)}:{pad(delta.minutes)}:{pad(delta.seconds)}
+            </Text>
+          )}
+
+          <Text color="muted" style={{ fontSize: dateSize, opacity: 0.5 }}>
+            {new Date(`${settings.targetDate}T00:00:00`).toLocaleDateString('en-US', {
+              month: 'long', day: 'numeric', year: 'numeric',
+            })}
+          </Text>
+        </FlexCol>
+      </FlexRow>
+    )
+  }
 
   return (
     <FlexCol align="center" justify="center" fullHeight noSelect className="gap-2 px-5">
@@ -77,46 +149,23 @@ function CountdownContent({ widgetId }: { widgetId: string }) {
         {settings.title || 'Countdown'}
       </Text>
 
-      {!settings.targetDate ? (
-        <Text variant="body" size="small" color="muted">Set a date in settings</Text>
-      ) : isToday ? (
-        <FlexCol align="center" gap="xs">
-          <Text as="span" style={{ fontSize: Math.round(daysSize * 0.5) }}>🎉</Text>
-          <Text variant="heading" size="large" color="accent">Today!</Text>
-        </FlexCol>
-      ) : (
-        <>
-          <FlexRow align="baseline" justify="center" className="gap-1.5">
-            <Text
-              as="span"
-              style={{ fontSize: daysSize, fontWeight: '100', lineHeight: '1', fontVariantNumeric: 'tabular-nums' }}
-            >
-              {delta!.days}
-            </Text>
-            <Text as="span" color="muted" style={{ fontSize: unitSize, fontWeight: '300' }}>
-              {isPast
-                ? (delta!.days === 1 ? 'day ago' : 'days ago')
-                : (delta!.days === 1 ? 'day' : 'days')}
-            </Text>
-          </FlexRow>
+      {numberBlock}
 
-          {settings.showTime && delta && (
-            <Text
-              color="muted"
-              style={{ fontSize: subSize, fontFamily: fontFamily.mono, fontWeight: '300', fontVariantNumeric: 'tabular-nums' }}
-            >
-              {pad(delta.hours)}:{pad(delta.minutes)}:{pad(delta.seconds)}
-            </Text>
-          )}
+      {!isToday && settings.showTime && delta && (
+        <Text
+          color="muted"
+          style={{ fontSize: subSize, fontFamily: fontFamily.mono, fontWeight: '300', fontVariantNumeric: 'tabular-nums' }}
+        >
+          {pad(delta.hours)}:{pad(delta.minutes)}:{pad(delta.seconds)}
+        </Text>
+      )}
 
-          {settings.targetDate && (
-            <Text variant="caption" size="small" color="muted" style={{ opacity: 0.5 }}>
-              {new Date(`${settings.targetDate}T00:00:00`).toLocaleDateString('en-US', {
-                month: 'long', day: 'numeric', year: 'numeric',
-              })}
-            </Text>
-          )}
-        </>
+      {!isToday && settings.targetDate && (
+        <Text variant="caption" size="small" color="muted" style={{ opacity: 0.5 }}>
+          {new Date(`${settings.targetDate}T00:00:00`).toLocaleDateString('en-US', {
+            month: 'long', day: 'numeric', year: 'numeric',
+          })}
+        </Text>
       )}
     </FlexCol>
   )
