@@ -139,7 +139,9 @@ export function Sidebar() {
                       height:     26,
                       background: isActive
                         ? 'var(--wt-accent)'
-                        : 'color-mix(in srgb, var(--wt-text) 12%, transparent)',
+                        : board.background
+                          ? board.background.bg
+                          : 'color-mix(in srgb, var(--wt-text) 12%, transparent)',
                       color:      isActive ? '#fff' : 'var(--wt-text)',
                       border:     `1px solid ${isActive ? 'transparent' : 'color-mix(in srgb, var(--wt-text) 15%, transparent)'}`,
                     }}

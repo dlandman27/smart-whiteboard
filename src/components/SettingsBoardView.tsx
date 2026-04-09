@@ -3,6 +3,7 @@ import { FlexRow, FlexCol, Box, Text, Icon, ScrollArea } from '@whiteboard/ui-ki
 import { ThemePicker } from './ThemePicker'
 import { BackgroundPicker } from './BackgroundPicker'
 import { useThemeStore } from '../store/theme'
+import { DEFAULT_BACKGROUND } from '../constants/backgrounds'
 import { SPRITES, PX, PixelSprite } from './PetBar'
 
 // ── SectionLabel helper ───────────────────────────────────────────────────────
@@ -28,6 +29,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
 // ── Section: Appearance ───────────────────────────────────────────────────────
 
 function AppearanceSection() {
+  const { background, setBackground } = useThemeStore()
   return (
     <FlexCol gap="5">
       <div>
@@ -41,9 +43,9 @@ function AppearanceSection() {
 
       <div>
         <div style={{ marginBottom: 12 }}>
-          <SectionLabel>Background</SectionLabel>
+          <SectionLabel>Default Background</SectionLabel>
         </div>
-        <BackgroundPicker />
+        <BackgroundPicker background={background ?? DEFAULT_BACKGROUND} onSelect={setBackground} />
       </div>
     </FlexCol>
   )

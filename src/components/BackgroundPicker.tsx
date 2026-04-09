@@ -1,5 +1,4 @@
 import React, { useRef } from 'react'
-import { useThemeStore } from '../store/theme'
 import { BACKGROUNDS, type Background, type BackgroundPattern } from '../constants/backgrounds'
 import { Icon } from '@whiteboard/ui-kit'
 
@@ -136,14 +135,13 @@ function isDark(hex: string) {
   return (r * 0.299 + g * 0.587 + b * 0.114) < 128
 }
 
-function ImageSection() {
-  const { background, setBackground } = useThemeStore()
+function ImageSection({ background, onSelect }: { background: Background; onSelect: (b: Background) => void }) {
   const fileRef  = useRef<HTMLInputElement>(null)
   const urlValue = background.pattern === 'image' ? (background.imageUrl ?? '') : ''
   const dimValue = background.pattern === 'image' ? (background.imageDim ?? 0) : 0
 
   function applyImage(imageUrl: string) {
-    setBackground({ label: 'Custom Image', bg: '#000000', dot: '#000000', pattern: 'image', imageUrl, imageDim: dimValue })
+    onSelect({ label: 'Custom Image', bg: '#000000', dot: '#000000', pattern: 'image', imageUrl, imageDim: dimValue })
   }
 
   function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -163,7 +161,7 @@ function ImageSection() {
 
   function handleDim(e: React.ChangeEvent<HTMLInputElement>) {
     const dim = parseFloat(e.target.value)
-    setBackground({ ...background, pattern: 'image', imageDim: dim })
+    onSelect({ ...background, pattern: 'image', imageDim: dim })
   }
 
   return (
@@ -243,8 +241,7 @@ function ImageSection() {
   )
 }
 
-export function BackgroundPicker() {
-  const { background, setBackground } = useThemeStore()
+export function BackgroundPicker({ background, onSelect }: { background: Background; onSelect: (b: Background) => void }) {
   const activePattern = background.pattern ?? 'dots'
 
   const filtered  = BACKGROUNDS.filter((b) => (b.pattern ?? 'dots') === activePattern)
@@ -260,10 +257,10 @@ export function BackgroundPicker() {
             key={p}
             onClick={() => {
               if (p === 'image') {
-                setBackground({ label: 'Custom Image', bg: '#000', dot: '#000', pattern: 'image', imageUrl: background.imageUrl ?? '', imageDim: background.imageDim ?? 0 })
+                onSelect({ label: 'Custom Image', bg: '#000', dot: '#000', pattern: 'image', imageUrl: background.imageUrl ?? '', imageDim: background.imageDim ?? 0 })
               } else {
                 const first = BACKGROUNDS.find((b) => (b.pattern ?? 'dots') === p)
-                if (first) setBackground(first)
+                if (first) onSelect(first)
               }
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
@@ -280,17 +277,17 @@ export function BackgroundPicker() {
       </div>
 
       {/* Image controls */}
-      {activePattern === 'image' && <ImageSection />}
+      {activePattern === 'image' && <ImageSection background={background} onSelect={onSelect} />}
 
       {/* Swatches for non-image patterns */}
       {activePattern !== 'image' && lightBgs.length > 0 && (
-        <SwatchGroup title="Light" backgrounds={lightBgs} active={background} onSelect={setBackground} />
+        <SwatchGroup title="Light" backgrounds={lightBgs} active={background} onSelect={onSelect} />
       )}
       {activePattern !== 'image' && darkBgs.length > 0 && (
-        <SwatchGroup title="Dark" backgrounds={darkBgs} active={background} onSelect={setBackground} />
+        <SwatchGroup title="Dark" backgrounds={darkBgs} active={background} onSelect={onSelect} />
       )}
       {activePattern !== 'image' && lightBgs.length === 0 && darkBgs.length === 0 && filtered.length > 0 && (
-        <SwatchGroup title="Presets" backgrounds={filtered} active={background} onSelect={setBackground} />
+        <SwatchGroup title="Presets" backgrounds={filtered} active={background} onSelect={onSelect} />
       )}
     </div>
   )

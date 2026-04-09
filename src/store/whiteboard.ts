@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { WidgetLayout, LayoutSlot } from '../types'
+import type { Background } from '../constants/backgrounds'
 import { DEFAULT_LAYOUT_ID } from '../layouts/presets'
 
 export interface Board {
@@ -13,6 +14,7 @@ export interface Board {
   slotGap?: number
   slotPad?: number
   customSlots?: LayoutSlot[]
+  background?: Background
 }
 
 interface WhiteboardStore {
@@ -35,8 +37,9 @@ interface WhiteboardStore {
   removeWidget:     (id: string) => void
   clearWidgets:     () => void
   assignSlot:       (widgetId: string, slotId: string | null) => void
-  setLayoutSpacing: (boardId: string, gap: number, pad: number) => void
-  reorderBoards:    (fromIndex: number, toIndex: number) => void
+  setLayoutSpacing:    (boardId: string, gap: number, pad: number) => void
+  reorderBoards:       (fromIndex: number, toIndex: number) => void
+  setBoardBackground:  (boardId: string, background: Background) => void
 }
 
 const DEFAULT_ID           = crypto.randomUUID()
@@ -191,6 +194,11 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           next.splice(toIndex, 0, moved)
           return { boards: next }
         }),
+
+      setBoardBackground: (boardId, background) =>
+        set((s) => ({
+          boards: s.boards.map((b) => b.id === boardId ? { ...b, background } : b),
+        })),
     }),
     {
       name: 'whiteboard-layout',

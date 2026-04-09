@@ -16,6 +16,7 @@ import { VoiceListener } from './VoiceListener'
 import { PetBar } from './PetBar'
 import { Sidebar } from './Sidebar'
 import { BoardContextMenu } from './BoardContextMenu'
+import { BackgroundPicker } from './BackgroundPicker'
 import { LayoutPicker } from './LayoutPicker'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
 import type { PendingWidget } from '../types'
@@ -23,7 +24,7 @@ import type { PendingWidget } from '../types'
 export function Whiteboard() {
   useCanvasSocket()
   const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize } = useUIStore()
-  const { boards, activeBoardId } = useWhiteboardStore()
+  const { boards, activeBoardId, setBoardBackground } = useWhiteboardStore()
   const activeBoard        = boards.find(b => b.id === activeBoardId)
   const boardType          = (activeBoard as any)?.boardType as string | undefined
   const isCalendarBoard    = boardType === 'calendar'
@@ -31,24 +32,27 @@ export function Whiteboard() {
   const isConnectorsBoard  = boardType === 'connectors'
   const isTodayBoard       = boardType === 'today'
   const isSystemBoard      = isCalendarBoard || isSettingsBoard || isConnectorsBoard || isTodayBoard
-  const [activeTool,      setActiveTool]      = useState('pointer')
-  const [pendingWidget,   setPendingWidget]   = useState<PendingWidget | null>(null)
-  const [boardMenu,       setBoardMenu]       = useState<{ x: number; y: number; widgetCtx?: { id: string; hasSettings: boolean } } | null>(null)
-  const [pickerOpen,      setPickerOpen]      = useState(false)
-  const [layoutPickerOpen, setLayoutPickerOpen] = useState(false)
-  const { background, petsEnabled } = useThemeStore()
+  const [activeTool,        setActiveTool]        = useState('pointer')
+  const [pendingWidget,     setPendingWidget]     = useState<PendingWidget | null>(null)
+  const [boardMenu,         setBoardMenu]         = useState<{ x: number; y: number; widgetCtx?: { id: string; hasSettings: boolean } } | null>(null)
+  const [pickerOpen,        setPickerOpen]        = useState(false)
+  const [layoutPickerOpen,  setLayoutPickerOpen]  = useState(false)
+  const [bgPickerOpen,      setBgPickerOpen]      = useState(false)
+  const { background: themeBackground, petsEnabled } = useThemeStore()
+  const boardBackground = activeBoard?.background ?? themeBackground
   const boardRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
+        if (bgPickerOpen)    { setBgPickerOpen(false); return }
         if (boardMenu)       { setBoardMenu(null); return }
         if (focusedWidgetId) { setFocusedWidget(null); return }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [focusedWidgetId, boardMenu])
+  }, [focusedWidgetId, boardMenu, bgPickerOpen])
 
   useEffect(() => {
     const el = boardRef.current
@@ -72,7 +76,7 @@ export function Whiteboard() {
           className="relative w-full h-full rounded-2xl overflow-hidden"
           style={{ border: '1px solid var(--wt-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08)' }}
         >
-          <WhiteboardBackground background={background}>
+          <WhiteboardBackground background={boardBackground}>
 
             {isCalendarBoard ? (
               <CalendarBoardView />
@@ -103,12 +107,38 @@ export function Whiteboard() {
                     onClose={() => setBoardMenu(null)}
                     onAddWidget={() => { setBoardMenu(null); setPickerOpen(true) }}
                     onChangeLayout={() => { setBoardMenu(null); setLayoutPickerOpen(true) }}
+                    onChangeBackground={() => { setBoardMenu(null); setBgPickerOpen(true) }}
                     widgetCtx={boardMenu.widgetCtx}
                   />
                 )}
 
                 {layoutPickerOpen && (
                   <LayoutPicker onClose={() => setLayoutPickerOpen(false)} />
+                )}
+
+                {/* Board background picker panel */}
+                {bgPickerOpen && (
+                  <div
+                    className="absolute z-[10001] rounded-2xl overflow-hidden"
+                    style={{
+                      right: 16, bottom: 72, width: 380,
+                      backgroundColor: 'var(--wt-settings-bg)',
+                      border:          '1px solid var(--wt-settings-border)',
+                      boxShadow:       'var(--wt-shadow-lg)',
+                      backdropFilter:  'var(--wt-backdrop)',
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                  >
+                    <div style={{ padding: '14px 16px 6px', borderBottom: '1px solid var(--wt-settings-border)' }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--wt-text)' }}>Board Background</span>
+                    </div>
+                    <div style={{ padding: 16 }}>
+                      <BackgroundPicker
+                        background={boardBackground}
+                        onSelect={(bg) => setBoardBackground(activeBoardId, bg)}
+                      />
+                    </div>
+                  </div>
                 )}
 
                 <BottomToolbar
