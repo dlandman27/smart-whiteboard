@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
-import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID } from '../store/whiteboard'
+import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID } from '../store/whiteboard'
 import { Logo } from './Logo'
 
 type AddStep = 'idle' | 'name-board'
@@ -21,16 +21,19 @@ export function Sidebar() {
   const connectorsBoard = boards.find((b) => b.boardType === 'connectors')
   const todayBoard      = boards.find((b) => b.boardType === 'today')
   const calendarBoard   = boards.find((b) => b.boardType === 'calendar')
+  const todoBoard       = boards.find((b) => b.boardType === 'todo')
 
   const settingsId   = settingsBoard?.id   ?? DEFAULT_SETTINGS_ID
   const connectorsId = connectorsBoard?.id ?? DEFAULT_CONNECTORS_ID
   const todayId      = todayBoard?.id      ?? DEFAULT_TODAY_ID
   const calendarId   = calendarBoard?.id   ?? ''
+  const todoId       = todoBoard?.id       ?? DEFAULT_TODO_ID
 
   const isSettingsActive   = activeBoardId === settingsId
   const isConnectorsActive = activeBoardId === connectorsId
   const isTodayActive      = activeBoardId === todayId
   const isCalendarActive   = activeBoardId === calendarId
+  const isTodoActive       = activeBoardId === todoId
 
   // Only user-created boards
   const visibleBoards = boards.filter((b) => !b.boardType)
@@ -82,6 +85,13 @@ export function Sidebar() {
           collapsed={collapsed}
           active={isCalendarActive}
           onClick={() => calendarId && setActiveBoard(calendarId)}
+        />
+        <NavBtn
+          icon="CheckSquare"
+          label="Todo"
+          collapsed={collapsed}
+          active={isTodoActive}
+          onClick={() => setActiveBoard(todoId)}
         />
       </div>
 

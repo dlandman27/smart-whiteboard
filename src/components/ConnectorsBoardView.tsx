@@ -4,6 +4,7 @@ import {
   FlexCol, FlexRow, Box, Text, Button, ScrollArea, Icon,
 } from '@whiteboard/ui-kit'
 import { useGCalStatus, startGCalAuth, disconnectGCal } from '../hooks/useGCal'
+import { useTasksStatus } from '../hooks/useTasks'
 import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
 import { useSpotifyCredentials } from '../store/spotify'
 import { Input } from '@whiteboard/ui-kit'
@@ -207,6 +208,53 @@ function GCalCard({ googleOauth }: { googleOauth: boolean }) {
   )
 }
 
+// ── Google Tasks card ────────────────────────────────────────────────────────
+
+function GTasksCard({ googleOauth }: { googleOauth: boolean }) {
+  const qc        = useQueryClient()
+  const { data }  = useTasksStatus()
+  const connected = !!data?.connected
+
+  function openPopup() {
+    startGCalAuth().then((url) => {
+      const popup = window.open(url, 'gcal-auth', 'width=500,height=620,left=200,top=100')
+      const onMessage = (e: MessageEvent) => {
+        if (e.data?.type === 'gcal-connected') {
+          qc.invalidateQueries({ queryKey: ['gtasks-status'] })
+          qc.invalidateQueries({ queryKey: ['gtasks-lists'] })
+          window.removeEventListener('message', onMessage)
+          popup?.close()
+        }
+      }
+      window.addEventListener('message', onMessage)
+    })
+  }
+
+  return (
+    <ConnectorCard
+      iconName="CheckSquare"
+      name="Google Tasks"
+      description="Sync your Google Tasks lists to the Todo board."
+      connected={connected}
+      actionLabel={connected ? undefined : googleOauth ? 'Connect' : undefined}
+      onAction={connected ? undefined : googleOauth ? openPopup : undefined}
+    >
+      {!googleOauth && (
+        <Text variant="body" size="small" color="muted">
+          Set <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>GOOGLE_CLIENT_ID</code> and{' '}
+          <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>GOOGLE_CLIENT_SECRET</code> in your{' '}
+          <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>.env</code> to enable Google OAuth.
+        </Text>
+      )}
+      {connected && (
+        <Text variant="body" size="small" color="muted">
+          Google Tasks shares credentials with Google Calendar. Connected automatically.
+        </Text>
+      )}
+    </ConnectorCard>
+  )
+}
+
 // ── Spotify card ──────────────────────────────────────────────────────────────
 
 function SpotifyCard() {
@@ -343,6 +391,7 @@ export function ConnectorsBoardView() {
               <SectionLabel>Connected Apps</SectionLabel>
               <FlexCol gap="sm">
                 <GCalCard googleOauth={s.googleOauth} />
+                <GTasksCard googleOauth={s.googleOauth} />
                 <SpotifyCard />
               </FlexCol>
             </FlexCol>

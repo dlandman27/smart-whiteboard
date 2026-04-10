@@ -38,3 +38,21 @@ export interface WidgetConstraints {
   /** width / height ratio, e.g. 16/9 */
   aspectRatio?: number
 }
+
+// ── Widget shapes (fixed sizes for variant system) ───────────────────────
+export interface WidgetShape {
+  id:     string
+  width:  number
+  height: number
+  label:  string
+}
+
+export const WIDGET_SHAPES = {
+  'small-square':  { id: 'small-square',  width: 200, height: 200, label: 'Small Square' },
+  'small-wide':    { id: 'small-wide',    width: 320, height: 200, label: 'Small Wide' },
+  'medium-square': { id: 'medium-square', width: 320, height: 320, label: 'Medium Square' },
+  'medium-wide':   { id: 'medium-wide',   width: 480, height: 320, label: 'Medium Wide' },
+  'tall-rect':     { id: 'tall-rect',     width: 300, height: 420, label: 'Tall' },
+  'large-wide':    { id: 'large-wide',    width: 600, height: 400, label: 'Large Wide' },
+  'extra-wide':    { id: 'extra-wide',    width: 800, height: 540, label: 'Extra Wide' },
+} as const satisfies Record<string, WidgetShape>

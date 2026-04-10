@@ -10,7 +10,7 @@ export interface Board {
   id: string
   name: string
   layoutId: string
-  boardType?: 'calendar' | 'settings' | 'connectors' | 'today'
+  boardType?: 'calendar' | 'settings' | 'connectors' | 'today' | 'todo'
   calendarId?: string
   widgets: WidgetLayout[]
   slotGap?: number
@@ -40,6 +40,7 @@ interface WhiteboardStore {
   removeWidget:     (id: string) => void
   clearWidgets:     () => void
   assignSlot:       (widgetId: string, slotId: string | null) => void
+  splitWidget:      (widgetId: string) => void
   setLayoutSpacing:    (boardId: string, gap: number, pad: number) => void
   reorderBoards:       (fromIndex: number, toIndex: number) => void
   setBoardBackground:  (boardId: string, background: Background) => void
@@ -51,6 +52,7 @@ const DEFAULT_CAL_ID       = crypto.randomUUID()
 export const DEFAULT_SETTINGS_ID   = 'system-settings-board'
 export const DEFAULT_CONNECTORS_ID = 'system-connectors-board'
 export const DEFAULT_TODAY_ID      = 'system-today-board'
+export const DEFAULT_TODO_ID       = 'system-todo-board'
 
 function ensureCalendarBoard(boards: Board[]): Board[] {
   if (boards.some((b) => b.boardType === 'calendar')) return boards
@@ -67,6 +69,9 @@ function ensureSystemBoards(boards: Board[]): Board[] {
   }
   if (!result.some((b) => b.boardType === 'today')) {
     result = [...result, { id: DEFAULT_TODAY_ID, name: 'Today', layoutId: DEFAULT_LAYOUT_ID, boardType: 'today', widgets: [] }]
+  }
+  if (!result.some((b) => b.boardType === 'todo')) {
+    result = [...result, { id: DEFAULT_TODO_ID, name: 'Todo', layoutId: DEFAULT_LAYOUT_ID, boardType: 'todo', widgets: [] }]
   }
   return result
 }
@@ -186,6 +191,42 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           ),
         })),
 
+      splitWidget: (widgetId) =>
+        set((s) => ({
+          boards: s.boards.map((b) => {
+            if (b.id !== s.activeBoardId) return b
+            const w = b.widgets.find((w) => w.id === widgetId)
+            if (!w) return b
+            // Convert: move the current widget into pane A, make this a split widget
+            const paneA = {
+              type:      w.type ?? '',
+              variantId: w.variantId ?? 'default',
+              settings:  w.settings ?? {},
+            }
+            return {
+              ...b,
+              widgets: b.widgets.map((ww) =>
+                ww.id === widgetId
+                  ? {
+                      ...ww,
+                      type:      '@whiteboard/split',
+                      variantId: 'default',
+                      settings:  {
+                        orientation: 'horizontal',
+                        split:       50,
+                        paneA,
+                        paneB:       null,
+                      },
+                      // Bump size if the widget is small
+                      width:  Math.max(ww.width,  480),
+                      height: Math.max(ww.height, 280),
+                    }
+                  : ww
+              ),
+            }
+          }),
+        })),
+
       setLayoutSpacing: (boardId, gap, pad) =>
         set((s) => ({
           boards: s.boards.map((b) => b.id === boardId ? { ...b, slotGap: gap, slotPad: pad } : b),
@@ -211,7 +252,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     }),
     {
       name: 'whiteboard-layout',
-      version: 7,
+      version: 9,
       migrate: (state: any, version: number) => {
         if (version < 2) {
           return {

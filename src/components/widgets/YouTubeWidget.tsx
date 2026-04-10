@@ -1,5 +1,9 @@
 import { useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
+import {
+  Container, Center, FlexCol, FlexRow, Text,
+  Input, Button, Checkbox, SettingsSection,
+} from '@whiteboard/ui-kit'
 
 export interface YouTubeWidgetSettings {
   videoId:  string
@@ -21,22 +25,18 @@ export function YouTubeWidget({ widgetId }: { widgetId: string }) {
 
   if (!videoId) {
     return (
-      <div style={{
-        width: '100%', height: '100%',
-        display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        gap: 8, color: 'var(--wt-text-muted)',
-        background: 'var(--wt-bg)',
-      }}>
-        <svg width={40} height={40} viewBox="0 0 24 24" fill="none">
-          <rect x={2} y={4} width={20} height={16} rx={3} fill="#ff0000" opacity={0.15} stroke="#ff0000" strokeWidth={1.5} />
-          <polygon points="10,8 16,12 10,16" fill="#ff0000" />
-        </svg>
-        <span style={{ fontSize: 13 }}>No video set</span>
-        <span style={{ fontSize: 11, opacity: 0.6, textAlign: 'center', maxWidth: 180 }}>
-          Say "hey wally, play a video about…" or paste a video ID in settings
-        </span>
-      </div>
+      <Container>
+        <Center fullHeight gap="sm">
+          <svg width={40} height={40} viewBox="0 0 24 24" fill="none">
+            <rect x={2} y={4} width={20} height={16} rx={3} fill="var(--wt-danger)" opacity={0.15} stroke="var(--wt-danger)" strokeWidth={1.5} />
+            <polygon points="10,8 16,12 10,16" fill="var(--wt-danger)" />
+          </svg>
+          <Text variant="body" size="small" color="muted">No video set</Text>
+          <Text variant="caption" size="small" color="muted" align="center" style={{ maxWidth: 180 }}>
+            Say "hey wally, play a video about…" or paste a video ID in settings
+          </Text>
+        </Center>
+      </Container>
     )
   }
 
@@ -48,12 +48,12 @@ export function YouTubeWidget({ widgetId }: { widgetId: string }) {
   })
 
   return (
-    <div style={{ width: '100%', height: '100%', background: '#000', borderRadius: 'inherit', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: '100%', background: 'var(--wt-surface)', borderRadius: 'inherit', overflow: 'hidden' }}>
       {title && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0,
           padding: '6px 10px', fontSize: 12, fontWeight: 500,
-          color: '#fff', background: 'linear-gradient(rgba(0,0,0,0.7), transparent)',
+          color: 'var(--wt-text)', background: 'linear-gradient(var(--wt-bg), transparent)',
           zIndex: 1, pointerEvents: 'none',
         }}>
           {title}
@@ -91,50 +91,30 @@ export function YouTubeSettings({ widgetId }: { widgetId: string }) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <label style={{ fontSize: 12, color: 'var(--wt-text-muted)' }}>Video URL or ID</label>
-        <div style={{ display: 'flex', gap: 6 }}>
-          <input
+    <SettingsSection label="Video">
+      <FlexCol gap="sm">
+        <FlexRow gap="sm" align="end">
+          <Input
+            label="Video URL or ID"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && apply()}
             placeholder="youtube.com/watch?v=… or video ID"
-            style={{
-              flex: 1, padding: '6px 10px', fontSize: 13, borderRadius: 8,
-              border: '1px solid var(--wt-border)', background: 'var(--wt-surface)',
-              color: 'var(--wt-text)', outline: 'none',
-            }}
+            size="sm"
           />
-          <button
-            onClick={apply}
-            style={{
-              padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 500,
-              background: 'var(--wt-accent)', color: 'var(--wt-accent-text)', border: 'none', cursor: 'pointer',
-            }}
-          >
-            Set
-          </button>
-        </div>
-      </div>
-
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
-        <input
-          type="checkbox"
+          <Button variant="accent" size="sm" onClick={apply}>Set</Button>
+        </FlexRow>
+        <Checkbox
+          label="Autoplay"
           checked={settings.autoplay}
-          onChange={(e) => set({ autoplay: e.target.checked })}
+          onChange={(v) => set({ autoplay: v })}
         />
-        Autoplay
-      </label>
-
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
-        <input
-          type="checkbox"
+        <Checkbox
+          label="Muted"
           checked={settings.mute}
-          onChange={(e) => set({ mute: e.target.checked })}
+          onChange={(v) => set({ mute: v })}
         />
-        Muted
-      </label>
-    </div>
+      </FlexCol>
+    </SettingsSection>
   )
 }

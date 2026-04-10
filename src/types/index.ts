@@ -24,12 +24,14 @@ export interface WidgetLayout {
   y: number
   width: number
   height: number
+  variantId?: string                    // widget variant id (defaults to 'default')
   slotId?: string                      // assigned layout slot id, if any
 }
 
 /** A widget config waiting to be placed (slot selection or free-floating fallback) */
 export interface PendingWidget {
   type?: string
+  variantId?: string
   databaseId?: string
   calendarId?: string
   databaseTitle: string

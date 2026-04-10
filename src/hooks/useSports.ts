@@ -1,5 +1,9 @@
 import { useQuery } from '@tanstack/react-query'
 
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export type League = 'nfl' | 'nba' | 'nhl' | 'mlb' | 'premierleague' | 'laliga' | 'ucl' | 'bundesliga' | 'seriea' | 'ligue1' | 'mls'
+
 export interface GameTeam {
   abbr:    string
   name:    string
@@ -17,6 +21,27 @@ export interface Game {
   home:        GameTeam
   away:        GameTeam
 }
+
+export interface StandingsTeam {
+  pos:   number
+  team:  string
+  name:  string
+  logo:  string
+  [stat: string]: string | number  // dynamic stat columns
+}
+
+export interface StandingsGroup {
+  group: string
+  teams: StandingsTeam[]
+}
+
+export interface StandingsData {
+  league:  string
+  columns: string[]
+  groups:  StandingsGroup[]
+}
+
+// ── Scores ────────────────────────────────────────────────────────────────────
 
 function parseEvent(event: any): Game {
   const comp        = event.competitions?.[0]
@@ -47,27 +72,40 @@ function parseEvent(event: any): Game {
   }
 }
 
-async function fetchScoreboard(sport: string, league: string): Promise<Game[]> {
+async function fetchScoreboard(league: string): Promise<Game[]> {
   const res  = await fetch(`/api/sports/${league}`)
   if (!res.ok) throw new Error('Failed to fetch scores')
   const data = await res.json()
   return (data.events ?? []).map(parseEvent)
 }
 
-export function useNFLScores() {
+// ── Standings ─────────────────────────────────────────────────────────────────
+
+async function fetchStandings(league: string): Promise<StandingsData> {
+  const res = await fetch(`/api/standings/${league}`)
+  if (!res.ok) throw new Error('Failed to fetch standings')
+  return res.json()
+}
+
+// ── Hooks ─────────────────────────────────────────────────────────────────────
+
+export function useScores(league: League) {
   return useQuery({
-    queryKey:      ['sports', 'nfl'],
-    queryFn:       () => fetchScoreboard('football', 'nfl'),
+    queryKey:       ['sports', league],
+    queryFn:        () => fetchScoreboard(league),
     refetchInterval: 60_000,
-    staleTime:     30_000,
+    staleTime:      30_000,
   })
 }
 
-export function useNBAScores() {
+export function useStandings(league: League) {
   return useQuery({
-    queryKey:      ['sports', 'nba'],
-    queryFn:       () => fetchScoreboard('basketball', 'nba'),
-    refetchInterval: 60_000,
-    staleTime:     30_000,
+    queryKey:       ['standings', league],
+    queryFn:        () => fetchStandings(league),
+    staleTime:      5 * 60_000,  // standings don't change as fast
   })
 }
+
+// Keep old hooks for backwards compat
+export function useNFLScores() { return useScores('nfl') }
+export function useNBAScores() { return useScores('nba') }

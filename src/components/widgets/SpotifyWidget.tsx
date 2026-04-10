@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import {
   Container, Center, FlexCol, FlexRow, Text,
-  Input, SettingsSection, Button, Icon, useWidgetSizeContext,
+  Input, SettingsSection, Button, Icon, IconButton, useWidgetSizeContext,
 } from '@whiteboard/ui-kit'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -146,12 +146,9 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
     return (
       <Center fullHeight gap="sm">
         <SpotifyIcon size={36} />
-        <button
-          onClick={startAuth}
-          style={{ padding: '8px 20px', borderRadius: 20, background: '#1DB954', color: '#fff', border: 'none', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
-        >
+        <Button variant="accent" size="sm" onClick={startAuth} style={{ borderRadius: 20 }}>
           Connect Spotify
-        </button>
+        </Button>
       </Center>
     )
   }
@@ -171,12 +168,12 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
 
   // Scale album art to fill available space
   const artSize            = Math.max(72, Math.min(Math.round(containerW * 0.5), Math.round(containerH * 0.3), 180))
-  const textColor          = hasArt ? '#fff'                   : 'var(--wt-text)'
+  const textColor          = hasArt ? 'rgba(255,255,255,0.95)' : 'var(--wt-text)'
   const textMutedColor     = hasArt ? 'rgba(255,255,255,0.7)'  : 'var(--wt-text-muted)'
   const timeColor          = hasArt ? 'rgba(255,255,255,0.5)'  : 'var(--wt-text-muted)'
   const progressTrackBg    = hasArt ? 'rgba(255,255,255,0.2)'  : 'var(--wt-surface-hover)'
   const ctrlSecondaryBg    = hasArt ? 'rgba(255,255,255,0.15)' : 'var(--wt-surface-hover)'
-  const ctrlSecondaryColor = hasArt ? '#fff'                   : 'var(--wt-text)'
+  const ctrlSecondaryColor = hasArt ? 'rgba(255,255,255,0.95)' : 'var(--wt-text)'
 
   return (
     <>
@@ -197,7 +194,7 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
           <img
             src={track.albumArt}
             alt={track.album}
-            style={{ width: artSize, height: artSize, borderRadius: 8, boxShadow: '0 4px 20px rgba(0,0,0,0.5)', flexShrink: 0 }}
+            style={{ width: artSize, height: artSize, borderRadius: 8, boxShadow: 'var(--wt-shadow-lg)', flexShrink: 0 }}
           />
         ) : (
           <Center style={{ width: artSize, height: artSize, borderRadius: 8, background: 'var(--wt-surface)' }}>
@@ -211,7 +208,8 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
             variant="heading"
             size="small"
             align="center"
-            style={{ color: textColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}
+            numberOfLines={1}
+            style={{ color: textColor, width: '100%' }}
           >
             {track.title}
           </Text>
@@ -219,29 +217,30 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
             variant="body"
             size="small"
             align="center"
-            style={{ color: textMutedColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' }}
+            numberOfLines={1}
+            style={{ color: textMutedColor, width: '100%' }}
           >
             {track.artist}
           </Text>
         </FlexCol>
 
         {/* Progress bar */}
-        <div className="w-full">
+        <FlexCol className="w-full" gap="none">
           <div style={{ width: '100%', height: 3, borderRadius: 2, background: progressTrackBg, overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: 2, background: '#1DB954', width: `${pct}%`, transition: 'width 1s linear' }} />
+            <div style={{ height: '100%', borderRadius: 2, background: 'var(--wt-accent)', width: `${pct}%`, transition: 'width 1s linear' }} />
           </div>
           <FlexRow justify="between" className="mt-1">
-            <span style={{ fontSize: 10, color: timeColor }}>{fmtTime(progress)}</span>
-            <span style={{ fontSize: 10, color: timeColor }}>{fmtTime(track.durationMs)}</span>
+            <Text variant="caption" size="small" style={{ color: timeColor }}>{fmtTime(progress)}</Text>
+            <Text variant="caption" size="small" style={{ color: timeColor }}>{fmtTime(track.durationMs)}</Text>
           </FlexRow>
-        </div>
+        </FlexCol>
 
         {/* Playback controls */}
         <FlexRow align="center" className="gap-5">
           <CtrlBtn onClick={() => control('previous')} title="Previous" bg={ctrlSecondaryBg} color={ctrlSecondaryColor}>
             <Icon icon="SkipBack" size={16} weight="fill" />
           </CtrlBtn>
-          <CtrlBtn onClick={() => control(track.isPlaying ? 'pause' : 'play')} large title={track.isPlaying ? 'Pause' : 'Play'} bg="#1DB954" color="#fff">
+          <CtrlBtn onClick={() => control(track.isPlaying ? 'pause' : 'play')} large title={track.isPlaying ? 'Pause' : 'Play'} bg="var(--wt-accent)" color="var(--wt-accent-text)">
             {track.isPlaying
               ? <Icon icon="Pause" size={18} weight="fill" />
               : <Icon icon="Play"  size={18} weight="fill" style={{ marginLeft: 2 }} />
@@ -291,11 +290,11 @@ export function SpotifySettings({ widgetId }: { widgetId: string }) {
       <FlexCol gap="sm">
         <Text variant="body" size="small" color="muted">
           Create an app at{' '}
-          <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer" style={{ color: '#1DB954' }}>
+          <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noreferrer" style={{ color: 'var(--wt-accent)' }}>
             developer.spotify.com
           </a>
           {' '}and add{' '}
-          <code style={{ fontSize: 10 }}>http://localhost:3001/api/spotify/callback</code>
+          <Text as="code" variant="caption" size="small">http://localhost:3001/api/spotify/callback</Text>
           {' '}as a redirect URI.
         </Text>
 
@@ -305,7 +304,6 @@ export function SpotifySettings({ widgetId }: { widgetId: string }) {
           onChange={(e) => set({ clientId: e.target.value })}
           placeholder="Your Spotify app client ID"
           size="sm"
-          onPointerDown={(e) => e.stopPropagation()}
         />
         <Input
           label="Client Secret"
@@ -313,7 +311,6 @@ export function SpotifySettings({ widgetId }: { widgetId: string }) {
           onChange={(e) => set({ clientSecret: e.target.value })}
           placeholder="Your Spotify app client secret"
           size="sm"
-          onPointerDown={(e) => e.stopPropagation()}
         />
         <Input
           label="Redirect URI"
@@ -321,7 +318,6 @@ export function SpotifySettings({ widgetId }: { widgetId: string }) {
           onChange={(e) => set({ redirectUri: e.target.value })}
           placeholder="http://localhost:3001/api/spotify/callback"
           size="sm"
-          onPointerDown={(e) => e.stopPropagation()}
         />
 
         <FlexRow align="center" gap="sm">
@@ -336,8 +332,8 @@ export function SpotifySettings({ widgetId }: { widgetId: string }) {
           </Button>
           {connected && (
             <FlexRow align="center" gap="xs" className="flex-shrink-0">
-              <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#1DB954', flexShrink: 0 }} />
-              <Text variant="caption" size="small" style={{ color: '#1DB954', fontWeight: 500 }}>Connected</Text>
+              <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--wt-success)', flexShrink: 0 }} />
+              <Text variant="caption" size="small" style={{ color: 'var(--wt-success)', fontWeight: 500 }}>Connected</Text>
             </FlexRow>
           )}
         </FlexRow>
@@ -353,7 +349,7 @@ function Spinner() {
     <div style={{
       width: 20, height: 20, borderRadius: '50%',
       border: '2px solid var(--wt-border)',
-      borderTopColor: '#1DB954',
+      borderTopColor: 'var(--wt-accent)',
       animation: 'spin 0.8s linear infinite',
     }} />
   )
@@ -386,7 +382,7 @@ function CtrlBtn({
 
 function SpotifyIcon({ size = 24 }: { size?: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="#1DB954">
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="var(--wt-accent)">
       <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.622.622 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.623.623 0 01-.277-1.215c3.809-.87 7.076-.496 9.712 1.115.293.18.387.563.207.857zm1.223-2.722a.78.78 0 01-1.072.257c-2.687-1.652-6.785-2.131-9.965-1.166a.78.78 0 01-.973-.519.781.781 0 01.519-.972c3.632-1.102 8.147-.568 11.234 1.328a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.937.937 0 11-.543-1.793c3.563-1.08 9.488-.872 13.22 1.37a.937.937 0 01-.06 1.58z" />
     </svg>
   )

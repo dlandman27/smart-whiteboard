@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-type WidgetCmd = 'fullscreen' | 'settings' | 'delete'
+type WidgetCmd = 'fullscreen' | 'settings' | 'delete' | 'split'
 
 interface UIStore {
   focusedWidgetId:     string | null

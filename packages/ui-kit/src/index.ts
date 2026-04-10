@@ -21,8 +21,8 @@ export type {
   Radius, FontSize, FontFamily, FontWeight, LineHeight, Space, BorderWidth,
   TypographyStyle, TextVariant, TextSize, TextColor,
 } from './theme'
-export { widgetBreakpoints, widgetSizing, getBreakpoint } from './widgetTokens'
-export type { WidgetBreakpoint, WidgetConstraints }       from './widgetTokens'
+export { widgetBreakpoints, widgetSizing, getBreakpoint, WIDGET_SHAPES } from './widgetTokens'
+export type { WidgetBreakpoint, WidgetConstraints, WidgetShape }         from './widgetTokens'
 
 // ── Typography & text ────────────────────────────────────────────────────────
 export { Text }                                           from './Text'

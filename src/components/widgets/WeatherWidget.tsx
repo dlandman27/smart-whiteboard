@@ -26,19 +26,19 @@ export const DEFAULT_WEATHER_SETTINGS: WeatherWidgetSettings = {
 interface WeatherInfo { label: string; icon: string; color: string }
 
 function getWeatherInfo(code: number): WeatherInfo {
-  if (code === 0)  return { label: 'Clear',          icon: 'Sun',            color: '#f59e0b' }
-  if (code === 1)  return { label: 'Mainly Clear',   icon: 'SunDim',         color: '#f59e0b' }
-  if (code === 2)  return { label: 'Partly Cloudy',  icon: 'CloudSun',       color: '#94a3b8' }
-  if (code === 3)  return { label: 'Overcast',       icon: 'Cloud',          color: '#64748b' }
-  if (code <= 48)  return { label: 'Foggy',          icon: 'CloudFog',       color: '#94a3b8' }
-  if (code <= 55)  return { label: 'Drizzle',        icon: 'CloudDrizzle',   color: '#60a5fa' }
-  if (code <= 57)  return { label: 'Freezing Rain',  icon: 'CloudSnow',      color: '#93c5fd' }
-  if (code <= 65)  return { label: 'Rain',           icon: 'CloudRain',      color: '#3b82f6' }
-  if (code <= 67)  return { label: 'Freezing Rain',  icon: 'CloudSnow',      color: '#93c5fd' }
-  if (code <= 77)  return { label: 'Snow',           icon: 'CloudSnow',      color: '#93c5fd' }
-  if (code <= 82)  return { label: 'Showers',        icon: 'CloudRain',      color: '#3b82f6' }
-  if (code <= 86)  return { label: 'Snow Showers',   icon: 'CloudSnow',      color: '#bfdbfe' }
-  return                  { label: 'Thunderstorm',   icon: 'CloudLightning', color: '#a855f7' }
+  if (code === 0)  return { label: 'Clear',          icon: 'Sun',            color: 'var(--wt-success)' }
+  if (code === 1)  return { label: 'Mainly Clear',   icon: 'SunDim',         color: 'var(--wt-success)' }
+  if (code === 2)  return { label: 'Partly Cloudy',  icon: 'CloudSun',       color: 'var(--wt-text-muted)' }
+  if (code === 3)  return { label: 'Overcast',       icon: 'Cloud',          color: 'var(--wt-text-muted)' }
+  if (code <= 48)  return { label: 'Foggy',          icon: 'CloudFog',       color: 'var(--wt-text-muted)' }
+  if (code <= 55)  return { label: 'Drizzle',        icon: 'CloudDrizzle',   color: 'var(--wt-info)' }
+  if (code <= 57)  return { label: 'Freezing Rain',  icon: 'CloudSnow',      color: 'var(--wt-info)' }
+  if (code <= 65)  return { label: 'Rain',           icon: 'CloudRain',      color: 'var(--wt-info)' }
+  if (code <= 67)  return { label: 'Freezing Rain',  icon: 'CloudSnow',      color: 'var(--wt-info)' }
+  if (code <= 77)  return { label: 'Snow',           icon: 'CloudSnow',      color: 'var(--wt-info)' }
+  if (code <= 82)  return { label: 'Showers',        icon: 'CloudRain',      color: 'var(--wt-info)' }
+  if (code <= 86)  return { label: 'Snow Showers',   icon: 'CloudSnow',      color: 'var(--wt-info)' }
+  return                  { label: 'Thunderstorm',   icon: 'CloudLightning', color: 'var(--wt-accent)' }
 }
 
 function unitSymbol(unit: WeatherWidgetSettings['unit']) {

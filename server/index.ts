@@ -18,6 +18,7 @@ import { canvasRouter }        from './routes/canvas.js'
 import { boardsRouter }        from './routes/boards.js'
 import { notionRouter }        from './routes/notion.js'
 import { gcalRouter }          from './routes/gcal.js'
+import { gtasksRouter }        from './routes/gtasks.js'
 import { spotifyRouter }       from './routes/spotify.js'
 import { sportsRouter }        from './routes/sports.js'
 import { youtubeRouter }       from './routes/youtube.js'
@@ -53,6 +54,7 @@ app.use('/api', canvasRouter())
 app.use('/api', boardsRouter())
 app.use('/api', notionRouter(notion))
 app.use('/api', gcalRouter())
+app.use('/api', gtasksRouter())
 app.use('/api', spotifyRouter())
 app.use('/api', sportsRouter())
 app.use('/api', youtubeRouter())

@@ -22,7 +22,7 @@ export function gcalRouter(): Router {
     const client = getGCalOAuth2Client()
     const url = (client as any).generateAuthUrl({
       access_type: 'offline',
-      scope:       ['https://www.googleapis.com/auth/calendar'],
+      scope:       ['https://www.googleapis.com/auth/calendar', 'https://www.googleapis.com/auth/tasks'],
       prompt:      'consent',
     })
     res.json({ url })

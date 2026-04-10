@@ -18,6 +18,67 @@ const COMMON_TIMEZONES = [
   { label: 'AEST',     value: 'Australia/Sydney' },
 ]
 
+// ── Variant clock settings (timezone + show date only) ───────────────────────
+
+interface VariantClockSettings {
+  timezone: string
+  showDate: boolean
+}
+
+const DEFAULT_VARIANT_SETTINGS: VariantClockSettings = {
+  timezone: '',
+  showDate: true,
+}
+
+export function VariantClockSettings({ widgetId }: WidgetProps) {
+  const [settings, set] = useWidgetSettings<VariantClockSettings>(widgetId, DEFAULT_VARIANT_SETTINGS)
+
+  return (
+    <FlexCol className="gap-5" fullWidth>
+      <SettingsSection label="Show">
+        <Toggle
+          label="Date"
+          value={settings.showDate}
+          onChange={(v) => set({ showDate: v })}
+        />
+      </SettingsSection>
+
+      <SettingsSection label="Timezone">
+        <FlexCol className="gap-2.5">
+          <div className="flex flex-wrap gap-1.5"> {/* ui-kit-ignore */}
+            {COMMON_TIMEZONES.map(({ label, value }) => {
+              const active = (settings.timezone ?? '') === value
+              return (
+                <button // ui-kit-ignore
+                  key={label}
+                  onClick={() => set({ timezone: value })}
+                  className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
+                  style={{
+                    background: active ? 'color-mix(in srgb, var(--wt-accent) 15%, var(--wt-border))' : 'var(--wt-surface)',
+                    color:      active ? 'var(--wt-text)' : 'var(--wt-text-muted)',
+                    border:     `1px solid ${active ? 'var(--wt-accent)' : 'var(--wt-border)'}`,
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          <input // ui-kit-ignore
+            className="wt-input w-full rounded-lg px-3 text-xs"
+            style={{ height: 32 }}
+            placeholder="Custom timezone, e.g. Asia/Dubai"
+            value={settings.timezone ?? ''}
+            onChange={(e) => set({ timezone: e.target.value })}
+          />
+        </FlexCol>
+      </SettingsSection>
+    </FlexCol>
+  )
+}
+
+// ── Legacy clock settings (for existing 'default' variant) ───────────────────
+
 export function ClockSettings({ widgetId }: WidgetProps) {
   const [settings, set] = useWidgetSettings<ClockWidgetSettings>(widgetId, DEFAULT_CLOCK_SETTINGS)
 
@@ -90,12 +151,11 @@ export function ClockSettings({ widgetId }: WidgetProps) {
 
       <SettingsSection label="Timezone">
         <FlexCol className="gap-2.5">
-          {/* Preset quick-picks */}
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-1.5"> {/* ui-kit-ignore */}
             {COMMON_TIMEZONES.map(({ label, value }) => {
               const active = (settings.timezone ?? '') === value
               return (
-                <button
+                <button // ui-kit-ignore
                   key={label}
                   onClick={() => set({ timezone: value })}
                   className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors"
@@ -110,8 +170,7 @@ export function ClockSettings({ widgetId }: WidgetProps) {
               )
             })}
           </div>
-          {/* Custom IANA input */}
-          <input
+          <input // ui-kit-ignore
             className="wt-input w-full rounded-lg px-3 text-xs"
             style={{ height: 32 }}
             placeholder="Custom timezone, e.g. Asia/Dubai"

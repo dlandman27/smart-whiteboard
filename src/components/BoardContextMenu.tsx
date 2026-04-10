@@ -83,6 +83,7 @@ export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget,
     if (!widgetCtx) return
     if (key === 'settings')   { dismiss(() => sendWidgetCommand(widgetCtx.id, 'settings')) }
     if (key === 'fullscreen') { dismiss(() => sendWidgetCommand(widgetCtx.id, 'fullscreen')) }
+    if (key === 'split')      { dismiss(() => sendWidgetCommand(widgetCtx.id, 'split')) }
     if (key === 'delete')     { dismiss(() => sendWidgetCommand(widgetCtx.id, 'delete')) }
   }
 
@@ -96,6 +97,7 @@ export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget,
     ...(widgetCtx.hasSettings ? [{ icon: 'GearSix',       label: 'Widget settings',                               key: 'settings',   danger: false }] : []),
     { icon: isWidgetFullscreen ? 'ArrowsInSimple' : 'ArrowsOutSimple',
                                                           label: isWidgetFullscreen ? 'Exit fullscreen' : 'Fullscreen', key: 'fullscreen', danger: false },
+    { icon: 'SquareSplitHorizontal', label: 'Split widget', key: 'split', danger: false },
     { icon: 'Trash',        label: 'Delete widget', key: 'delete',   danger: true  },
   ] : []
 

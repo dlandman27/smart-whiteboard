@@ -3,15 +3,17 @@ import { useWidgetSettings } from '@whiteboard/sdk'
 import { Container, useWidgetSizeContext, fontFamily, FlexRow, FlexCol, Text } from '@whiteboard/ui-kit'
 import type { WidgetProps } from './registry'
 
+// ── Shared settings (timezone + show date only) ──────────────────────────────
+
 export interface ClockWidgetSettings {
   display:          'digital' | 'analog'
   use24h:           boolean
   showSeconds:      boolean
   showDate:         boolean
   font:             'thin' | 'mono' | 'serif'
-  timezone:         string   // IANA string e.g. 'America/New_York', '' = local
+  timezone:         string
   showTimezone:     boolean
-  showHourNumbers:  boolean  // analog only
+  showHourNumbers:  boolean
 }
 
 export const DEFAULT_CLOCK_SETTINGS: ClockWidgetSettings = {
@@ -25,16 +27,15 @@ export const DEFAULT_CLOCK_SETTINGS: ClockWidgetSettings = {
   showHourNumbers: false,
 }
 
-const FONT_FAMILY: Record<ClockWidgetSettings['font'], string> = {
-  thin:  fontFamily.base,
-  mono:  fontFamily.mono,
-  serif: fontFamily.display,
+/** Minimal settings used by the new variant components */
+interface VariantClockSettings {
+  timezone: string
+  showDate: boolean
 }
 
-const FONT_WEIGHT: Record<ClockWidgetSettings['font'], string> = {
-  thin:  '300',
-  mono:  '300',
-  serif: '400',
+const DEFAULT_VARIANT_SETTINGS: VariantClockSettings = {
+  timezone: '',
+  showDate: true,
 }
 
 function pad(n: number) { return n.toString().padStart(2, '0') }
@@ -76,38 +77,106 @@ function getTzLabel(tz: string): string {
   }
 }
 
-// ── Analog face ───────────────────────────────────────────────────────────────
+/** Detect user's locale 12/24h preference */
+function userPrefers24h(): boolean {
+  try {
+    const fmt = new Intl.DateTimeFormat(undefined, { hour: 'numeric' })
+    const parts = fmt.formatToParts(new Date())
+    return !parts.some((p) => p.type === 'dayPeriod')
+  } catch {
+    return false
+  }
+}
 
-function AnalogFace({ h, m, s, ms, showNumbers }: {
-  h: number; m: number; s: number; ms: number; showNumbers: boolean
-}) {
+// ── Shared tick hook ─────────────────────────────────────────────────────────
+
+function useTick() {
+  const [tick, setTick] = useState(0)
+  const rafRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    let last = 0
+    function frame(ts: number) {
+      if (ts - last >= 33) { last = ts; setTick((n) => n + 1) }
+      rafRef.current = requestAnimationFrame(frame)
+    }
+    rafRef.current = requestAnimationFrame(frame)
+    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
+  }, [])
+
+  return tick
+}
+
+// ── Date display ──────────────────────────────────────────────────────────────
+
+function DateDisplay({ timezone, containerW }: { timezone: string; containerW: number }) {
+  const { dayName, dateStr } = getDateParts(timezone)
+  const daySize  = Math.max(11, Math.round(containerW * 0.055))
+  const dateSize = Math.max(10, Math.round(containerW * 0.045))
+
+  return (
+    <FlexCol align="center" gap="none">
+      <Text as="span" color="muted" style={{ fontSize: daySize, fontWeight: 500, fontFamily: fontFamily.base, lineHeight: 1.3 }}>
+        {dayName}
+      </Text>
+      <Text as="span" color="muted" style={{ fontSize: dateSize, fontWeight: 400, fontFamily: fontFamily.base, opacity: 0.65, lineHeight: 1.3 }}>
+        {dateStr}
+      </Text>
+    </FlexCol>
+  )
+}
+
+// ── Timezone label ───────────────────────────────────────────────────────────
+
+function TzLabel({ timezone, containerW }: { timezone: string; containerW: number }) {
+  const label = getTzLabel(timezone)
+  if (!label) return null
+  return (
+    <Text
+      as="span"
+      color="accent"
+      textTransform="uppercase"
+      style={{
+        fontSize:      Math.max(9, Math.round(containerW * 0.04)),
+        fontWeight:    500,
+        fontFamily:    fontFamily.base,
+        letterSpacing: '0.06em',
+        opacity:       0.8,
+        lineHeight:    1,
+      }}
+    >
+      {label}
+    </Text>
+  )
+}
+
+// ── Analog Clock Variant ─────────────────────────────────────────────────────
+
+function AnalogFace({ h, m, s, ms }: { h: number; m: number; s: number; ms: number }) {
   const toRad   = (deg: number) => (deg - 90) * Math.PI / 180
   const handEnd = (angle: number, len: number) => ({
     x: 50 + len * Math.cos(angle),
     y: 50 + len * Math.sin(angle),
   })
 
-  // Smooth second hand using milliseconds
   const smoothS  = s + ms / 1000
   const hourPt   = handEnd(toRad((h % 12 + m / 60) * 30), 22)
   const minutePt = handEnd(toRad(m * 6 + s / 10), 32)
   const secondPt = handEnd(toRad(smoothS * 6), 36)
 
   const HOUR_POSITIONS = [
-    { n: 12, x: 50,    y: 10   },
-    { n:  3, x: 90,    y: 50   },
-    { n:  6, x: 50,    y: 90   },
-    { n:  9, x: 10,    y: 50   },
+    { n: 12, x: 50, y: 10 },
+    { n:  3, x: 90, y: 50 },
+    { n:  6, x: 50, y: 90 },
+    { n:  9, x: 10, y: 50 },
   ]
 
   return (
     <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-      {/* Face */}
       <circle cx="50" cy="50" r="47"
         style={{ fill: 'var(--wt-clock-face)', stroke: 'var(--wt-clock-stroke)' }}
         strokeWidth="1.5" />
 
-      {/* Tick marks */}
       {Array.from({ length: 60 }, (_, i) => {
         const angle  = (i * 6 - 90) * Math.PI / 180
         const isHour = i % 5 === 0
@@ -124,8 +193,7 @@ function AnalogFace({ h, m, s, ms, showNumbers }: {
         )
       })}
 
-      {/* Hour numbers */}
-      {showNumbers && HOUR_POSITIONS.map(({ n, x, y }) => (
+      {HOUR_POSITIONS.map(({ n, x, y }) => (
         <text
           key={n}
           x={x} y={y}
@@ -137,7 +205,6 @@ function AnalogFace({ h, m, s, ms, showNumbers }: {
         </text>
       ))}
 
-      {/* Hands */}
       <line x1="50" y1="50" x2={hourPt.x}   y2={hourPt.y}
         style={{ stroke: 'var(--wt-clock-hands)' }} strokeWidth="3.5" strokeLinecap="round" />
       <line x1="50" y1="50" x2={minutePt.x} y2={minutePt.y}
@@ -145,16 +212,167 @@ function AnalogFace({ h, m, s, ms, showNumbers }: {
       <line x1="50" y1="50" x2={secondPt.x} y2={secondPt.y}
         style={{ stroke: 'var(--wt-clock-second)' }} strokeWidth="1" strokeLinecap="round" />
 
-      {/* Center dot */}
       <circle cx="50" cy="50" r="3"   style={{ fill: 'var(--wt-clock-center)' }} />
       <circle cx="50" cy="50" r="1.5" style={{ fill: 'var(--wt-clock-second)' }} />
     </svg>
   )
 }
 
-// ── Digital face ──────────────────────────────────────────────────────────────
+export function AnalogClockWidget({ widgetId }: WidgetProps) {
+  return <Container><AnalogClockContent widgetId={widgetId} /></Container>
+}
 
-function DigitalFace({ h, m, s, settings, containerW }: {
+function AnalogClockContent({ widgetId }: WidgetProps) {
+  const [settings] = useWidgetSettings<VariantClockSettings>(widgetId, DEFAULT_VARIANT_SETTINGS)
+  const tick = useTick()
+  const { containerWidth: containerW, containerHeight: containerH } = useWidgetSizeContext()
+
+  void tick
+  const { h, m, s, ms } = getTimeParts(settings.timezone)
+  const analogSize = Math.min(containerW * 0.78, containerH * (settings.showDate ? 0.6 : 0.78))
+
+  return (
+    <Container
+      className="flex flex-col items-center justify-center px-4 py-3"
+      style={{ gap: Math.round(containerH * 0.05) }}
+    >
+      <div style={{ width: analogSize, height: analogSize, flexShrink: 0 }}> {/* ui-kit-ignore */}
+        <AnalogFace h={h} m={m} s={s} ms={ms} />
+      </div>
+      {settings.showDate && <DateDisplay timezone={settings.timezone} containerW={containerW} />}
+      {settings.timezone && <TzLabel timezone={settings.timezone} containerW={containerW} />}
+    </Container>
+  )
+}
+
+// ── Digital Clock Variant ────────────────────────────────────────────────────
+
+export function DigitalClockWidget({ widgetId }: WidgetProps) {
+  return <Container><DigitalClockContent widgetId={widgetId} /></Container>
+}
+
+function DigitalClockContent({ widgetId }: WidgetProps) {
+  const [settings] = useWidgetSettings<VariantClockSettings>(widgetId, DEFAULT_VARIANT_SETTINGS)
+  const tick = useTick()
+  const { containerWidth: containerW, containerHeight: containerH } = useWidgetSizeContext()
+
+  void tick
+  const { h, m, s } = getTimeParts(settings.timezone)
+  const use24h   = userPrefers24h()
+  const displayH = use24h ? h : (h % 12 || 12)
+  const ampm     = h >= 12 ? 'PM' : 'AM'
+
+  const timeSize = Math.max(32, Math.round(containerW * 0.28))
+  const subSize  = Math.max(16, Math.round(containerW * 0.09))
+  const ampmSize = Math.max(11, Math.round(containerW * 0.065))
+
+  return (
+    <Container
+      className="flex flex-col items-center justify-center px-4 py-3"
+      style={{ gap: Math.round(containerH * 0.05) }}
+    >
+      <FlexRow align="baseline" justify="center" style={{ gap: Math.round(containerW * 0.02) }}>
+        <Text
+          as="span"
+          style={{
+            fontSize:           timeSize,
+            lineHeight:         1,
+            fontFamily:         fontFamily.base,
+            fontWeight:         '300',
+            fontVariantNumeric: 'tabular-nums',
+            letterSpacing:      '-0.03em',
+          }}
+        >
+          {pad(displayH)}:{pad(m)}
+        </Text>
+
+        <FlexCol align="start" style={{ gap: 2, paddingBottom: 2 }}>
+          <Text
+            as="span"
+            color="muted"
+            style={{
+              fontSize:           subSize,
+              lineHeight:         1,
+              fontFamily:         fontFamily.base,
+              fontWeight:         '300',
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {pad(s)}
+          </Text>
+          {!use24h && (
+            <Text
+              as="span"
+              color="muted"
+              style={{
+                fontSize:      ampmSize,
+                lineHeight:    1,
+                fontFamily:    fontFamily.base,
+                fontWeight:    '500',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {ampm}
+            </Text>
+          )}
+        </FlexCol>
+      </FlexRow>
+
+      {settings.showDate && <DateDisplay timezone={settings.timezone} containerW={containerW} />}
+      {settings.timezone && <TzLabel timezone={settings.timezone} containerW={containerW} />}
+    </Container>
+  )
+}
+
+// ── Legacy combined widget (for backwards compatibility) ─────────────────────
+
+const FONT_FAMILY: Record<ClockWidgetSettings['font'], string> = {
+  thin:  fontFamily.base,
+  mono:  fontFamily.mono,
+  serif: fontFamily.display,
+}
+
+const FONT_WEIGHT: Record<ClockWidgetSettings['font'], string> = {
+  thin:  '300',
+  mono:  '300',
+  serif: '400',
+}
+
+export function ClockWidget({ widgetId }: WidgetProps) {
+  return <Container><ClockContent widgetId={widgetId} /></Container>
+}
+
+function ClockContent({ widgetId }: WidgetProps) {
+  const [settings] = useWidgetSettings<ClockWidgetSettings>(widgetId, DEFAULT_CLOCK_SETTINGS)
+  const tick = useTick()
+  const { containerWidth: containerW, containerHeight: containerH } = useWidgetSizeContext()
+
+  void tick
+  const { h, m, s, ms } = getTimeParts(settings.timezone)
+  const tzLabel = settings.showTimezone ? getTzLabel(settings.timezone) : ''
+  const analogSize = Math.min(containerW * 0.78, containerH * (settings.showDate ? 0.6 : 0.78))
+
+  return (
+    <Container
+      className="flex flex-col items-center justify-center px-4 py-3"
+      style={{ gap: Math.round(containerH * 0.05) }}
+    >
+      {settings.display === 'analog' ? (
+        <div style={{ width: analogSize, height: analogSize, flexShrink: 0 }}> {/* ui-kit-ignore */}
+          <AnalogFace h={h} m={m} s={s} ms={ms} />
+        </div>
+      ) : (
+        <DigitalFaceLegacy h={h} m={m} s={s} settings={settings} containerW={containerW} />
+      )}
+
+      {settings.showDate && <DateDisplay timezone={settings.timezone} containerW={containerW} />}
+
+      {tzLabel && <TzLabel timezone={settings.timezone} containerW={containerW} />}
+    </Container>
+  )
+}
+
+function DigitalFaceLegacy({ h, m, s, settings, containerW }: {
   h: number; m: number; s: number
   settings: ClockWidgetSettings
   containerW: number
@@ -166,17 +384,12 @@ function DigitalFace({ h, m, s, settings, containerW }: {
   const ff = FONT_FAMILY[font]
   const fw = FONT_WEIGHT[font]
 
-  // Responsive sizing based on container width
   const timeSize = Math.max(32, Math.round(containerW * 0.28))
   const subSize  = Math.max(16, Math.round(containerW * 0.09))
   const ampmSize = Math.max(11, Math.round(containerW * 0.065))
 
   return (
-    <FlexRow
-      align="baseline"
-      justify="center"
-      style={{ gap: Math.round(containerW * 0.02) }}
-    >
+    <FlexRow align="baseline" justify="center" style={{ gap: Math.round(containerW * 0.02) }}>
       <Text
         as="span"
         style={{
@@ -226,93 +439,5 @@ function DigitalFace({ h, m, s, settings, containerW }: {
         </FlexCol>
       )}
     </FlexRow>
-  )
-}
-
-// ── Date display ──────────────────────────────────────────────────────────────
-
-function DateDisplay({ timezone, containerW }: { timezone: string; containerW: number }) {
-  const { dayName, dateStr } = getDateParts(timezone)
-  const daySize  = Math.max(11, Math.round(containerW * 0.055))
-  const dateSize = Math.max(10, Math.round(containerW * 0.045))
-
-  return (
-    <FlexCol align="center" gap="none">
-      <Text as="span" color="muted" style={{ fontSize: daySize, fontWeight: 500, fontFamily: fontFamily.base, lineHeight: 1.3 }}>
-        {dayName}
-      </Text>
-      <Text as="span" color="muted" style={{ fontSize: dateSize, fontWeight: 400, fontFamily: fontFamily.base, opacity: 0.65, lineHeight: 1.3 }}>
-        {dateStr}
-      </Text>
-    </FlexCol>
-  )
-}
-
-// ── Widget ────────────────────────────────────────────────────────────────────
-
-export function ClockWidget({ widgetId }: WidgetProps) {
-  return <Container><ClockContent widgetId={widgetId} /></Container>
-}
-
-function ClockContent({ widgetId }: WidgetProps) {
-  const [settings] = useWidgetSettings<ClockWidgetSettings>(widgetId, DEFAULT_CLOCK_SETTINGS)
-  const [tick,     setTick]     = useState(0)
-  const { containerWidth: containerW, containerHeight: containerH } = useWidgetSizeContext()
-  const rafRef = useRef<number | null>(null)
-
-  // Use rAF for smooth analog second hand; tick every ~16ms
-  useEffect(() => {
-    let last = 0
-    function frame(ts: number) {
-      // Only re-render at most ~30fps to avoid excess work
-      if (ts - last >= 33) { last = ts; setTick((n) => n + 1) }
-      rafRef.current = requestAnimationFrame(frame)
-    }
-    rafRef.current = requestAnimationFrame(frame)
-    return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current) }
-  }, [])
-
-  void tick  // consumed by rAF to trigger re-renders
-  const { h, m, s, ms } = getTimeParts(settings.timezone)
-  const tzLabel = settings.showTimezone ? getTzLabel(settings.timezone) : ''
-
-  // Analog clock size: square, fill most of the container
-  const analogSize = Math.min(containerW * 0.78, containerH * (settings.showDate ? 0.6 : 0.78))
-
-  return (
-    <Container
-      className="flex flex-col items-center justify-center px-4 py-3"
-      style={{ gap: Math.round(containerH * 0.05) }}
-    >
-      {settings.display === 'analog' ? (
-        <div style={{ width: analogSize, height: analogSize, flexShrink: 0 }}>
-          <AnalogFace h={h} m={m} s={s} ms={ms} showNumbers={settings.showHourNumbers} />
-        </div>
-      ) : (
-        <DigitalFace h={h} m={m} s={s} settings={settings} containerW={containerW} />
-      )}
-
-      {settings.showDate && (
-        <DateDisplay timezone={settings.timezone} containerW={containerW} />
-      )}
-
-      {tzLabel && (
-        <Text
-          as="span"
-          color="accent"
-          textTransform="uppercase"
-          style={{
-            fontSize:      Math.max(9, Math.round(containerW * 0.04)),
-            fontWeight:    500,
-            fontFamily:    fontFamily.base,
-            letterSpacing: '0.06em',
-            opacity:       0.8,
-            lineHeight:    1,
-          }}
-        >
-          {tzLabel}
-        </Text>
-      )}
-    </Container>
   )
 }

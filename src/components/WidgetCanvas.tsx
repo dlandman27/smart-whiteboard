@@ -7,7 +7,7 @@ import { Widget } from './Widget'
 import { LayoutSlots } from './layout/LayoutSlots'
 import { DatabaseWidget } from './widgets/DatabaseWidget'
 import { CalendarWidget } from './widgets/CalendarWidget'
-import { getStaticWidgetDef } from './widgets/registry'
+import { getWidgetType, getWidgetVariant } from './widgets/registry'
 import type { PendingWidget } from '../types'
 
 interface Props {
@@ -192,9 +192,11 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
       )}
 
       {widgets.map((widget) => {
-        const def          = getStaticWidgetDef(widget.type ?? '')
-        const Comp         = def?.component
-        const SettingsComp = def?.settingsComponent
+        const typeDef      = getWidgetType(widget.type ?? '')
+        const variant      = getWidgetVariant(widget.type ?? '', widget.variantId ?? 'default')
+                             ?? typeDef?.variants[0]
+        const Comp         = variant?.component
+        const SettingsComp = variant?.settingsComponent
 
         // Use slot rect when widget is slot-assigned and slot exists in current layout
         const slotRect = widget.slotId ? slotMap[widget.slotId] : undefined
@@ -218,8 +220,8 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
             width={width}
             height={height}
             settingsContent={SettingsComp ? <SettingsComp widgetId={widget.id} /> : undefined}
-            preferences={def?.preferences}
-            refSize={def?.scalable !== false ? def?.defaultSize : undefined}
+            preferences={variant?.preferences}
+            refSize={variant?.scalable !== false ? (variant ? { width: variant.shape.width, height: variant.shape.height } : undefined) : undefined}
             slotAssigned={!!slotRect}
             onDoubleTap={onWidgetDoubleTap}
             onDragStart={() => {

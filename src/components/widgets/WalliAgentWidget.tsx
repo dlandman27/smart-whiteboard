@@ -16,12 +16,14 @@ const AGENT_LABELS: Record<AgentDomain, string> = {
   walli:  'Walli',
 }
 
+// Agent colors mapped to theme tokens — each agent uses a semantic color
+// so they shift with the theme while staying visually distinct
 const AGENT_COLORS: Record<AgentDomain, string> = {
-  apollo: '#43B581',
-  miles:  '#E74C3C',
-  harvey: '#E67E22',
-  alfred: '#4A90D9',
-  walli:  '#9B59B6',
+  apollo: 'var(--wt-success)',
+  miles:  'var(--wt-danger)',
+  harvey: 'var(--wt-accent)',
+  alfred: 'var(--wt-info)',
+  walli:  'var(--wt-accent)',
 }
 
 // ── Health (Apollo) ───────────────────────────────────────────────────────────
@@ -59,7 +61,7 @@ function TasksView({ data }: { data: Record<string, unknown> }) {
         <FlexRow key={t.id} gap={6} align="center">
           <div style={{
             width: 6, height: 6, borderRadius: '50%', flexShrink: 0,
-            background: overdue.includes(t) ? '#E74C3C' : '#43B581',
+            background: overdue.includes(t) ? 'var(--wt-danger)' : 'var(--wt-success)',
           }} />
           <Text size="small" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {t.content}
@@ -108,8 +110,8 @@ function Stat({ label, value, pct }: { label: string; value: string; pct: number
         <Text size="small" color="muted">{label}</Text>
         <Text size="small">{value}</Text>
       </FlexRow>
-      <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: '#43B581', transition: 'width 0.4s ease' }} />
+      <div style={{ height: 4, borderRadius: 2, background: 'var(--wt-surface-hover)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: 'var(--wt-success)', transition: 'width 0.4s ease' }} />
       </div>
     </FlexCol>
   )

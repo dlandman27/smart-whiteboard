@@ -23,7 +23,7 @@ export class ErrorBoundary extends Component<Props, State> {
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', height: '100vh', gap: 12,
-          fontFamily: 'sans-serif', background: '#0f0f0f', color: '#f5f5f5',
+          fontFamily: 'sans-serif', background: 'var(--wt-bg)', color: 'var(--wt-text)',
         }}>
           <p style={{ fontSize: 14, opacity: 0.5 }}>Something went wrong</p>
           <p style={{ fontSize: 12, opacity: 0.35, maxWidth: 400, textAlign: 'center' }}>
@@ -32,8 +32,8 @@ export class ErrorBoundary extends Component<Props, State> {
           <button
             onClick={() => this.setState({ hasError: false, message: '' })}
             style={{
-              marginTop: 8, padding: '8px 20px', border: '1px solid #444',
-              borderRadius: 8, background: 'transparent', color: '#f5f5f5',
+              marginTop: 8, padding: '8px 20px', border: '1px solid var(--wt-border)',
+              borderRadius: 8, background: 'transparent', color: 'var(--wt-text)',
               cursor: 'pointer', fontSize: 13,
             }}
           >
