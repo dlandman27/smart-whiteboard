@@ -1,34 +1,52 @@
 import { Router } from 'express'
-import { loadTokens, saveTokens } from '../services/tokens.js'
-import { SPOTIFY_SCOPES, getSpotifyAccessToken, spotifyControl, setPendingSpotifyAuth, pendingSpotifyAuth } from '../services/spotify.js'
+import { saveOAuthTokens } from '../services/credentials.js'
+import { saveCredential } from '../services/credentials.js'
+import { SPOTIFY_SCOPES, getSpotifyAccessToken, spotifyControl, pendingSpotifyAuths } from '../services/spotify.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
 
 export function spotifyRouter(): Router {
   const router = Router()
 
-  router.get('/spotify/status', (_req, res) => {
-    const tokens = loadTokens()
-    res.json({ connected: !!(tokens?.spotify_refresh_token || tokens?.spotify_access_token) })
-  })
+  router.get('/spotify/status', asyncRoute(async (req, res) => {
+    const token = await getSpotifyAccessToken(req.userId!)
+    res.json({ connected: !!token })
+  }))
 
-  router.post('/spotify/start-auth', (req, res) => {
+  router.post('/spotify/start-auth', asyncRoute(async (req, res) => {
     const { clientId, clientSecret, redirectUri } = req.body as Record<string, string>
     if (!clientId || !clientSecret || !redirectUri) {
       throw new AppError(400, 'clientId, clientSecret, and redirectUri are required')
     }
-    setPendingSpotifyAuth({ clientId, clientSecret, redirectUri })
+
+    // Save the client credentials for this user
+    await saveCredential(req.userId!, 'spotify', {
+      client_id:     clientId,
+      client_secret: clientSecret,
+      redirect_uri:  redirectUri,
+    })
+
+    const state = crypto.randomUUID()
+    pendingSpotifyAuths.set(state, { userId: req.userId!, clientId, clientSecret, redirectUri })
+    setTimeout(() => pendingSpotifyAuths.delete(state), 10 * 60_000)
+
     const params = new URLSearchParams({
       response_type: 'code',
       client_id:     clientId,
       scope:         SPOTIFY_SCOPES,
       redirect_uri:  redirectUri,
+      state,
     })
     res.json({ url: `https://accounts.spotify.com/authorize?${params}` })
-  })
+  }))
 
   router.get('/spotify/callback', asyncRoute(async (req, res) => {
-    if (!pendingSpotifyAuth) throw new AppError(400, 'No pending Spotify auth — initiate via the widget')
-    const { clientId, clientSecret, redirectUri } = pendingSpotifyAuth
+    const state = req.query.state as string
+    const pending = pendingSpotifyAuths.get(state)
+    if (!pending) throw new AppError(400, 'No pending Spotify auth — initiate via the widget')
+    pendingSpotifyAuths.delete(state)
+
+    const { userId, clientId, clientSecret, redirectUri } = pending
+
     const resp = await fetch('https://accounts.spotify.com/api/token', {
       method:  'POST',
       headers: {
@@ -44,14 +62,12 @@ export function spotifyRouter(): Router {
     const data = await resp.json() as any
     if (!data.access_token) throw new AppError(400, 'Token exchange failed: ' + JSON.stringify(data))
 
-    saveTokens({
-      spotify_client_id:     clientId,
-      spotify_client_secret: clientSecret,
-      spotify_access_token:  data.access_token,
-      spotify_refresh_token: data.refresh_token,
-      spotify_expires_at:    String(Date.now() + data.expires_in * 1000),
+    await saveOAuthTokens(userId, 'spotify', {
+      access_token:  data.access_token,
+      refresh_token: data.refresh_token,
+      expires_at:    new Date(Date.now() + data.expires_in * 1000).toISOString(),
     })
-    setPendingSpotifyAuth(null)
+
     res.send(`
       <html><body style="font-family:sans-serif;display:flex;align-items:center;justify-content:center;
         height:100vh;margin:0;background:#f0fdf4;color:#166534">
@@ -65,8 +81,8 @@ export function spotifyRouter(): Router {
     `)
   }))
 
-  router.get('/spotify/now-playing', asyncRoute(async (_req, res) => {
-    const accessToken = await getSpotifyAccessToken()
+  router.get('/spotify/now-playing', asyncRoute(async (req, res) => {
+    const accessToken = await getSpotifyAccessToken(req.userId!)
     if (!accessToken) throw new AppError(401, 'Not authenticated')
 
     const resp = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
@@ -90,29 +106,29 @@ export function spotifyRouter(): Router {
     })
   }))
 
-  router.post('/spotify/play', asyncRoute(async (_req, res) => {
-    const r = await spotifyControl('PUT', '/play')
+  router.post('/spotify/play', asyncRoute(async (req, res) => {
+    const r = await spotifyControl(req.userId!, 'PUT', '/play')
     r.ok ? res.json({ ok: true }) : res.status(400).json(r)
   }))
 
-  router.post('/spotify/pause', asyncRoute(async (_req, res) => {
-    const r = await spotifyControl('PUT', '/pause')
+  router.post('/spotify/pause', asyncRoute(async (req, res) => {
+    const r = await spotifyControl(req.userId!, 'PUT', '/pause')
     r.ok ? res.json({ ok: true }) : res.status(400).json(r)
   }))
 
-  router.post('/spotify/next', asyncRoute(async (_req, res) => {
-    const r = await spotifyControl('POST', '/next')
+  router.post('/spotify/next', asyncRoute(async (req, res) => {
+    const r = await spotifyControl(req.userId!, 'POST', '/next')
     r.ok ? res.json({ ok: true }) : res.status(400).json(r)
   }))
 
-  router.post('/spotify/previous', asyncRoute(async (_req, res) => {
-    const r = await spotifyControl('POST', '/previous')
+  router.post('/spotify/previous', asyncRoute(async (req, res) => {
+    const r = await spotifyControl(req.userId!, 'POST', '/previous')
     r.ok ? res.json({ ok: true }) : res.status(400).json(r)
   }))
 
   router.post('/spotify/volume', asyncRoute(async (req, res) => {
     const volume = Math.max(0, Math.min(100, Number(req.body.volume ?? 50)))
-    const r = await spotifyControl('PUT', `/volume?volume_percent=${volume}`)
+    const r = await spotifyControl(req.userId!, 'PUT', `/volume?volume_percent=${volume}`)
     r.ok ? res.json({ ok: true }) : res.status(400).json(r)
   }))
 

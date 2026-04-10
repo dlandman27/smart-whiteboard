@@ -1,5 +1,16 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { useThemeStore } from './theme'
+
+// Mock supabase before anything imports it
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: null }),
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+    }),
+  },
+}))
 
 // Mock applyThemeVars since it touches document.documentElement in jsdom
 vi.mock('../themes/presets', async (importOriginal) => {
@@ -9,6 +20,8 @@ vi.mock('../themes/presets', async (importOriginal) => {
     applyThemeVars: vi.fn(),
   }
 })
+
+import { useThemeStore } from './theme'
 
 const store = () => useThemeStore.getState()
 
@@ -22,6 +35,41 @@ describe('initial state', () => {
     expect(store().customOverrides).toEqual({})
     expect(store().customTheme).toBeNull()
     expect(store().petsEnabled).toBe(false)
+  })
+})
+
+describe('init', () => {
+  it('loads theme from Supabase when data exists', async () => {
+    const { supabase } = await import('../lib/supabase')
+    const mockSingle = vi.fn().mockResolvedValue({
+      data: {
+        user_id: 'u1', active_theme_id: 'dracula',
+        custom_overrides: {}, custom_theme: null,
+        background: { label: 'Dark', bg: '#282a36' }, pets_enabled: true,
+      },
+      error: null,
+    })
+    ;(supabase.from as any).mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: mockSingle,
+    })
+
+    await store().init('u1')
+    expect(store().activeThemeId).toBe('dracula')
+    expect(store().petsEnabled).toBe(true)
+  })
+
+  it('keeps defaults when no theme row exists', async () => {
+    const { supabase } = await import('../lib/supabase')
+    ;(supabase.from as any).mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: { code: 'PGRST116' } }),
+    })
+
+    await store().init('u1')
+    expect(store().activeThemeId).toBe('minimal')
   })
 })
 
@@ -67,7 +115,6 @@ describe('setCustomTheme', () => {
   it('merges with a base theme', () => {
     store().setCustomTheme({ widgetBg: '#ff0000' }, undefined, 'minimal')
     expect(store().customTheme).toBeDefined()
-    // Should have all vars from minimal base plus the override
     expect(store().customTheme!.widgetBg).toBe('#ff0000')
   })
 })

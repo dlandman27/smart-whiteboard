@@ -1,6 +1,11 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 
+/**
+ * Temporary local state for Spotify credential input fields.
+ * These are NOT persisted — they're only held while the user is filling out
+ * the form. The actual credentials are saved server-side when the user
+ * initiates the OAuth flow via /spotify/start-auth.
+ */
 interface SpotifyCredentialStore {
   clientId:    string
   clientSecret: string
@@ -9,13 +14,10 @@ interface SpotifyCredentialStore {
 }
 
 export const useSpotifyCredentials = create<SpotifyCredentialStore>()(
-  persist(
-    (set) => ({
-      clientId:    '',
-      clientSecret: '',
-      redirectUri: 'http://localhost:3001/api/spotify/callback',
-      set: (patch) => set(patch),
-    }),
-    { name: 'spotify-credentials' }
-  )
+  (set) => ({
+    clientId:    '',
+    clientSecret: '',
+    redirectUri: 'http://localhost:3001/api/spotify/callback',
+    set: (patch) => set(patch),
+  })
 )

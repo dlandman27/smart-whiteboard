@@ -1,13 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-
-async function apiFetch<T = unknown>(path: string, options?: RequestInit): Promise<T> {
-  const res = await fetch(path, options)
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error || `HTTP ${res.status}`)
-  }
-  return res.json()
-}
+import { apiFetch } from '../lib/apiFetch'
 
 export function useNotionHealth() {
   return useQuery({

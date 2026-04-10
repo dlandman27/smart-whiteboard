@@ -1,11 +1,21 @@
-import { describe, it, expect, beforeEach } from 'vitest'
-import { useWhiteboardStore, DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID } from './whiteboard'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+
+// Mock db.ts so init doesn't actually call Supabase
+vi.mock('../lib/db', () => ({
+  loadBoards: vi.fn().mockResolvedValue([]),
+}))
+
+import { useWhiteboardStore, DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID } from './whiteboard'
+import { loadBoards } from '../lib/db'
+
+const mockLoadBoards = loadBoards as ReturnType<typeof vi.fn>
 
 const store = () => useWhiteboardStore.getState()
 
 beforeEach(() => {
-  // Reset to initial state before each test
   useWhiteboardStore.setState(useWhiteboardStore.getInitialState(), true)
+  vi.clearAllMocks()
+  mockLoadBoards.mockResolvedValue([])
 })
 
 // ─── Initial state ───────────────────────────────────────────────────────────
@@ -13,7 +23,7 @@ beforeEach(() => {
 describe('initial state', () => {
   it('has at least one user board plus system boards', () => {
     const boards = store().boards
-    expect(boards.length).toBeGreaterThanOrEqual(5) // Main + Calendar + Settings + Connectors + Today
+    expect(boards.length).toBeGreaterThanOrEqual(6) // Main + Calendar + Settings + Connectors + Today + Todo
   })
 
   it('has system boards of each type', () => {
@@ -22,10 +32,61 @@ describe('initial state', () => {
     expect(types).toContain('settings')
     expect(types).toContain('connectors')
     expect(types).toContain('today')
+    expect(types).toContain('todo')
   })
 
   it('sets activeBoardId to the first board', () => {
     expect(store().activeBoardId).toBe(store().boards[0].id)
+  })
+
+  it('starts with isLoading false and no userId', () => {
+    expect(store().isLoading).toBe(false)
+    expect(store().userId).toBeNull()
+  })
+})
+
+// ─── init ────────────────────────────────────────────────────────────────────
+
+describe('init', () => {
+  it('sets isLoading during load then clears it', async () => {
+    mockLoadBoards.mockImplementation(() => new Promise((resolve) => {
+      // Check isLoading is true during the load
+      expect(store().isLoading).toBe(true)
+      resolve([])
+    }))
+
+    await store().init('user-123')
+
+    expect(store().isLoading).toBe(false)
+  })
+
+  it('sets userId', async () => {
+    await store().init('user-123')
+    expect(store().userId).toBe('user-123')
+  })
+
+  it('loads boards from Supabase and ensures system boards', async () => {
+    mockLoadBoards.mockResolvedValue([
+      { id: 'b1', name: 'My Board', layoutId: 'dashboard', widgets: [] },
+    ])
+
+    await store().init('user-123')
+
+    const boards = store().boards
+    expect(boards.find(b => b.id === 'b1')).toBeDefined()
+    // System boards should be auto-added
+    expect(boards.some(b => b.boardType === 'calendar')).toBe(true)
+    expect(boards.some(b => b.boardType === 'settings')).toBe(true)
+    expect(boards.some(b => b.boardType === 'todo')).toBe(true)
+  })
+
+  it('falls back to defaults on error', async () => {
+    mockLoadBoards.mockRejectedValue(new Error('network'))
+
+    await store().init('user-123')
+
+    expect(store().isLoading).toBe(false)
+    expect(store().boards.length).toBeGreaterThanOrEqual(6)
   })
 })
 
@@ -76,10 +137,8 @@ describe('removeBoard', () => {
   })
 
   it('does not remove the last board', () => {
-    // Remove all but one
     const nonSystemBoards = store().boards.filter((b) => !b.boardType)
     for (const b of nonSystemBoards.slice(1)) store().removeBoard(b.id)
-    // Now try to remove the remaining boards until only 1 is left
     while (store().boards.length > 1) {
       store().removeBoard(store().boards[0].id)
     }
@@ -177,13 +236,11 @@ describe('clearWidgets', () => {
     store().addBoard('Other')
     store().addWidget(sampleWidget) // widget on "Other" board
 
-    // Switch back to first board and clear
     const firstBoardId = store().boards[0].id
     store().setActiveBoard(firstBoardId)
     store().clearWidgets()
     expect(activeBoard().widgets.length).toBe(0)
 
-    // "Other" board still has its widget
     const other = store().boards.find((b) => b.name === 'Other')!
     expect(other.widgets.length).toBe(1)
   })

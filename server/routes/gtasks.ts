@@ -3,8 +3,8 @@ import { google } from 'googleapis'
 import { getGCalClient } from '../services/gcal.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
 
-function requireClient() {
-  const client = getGCalClient()
+async function requireClient(userId: string) {
+  const client = await getGCalClient(userId)
   if (!client) throw new AppError(401, 'Not authenticated — connect Google first')
   return google.tasks({ version: 'v1', auth: client as any })
 }
@@ -14,14 +14,13 @@ export function gtasksRouter(): Router {
 
   // ── Status ────────────────────────────────────────────────────────────────
 
-  router.get('/gtasks/status', asyncRoute(async (_req, res) => {
+  router.get('/gtasks/status', asyncRoute(async (req, res) => {
     try {
-      const api = requireClient()
+      const api = await requireClient(req.userId!)
       await api.tasklists.list({ maxResults: 1 })
       res.json({ connected: true })
     } catch (e: any) {
       if (e instanceof AppError) return res.json({ connected: false })
-      // 403 = token lacks tasks scope
       if (e?.code === 403 || e?.response?.status === 403) {
         return res.json({ connected: false, needsReauth: true })
       }
@@ -31,8 +30,8 @@ export function gtasksRouter(): Router {
 
   // ── Task lists ────────────────────────────────────────────────────────────
 
-  router.get('/gtasks/lists', asyncRoute(async (_req, res) => {
-    const api = requireClient()
+  router.get('/gtasks/lists', asyncRoute(async (req, res) => {
+    const api = await requireClient(req.userId!)
     const { data } = await api.tasklists.list({ maxResults: 100 })
     res.json({ items: data.items ?? [] })
   }))
@@ -40,7 +39,7 @@ export function gtasksRouter(): Router {
   // ── Tasks for a list ──────────────────────────────────────────────────────
 
   router.get('/gtasks/tasks', asyncRoute(async (req, res) => {
-    const api = requireClient()
+    const api = await requireClient(req.userId!)
     const { taskListId, showCompleted } = req.query as Record<string, string>
     if (!taskListId) throw new AppError(400, 'taskListId is required')
     const { data } = await api.tasks.list({
@@ -55,7 +54,7 @@ export function gtasksRouter(): Router {
   // ── Create task ───────────────────────────────────────────────────────────
 
   router.post('/gtasks/tasks', asyncRoute(async (req, res) => {
-    const api = requireClient()
+    const api = await requireClient(req.userId!)
     const { taskListId, title, notes, due } = req.body
     if (!taskListId) throw new AppError(400, 'taskListId is required')
     if (!title)      throw new AppError(400, 'title is required')
@@ -69,7 +68,7 @@ export function gtasksRouter(): Router {
   // ── Update task ───────────────────────────────────────────────────────────
 
   router.patch('/gtasks/tasks/:taskListId/:taskId', asyncRoute(async (req, res) => {
-    const api = requireClient()
+    const api = await requireClient(req.userId!)
     const { taskListId, taskId } = req.params
     const { data } = await api.tasks.patch({
       tasklist:    taskListId,
@@ -82,7 +81,7 @@ export function gtasksRouter(): Router {
   // ── Delete task ───────────────────────────────────────────────────────────
 
   router.delete('/gtasks/tasks/:taskListId/:taskId', asyncRoute(async (req, res) => {
-    const api = requireClient()
+    const api = await requireClient(req.userId!)
     const { taskListId, taskId } = req.params
     await api.tasks.delete({ tasklist: taskListId, task: taskId })
     res.json({ ok: true })

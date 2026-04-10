@@ -1,13 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-
-async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(path)
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as any).error || `HTTP ${res.status}`)
-  }
-  return res.json()
-}
+import { apiFetch } from '../lib/apiFetch'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -90,16 +82,11 @@ export async function createTask(
   taskListId: string,
   task: { title: string; notes?: string; due?: string },
 ): Promise<GTask> {
-  const res = await fetch('/api/gtasks/tasks', {
+  return apiFetch<GTask>('/api/gtasks/tasks', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ taskListId, ...task }),
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as any).error || 'Failed to create task')
-  }
-  return res.json()
 }
 
 export async function updateTask(
@@ -110,26 +97,17 @@ export async function updateTask(
   const body = { ...updates } as any
   // Google Tasks requires completed=null when un-completing
   if (updates.status === 'needsAction') body.completed = null
-  const res = await fetch(`/api/gtasks/tasks/${encodeURIComponent(taskListId)}/${encodeURIComponent(taskId)}`, {
+  return apiFetch<GTask>(`/api/gtasks/tasks/${encodeURIComponent(taskListId)}/${encodeURIComponent(taskId)}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as any).error || 'Failed to update task')
-  }
-  return res.json()
 }
 
 export async function deleteTask(taskListId: string, taskId: string): Promise<void> {
-  const res = await fetch(`/api/gtasks/tasks/${encodeURIComponent(taskListId)}/${encodeURIComponent(taskId)}`, {
+  await apiFetch(`/api/gtasks/tasks/${encodeURIComponent(taskListId)}/${encodeURIComponent(taskId)}`, {
     method: 'DELETE',
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as any).error || 'Failed to delete task')
-  }
 }
 
 export async function toggleTask(taskListId: string, taskId: string, currentStatus: GTask['status']): Promise<GTask> {

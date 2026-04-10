@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { FlexRow, FlexCol, Box, Text, Icon, ScrollArea } from '@whiteboard/ui-kit'
+import { FlexRow, FlexCol, Box, Text, Icon, ScrollArea, Button } from '@whiteboard/ui-kit'
+import { supabase } from '../lib/supabase'
 import { ThemePicker } from './ThemePicker'
 import { BackgroundPicker } from './BackgroundPicker'
 import { useThemeStore } from '../store/theme'
@@ -239,14 +240,53 @@ function GeneralSection() {
 
 // ── Nav sections ──────────────────────────────────────────────────────────────
 
-type Section = 'appearance' | 'general'
+type Section = 'appearance' | 'general' | 'account'
 
 const SECTIONS: { id: Section; label: string; icon: string }[] = [
   { id: 'appearance', label: 'Appearance', icon: 'Palette' },
   { id: 'general',    label: 'General',    icon: 'SlidersHorizontal' },
+  { id: 'account',    label: 'Account',    icon: 'User' },
 ]
 
 // ── Main view ─────────────────────────────────────────────────────────────────
+
+// ── Section: Account ─────────────────────────────────────────────────────────
+
+function AccountSection() {
+  const [signingOut, setSigningOut] = useState(false)
+
+  async function handleSignOut() {
+    setSigningOut(true)
+    await supabase.auth.signOut()
+    // AuthGuard will detect the sign-out and show LoginScreen
+  }
+
+  return (
+    <FlexCol gap="5">
+      <SectionLabel>Account</SectionLabel>
+      <FlexCol gap="sm" style={{ maxWidth: 400 }}>
+        <Text variant="body" size="medium" color="muted">
+          Sign out of your account. Your boards and settings are saved in the cloud and will be here when you come back.
+        </Text>
+        <div>
+          <Button
+            variant="ghost"
+            size="md"
+            onClick={handleSignOut}
+            disabled={signingOut}
+          >
+            <FlexRow align="center" gap="xs">
+              <Icon icon="SignOut" size={16} />
+              {signingOut ? 'Signing out...' : 'Sign out'}
+            </FlexRow>
+          </Button>
+        </div>
+      </FlexCol>
+    </FlexCol>
+  )
+}
+
+// ── Main view ────────────────────────────────────────────────────────────────
 
 export function SettingsBoardView() {
   const [activeSection, setActiveSection] = useState<Section>('appearance')
@@ -339,6 +379,7 @@ export function SettingsBoardView() {
           <div style={{ maxWidth: 720, padding: '32px 40px' }}>
             {activeSection === 'appearance' && <AppearanceSection />}
             {activeSection === 'general'    && <GeneralSection />}
+            {activeSection === 'account'    && <AccountSection />}
           </div>
         </ScrollArea>
       </FlexRow>

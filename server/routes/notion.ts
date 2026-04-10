@@ -1,17 +1,38 @@
 import { Router } from 'express'
-import type { Client } from '@notionhq/client'
-import { loadTokens, saveTokens } from '../services/tokens.js'
+import { Client } from '@notionhq/client'
+import { loadCredential, saveCredential } from '../services/credentials.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
 
-export function notionRouter(notion: Client): Router {
+/**
+ * Get a per-user Notion client. Tries user credentials first,
+ * falls back to the global NOTION_API_KEY env var.
+ */
+async function getNotionClient(userId: string): Promise<Client | null> {
+  const cred = await loadCredential(userId, 'notion')
+  if (cred?.api_key) return new Client({ auth: cred.api_key })
+  if (process.env.NOTION_API_KEY) return new Client({ auth: process.env.NOTION_API_KEY })
+  return null
+}
+
+async function requireNotion(userId: string): Promise<Client> {
+  const client = await getNotionClient(userId)
+  if (!client) throw new AppError(401, 'Notion not configured — add your API key in Connectors')
+  return client
+}
+
+export function notionRouter(): Router {
   const router = Router()
 
-  router.get('/health', (_req, res) => {
+  router.get('/health', asyncRoute(async (req, res) => {
+    const hasGlobalKey = !!process.env.NOTION_API_KEY
+    const userCred = req.userId ? await loadCredential(req.userId, 'notion') : null
+    const notionConfigured = hasGlobalKey || !!userCred?.api_key
+
     res.json({
       ok:         true,
-      configured: !!process.env.NOTION_API_KEY,
+      configured: notionConfigured,
       services: {
-        notion:      !!process.env.NOTION_API_KEY,
+        notion:      notionConfigured,
         anthropic:   !!process.env.ANTHROPIC_API_KEY,
         elevenlabs:  !!process.env.ELEVENLABS_API_KEY,
         youtube:     !!process.env.YOUTUBE_API_KEY,
@@ -19,9 +40,10 @@ export function notionRouter(notion: Client): Router {
         googleOauth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
       },
     })
-  })
+  }))
 
-  router.get('/databases', asyncRoute(async (_req, res) => {
+  router.get('/databases', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     const response = await notion.search({
       filter:    { value: 'database', property: 'object' },
       sort:      { direction: 'descending', timestamp: 'last_edited_time' },
@@ -31,10 +53,12 @@ export function notionRouter(notion: Client): Router {
   }))
 
   router.get('/databases/:id', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     res.json(await notion.databases.retrieve({ database_id: req.params.id }))
   }))
 
   router.post('/databases/:id/query', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     const response = await notion.databases.query({
       database_id: req.params.id,
       sorts:       req.body.sorts,
@@ -45,6 +69,7 @@ export function notionRouter(notion: Client): Router {
   }))
 
   router.post('/databases/:id/pages', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     res.json(await notion.pages.create({
       parent:     { database_id: req.params.id },
       properties: req.body.properties,
@@ -52,6 +77,7 @@ export function notionRouter(notion: Client): Router {
   }))
 
   router.post('/databases/:id/smart-entry', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     const db   = await notion.databases.retrieve({ database_id: req.params.id })
     const data = req.body.data as Record<string, any>
     const props: Record<string, any> = {}
@@ -78,35 +104,45 @@ export function notionRouter(notion: Client): Router {
   }))
 
   router.patch('/pages/:id', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     res.json(await notion.pages.update({ page_id: req.params.id, properties: req.body.properties }))
   }))
 
   router.delete('/pages/:id', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     res.json(await notion.pages.update({ page_id: req.params.id, archived: true }))
   }))
 
   router.delete('/databases/:id', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     res.json(await (notion as any).databases.update({ database_id: req.params.id, archived: true }))
   }))
 
-  router.get('/notion/workspace-page', (_req, res) => {
-    const tokens = loadTokens()
-    const pageId = tokens?.notion_parent_page_id ?? process.env.NOTION_PARENT_PAGE_ID ?? null
+  router.get('/notion/workspace-page', asyncRoute(async (req, res) => {
+    const cred = await loadCredential(req.userId!, 'notion')
+    const pageId = cred?.redirect_uri ?? process.env.NOTION_PARENT_PAGE_ID ?? null
+    // Note: we repurpose redirect_uri field to store the workspace page ID for Notion
     res.json({ pageId })
-  })
+  }))
 
-  router.post('/notion/workspace-page', (req, res) => {
+  router.post('/notion/workspace-page', asyncRoute(async (req, res) => {
     const { pageId } = req.body
     if (!pageId) throw new AppError(400, 'pageId required')
-    saveTokens({ notion_parent_page_id: pageId })
+    // Store workspace page in the credential's redirect_uri field
+    const existing = await loadCredential(req.userId!, 'notion')
+    await saveCredential(req.userId!, 'notion', {
+      ...existing,
+      redirect_uri: pageId,
+    })
     res.json({ ok: true })
-  })
+  }))
 
   router.post('/notion/databases', asyncRoute(async (req, res) => {
-    const tokens = loadTokens()
+    const notion = await requireNotion(req.userId!)
+    const cred = await loadCredential(req.userId!, 'notion')
     const { title, properties } = req.body
     const parentPageId = req.body.parentPageId
-      ?? tokens?.notion_parent_page_id
+      ?? cred?.redirect_uri
       ?? process.env.NOTION_PARENT_PAGE_ID
 
     if (!parentPageId) {
@@ -122,20 +158,21 @@ export function notionRouter(notion: Client): Router {
   }))
 
   router.get('/pages/:id/blocks', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     res.json(await notion.blocks.children.list({ block_id: req.params.id, page_size: 100 }))
   }))
 
   router.patch('/blocks/:id', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
     res.json(await notion.blocks.update({ block_id: req.params.id, ...req.body }))
   }))
 
-  // POST /api/notion/doc — create a Notion page with markdown-like content
-  // Body: { title: string, content: string, parentPageId?: string }
   router.post('/doc', asyncRoute(async (req, res) => {
-    const tokens = loadTokens()
+    const notion = await requireNotion(req.userId!)
+    const cred = await loadCredential(req.userId!, 'notion')
     const parentPageId: string | undefined =
       req.body.parentPageId
-      ?? tokens?.notion_parent_page_id
+      ?? cred?.redirect_uri
       ?? process.env.NOTION_PARENT_PAGE_ID
 
     if (!parentPageId) {
@@ -145,7 +182,6 @@ export function notionRouter(notion: Client): Router {
     const { title, content } = req.body as { title: string; content: string }
     if (!title) throw new AppError(400, 'title is required')
 
-    // Convert markdown text into Notion blocks (headings, bullets, paragraphs, code)
     const blocks: any[] = []
     const lines = (content ?? '').split('\n')
     let inCode = false
@@ -155,7 +191,6 @@ export function notionRouter(notion: Client): Router {
     for (const raw of lines) {
       const line = raw
 
-      // Code fence
       if (line.startsWith('```')) {
         if (!inCode) {
           inCode = true
@@ -176,30 +211,22 @@ export function notionRouter(notion: Client): Router {
         continue
       }
 
-      if (inCode) {
-        codeLines.push(line)
-        continue
-      }
+      if (inCode) { codeLines.push(line); continue }
 
-      // Headings
       if (line.startsWith('### ')) {
         blocks.push({ object: 'block', type: 'heading_3', heading_3: { rich_text: [{ type: 'text', text: { content: line.slice(4) } }] } })
       } else if (line.startsWith('## ')) {
         blocks.push({ object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: line.slice(3) } }] } })
       } else if (line.startsWith('# ')) {
         blocks.push({ object: 'block', type: 'heading_1', heading_1: { rich_text: [{ type: 'text', text: { content: line.slice(2) } }] } })
-      // Bullets
       } else if (line.match(/^[-*] /)) {
         blocks.push({ object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: line.slice(2) } }] } })
       } else if (line.match(/^\d+\. /)) {
         blocks.push({ object: 'block', type: 'numbered_list_item', numbered_list_item: { rich_text: [{ type: 'text', text: { content: line.replace(/^\d+\. /, '') } }] } })
-      // Divider
       } else if (line.match(/^---+$/)) {
         blocks.push({ object: 'block', type: 'divider', divider: {} })
-      // Blank line → skip
       } else if (line.trim() === '') {
-        // omit empty blocks
-      // Paragraph
+        // skip
       } else {
         blocks.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: line } }] } })
       }
@@ -210,10 +237,9 @@ export function notionRouter(notion: Client): Router {
       properties: {
         title: { title: [{ type: 'text', text: { content: title } }] },
       },
-      children: blocks.slice(0, 100), // Notion API limit per request
+      children: blocks.slice(0, 100),
     } as any)
 
-    // If content exceeded 100 blocks, append the rest
     if (blocks.length > 100) {
       await notion.blocks.children.append({
         block_id: page.id,

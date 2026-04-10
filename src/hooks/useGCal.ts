@@ -1,13 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-
-async function apiFetch<T>(path: string): Promise<T> {
-  const res = await fetch(path)
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as any).error || `HTTP ${res.status}`)
-  }
-  return res.json()
-}
+import { apiFetch } from '../lib/apiFetch'
 
 export interface GCalStatus {
   connected: boolean
@@ -44,14 +36,12 @@ export function useGCalStatus() {
 }
 
 export async function startGCalAuth(): Promise<string> {
-  const res = await fetch('/api/gcal/connect', { method: 'POST' })
-  if (!res.ok) throw new Error('Failed to start Google Calendar auth')
-  const { url } = await res.json()
+  const { url } = await apiFetch<{ url: string }>('/api/gcal/connect', { method: 'POST' })
   return url
 }
 
 export async function disconnectGCal(): Promise<void> {
-  await fetch('/api/gcal/disconnect', { method: 'POST' })
+  await apiFetch('/api/gcal/disconnect', { method: 'POST' })
 }
 
 export function useGCalCalendars() {
@@ -104,20 +94,15 @@ export async function createGCalEvent(
     end:          { dateTime?: string; date?: string; timeZone?: string }
   }
 ): Promise<GCalEvent> {
-  const res = await fetch('/api/gcal/events', {
+  return apiFetch<GCalEvent>('/api/gcal/events', {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify({ calendarId, ...event }),
   })
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as any).error || 'Failed to create event')
-  }
-  return res.json()
 }
 
 export async function deleteGCalEvent(calendarId: string, eventId: string): Promise<void> {
-  await fetch(`/api/gcal/events/${encodeURIComponent(calendarId)}/${encodeURIComponent(eventId)}`, {
+  await apiFetch(`/api/gcal/events/${encodeURIComponent(calendarId)}/${encodeURIComponent(eventId)}`, {
     method: 'DELETE',
   })
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { QueryClient, QueryClientProvider, MutationCache } from '@tanstack/react-query'
 import { Whiteboard } from './components/Whiteboard'
+import { AuthGuard } from './components/AuthGuard'
 import { KioskGuard } from './components/KioskGuard'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { useThemeStore } from './store/theme'
@@ -35,9 +36,11 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <ThemeApplier />
-        <KioskGuard>
-          <Whiteboard />
-        </KioskGuard>
+        <AuthGuard>
+          <KioskGuard>
+            <Whiteboard />
+          </KioskGuard>
+        </AuthGuard>
       </QueryClientProvider>
     </ErrorBoundary>
   )

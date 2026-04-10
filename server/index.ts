@@ -28,9 +28,11 @@ import { notificationsRouter } from './routes/notifications.js'
 import { agentsRouter }        from './routes/agents.js'
 import { miscRouter }          from './routes/misc.js'
 import { walliRouter }         from './routes/walli.js'
+import { credentialsRouter }   from './routes/credentials.js'
 
 import { startAllCrons } from './crons/index.js'
 import { errorMiddleware } from './middleware/error.js'
+import { requireAuth }    from './middleware/auth.js'
 import { log, warn } from './lib/logger.js'
 
 const app        = express()
@@ -48,11 +50,15 @@ initWebSocket(httpServer)
 const notion    = new Client({ auth: process.env.NOTION_API_KEY })
 const anthropic = new Anthropic()
 
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+app.use(requireAuth)
+
 // ── Routes ─────────────────────────────────────────────────────────────────────
 
 app.use('/api', canvasRouter())
 app.use('/api', boardsRouter())
-app.use('/api', notionRouter(notion))
+app.use('/api', notionRouter())
 app.use('/api', gcalRouter())
 app.use('/api', gtasksRouter())
 app.use('/api', spotifyRouter())
@@ -62,6 +68,7 @@ app.use('/api', voiceRouter(notion))
 app.use('/api', briefingRouter(notion))
 app.use('/api', notificationsRouter())
 app.use('/api', miscRouter())
+app.use('/api', credentialsRouter())
 
 // ── Agent scheduler ────────────────────────────────────────────────────────────
 

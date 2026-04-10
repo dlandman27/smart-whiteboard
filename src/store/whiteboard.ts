@@ -1,8 +1,8 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 import type { WidgetLayout, LayoutSlot } from '../types'
 import type { Background } from '../constants/backgrounds'
 import { DEFAULT_LAYOUT_ID } from '../layouts/presets'
+import { loadBoards } from '../lib/db'
 
 export type WidgetStyle = 'solid' | 'glass' | 'borderless'
 
@@ -23,6 +23,9 @@ export interface Board {
 interface WhiteboardStore {
   boards: Board[]
   activeBoardId: string
+  userId: string | null
+  isLoading: boolean
+  init: (userId: string) => Promise<void>
 
   // Board management
   addBoard:            (name: string, id?: string) => void
@@ -47,19 +50,20 @@ interface WhiteboardStore {
   setBoardWidgetStyle: (boardId: string, style: WidgetStyle) => void
 }
 
-const DEFAULT_ID           = crypto.randomUUID()
-const DEFAULT_CAL_ID       = crypto.randomUUID()
-export const DEFAULT_SETTINGS_ID   = 'system-settings-board'
-export const DEFAULT_CONNECTORS_ID = 'system-connectors-board'
-export const DEFAULT_TODAY_ID      = 'system-today-board'
-export const DEFAULT_TODO_ID       = 'system-todo-board'
+// Deterministic UUIDs for system boards (v4 format, fixed values)
+const DEFAULT_ID                   = '00000000-0000-4000-8000-000000000001'
+const DEFAULT_CAL_ID               = '00000000-0000-4000-8000-000000000002'
+export const DEFAULT_SETTINGS_ID   = '00000000-0000-4000-8000-000000000003'
+export const DEFAULT_CONNECTORS_ID = '00000000-0000-4000-8000-000000000004'
+export const DEFAULT_TODAY_ID      = '00000000-0000-4000-8000-000000000005'
+export const DEFAULT_TODO_ID       = '00000000-0000-4000-8000-000000000006'
 
 function ensureCalendarBoard(boards: Board[]): Board[] {
   if (boards.some((b) => b.boardType === 'calendar')) return boards
   return [...boards, { id: DEFAULT_CAL_ID, name: 'Calendar', layoutId: DEFAULT_LAYOUT_ID, boardType: 'calendar', calendarId: 'primary', widgets: [] }]
 }
 
-function ensureSystemBoards(boards: Board[]): Board[] {
+export function ensureSystemBoards(boards: Board[]): Board[] {
   let result = ensureCalendarBoard(boards)
   if (!result.some((b) => b.boardType === 'settings')) {
     result = [...result, { id: DEFAULT_SETTINGS_ID, name: 'Settings', layoutId: DEFAULT_LAYOUT_ID, boardType: 'settings', widgets: [] }]
@@ -76,203 +80,197 @@ function ensureSystemBoards(boards: Board[]): Board[] {
   return result
 }
 
+const defaultBoards = ensureSystemBoards([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }])
+
 export const useWhiteboardStore = create<WhiteboardStore>()(
-  persist(
-    (set) => ({
-      boards: ensureSystemBoards([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }]),
-      activeBoardId: DEFAULT_ID,
+  (set) => ({
+    boards: defaultBoards,
+    activeBoardId: DEFAULT_ID,
+    userId: null,
+    isLoading: false,
 
-      addBoard: (name, presetId) => {
-        const id = presetId ?? crypto.randomUUID()
-        set((s) => ({
-          boards:        [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
-          activeBoardId: id,
-        }))
-      },
+    init: async (userId: string) => {
+      set({ isLoading: true, userId })
+      try {
+        const boards = await loadBoards(userId)
+        const hydrated = ensureSystemBoards(
+          boards.length > 0
+            ? boards
+            : [{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }]
+        )
+        const activeBoardId = hydrated[0]?.id ?? DEFAULT_ID
+        set({ boards: hydrated, activeBoardId, isLoading: false })
+      } catch (err) {
+        console.error('Failed to load boards from Supabase:', err)
+        // Fall back to defaults on error
+        set({ boards: defaultBoards, activeBoardId: DEFAULT_ID, isLoading: false })
+      }
+    },
 
-      addCalendarBoard: (name = 'Calendar') => {
-        const id = crypto.randomUUID()
-        set((s) => ({
-          boards:        [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, boardType: 'calendar', calendarId: 'primary', widgets: [] }],
-          activeBoardId: id,
-        }))
-      },
+    addBoard: (name, presetId) => {
+      const id = presetId ?? crypto.randomUUID()
+      set((s) => ({
+        boards:        [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
+        activeBoardId: id,
+      }))
+    },
 
-      removeBoard: (id) =>
-        set((s) => {
-          if (s.boards.length <= 1) return s
-          const remaining  = s.boards.filter((b) => b.id !== id)
-          const idx        = s.boards.findIndex((b) => b.id === id)
-          const nextActive = s.activeBoardId === id
-            ? (remaining[Math.min(idx, remaining.length - 1)]?.id ?? remaining[0].id)
-            : s.activeBoardId
-          return { boards: remaining, activeBoardId: nextActive }
+    addCalendarBoard: (name = 'Calendar') => {
+      const id = crypto.randomUUID()
+      set((s) => ({
+        boards:        [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, boardType: 'calendar', calendarId: 'primary', widgets: [] }],
+        activeBoardId: id,
+      }))
+    },
+
+    removeBoard: (id) =>
+      set((s) => {
+        if (s.boards.length <= 1) return s
+        const remaining  = s.boards.filter((b) => b.id !== id)
+        const idx        = s.boards.findIndex((b) => b.id === id)
+        const nextActive = s.activeBoardId === id
+          ? (remaining[Math.min(idx, remaining.length - 1)]?.id ?? remaining[0].id)
+          : s.activeBoardId
+        return { boards: remaining, activeBoardId: nextActive }
+      }),
+
+    setActiveBoard: (id) => set({ activeBoardId: id }),
+
+    renameBoard: (id, name) =>
+      set((s) => ({
+        boards: s.boards.map((b) => b.id === id ? { ...b, name } : b),
+      })),
+
+    setLayout: (boardId, layoutId, widgetUpdates) =>
+      set((s) => ({
+        boards: s.boards.map((b) => {
+          if (b.id !== boardId) return b
+          const widgets = widgetUpdates
+            ? b.widgets.map((w) => {
+                const upd = widgetUpdates.find((u) => u.id === w.id)
+                if (!upd) return w
+                return { ...w, slotId: upd.slotId ?? undefined, x: upd.x, y: upd.y, width: upd.width, height: upd.height }
+              })
+            : b.widgets
+          return { ...b, layoutId, widgets }
         }),
+      })),
 
-      setActiveBoard: (id) => set({ activeBoardId: id }),
+    setCustomLayout: (boardId, slots) =>
+      set((s) => ({
+        boards: s.boards.map((b) =>
+          b.id === boardId ? { ...b, layoutId: 'custom', customSlots: slots } : b
+        ),
+      })),
 
-      renameBoard: (id, name) =>
-        set((s) => ({
-          boards: s.boards.map((b) => b.id === id ? { ...b, name } : b),
-        })),
-
-      setLayout: (boardId, layoutId, widgetUpdates) =>
-        set((s) => ({
-          boards: s.boards.map((b) => {
-            if (b.id !== boardId) return b
-            const widgets = widgetUpdates
-              ? b.widgets.map((w) => {
-                  const upd = widgetUpdates.find((u) => u.id === w.id)
-                  if (!upd) return w
-                  return { ...w, slotId: upd.slotId ?? undefined, x: upd.x, y: upd.y, width: upd.width, height: upd.height }
-                })
-              : b.widgets
-            return { ...b, layoutId, widgets }
-          }),
-        })),
-
-      setCustomLayout: (boardId, slots) =>
-        set((s) => ({
-          boards: s.boards.map((b) =>
-            b.id === boardId ? { ...b, layoutId: 'custom', customSlots: slots } : b
-          ),
-        })),
-
-      addWidget: (widget) =>
-        set((s) => ({
-          boards: s.boards.map((b) => {
-            if (b.id !== s.activeBoardId) return b
-            const id = (widget as any).id ?? crypto.randomUUID()
-            if (b.widgets.some((w) => w.id === id)) return b  // dedup
-            return { ...b, widgets: [...b.widgets, { ...widget, id }] }
-          }),
-        })),
-
-      updateLayout: (id, updates) =>
-        set((s) => ({
-          boards: s.boards.map((b) =>
-            b.id === s.activeBoardId
-              ? { ...b, widgets: b.widgets.map((w) => w.id === id ? { ...w, ...updates } : w) }
-              : b
-          ),
-        })),
-
-      updateSettings: (id, settings) =>
-        set((s) => ({
-          boards: s.boards.map((b) =>
-            b.id === s.activeBoardId
-              ? { ...b, widgets: b.widgets.map((w) => w.id === id ? { ...w, settings: { ...w.settings, ...settings } } : w) }
-              : b
-          ),
-        })),
-
-      removeWidget: (id) =>
-        set((s) => ({
-          boards: s.boards.map((b) =>
-            b.id === s.activeBoardId
-              ? { ...b, widgets: b.widgets.filter((w) => w.id !== id) }
-              : b
-          ),
-        })),
-
-      clearWidgets: () =>
-        set((s) => ({
-          boards: s.boards.map((b) =>
-            b.id === s.activeBoardId ? { ...b, widgets: [] } : b
-          ),
-        })),
-
-      assignSlot: (widgetId, slotId) =>
-        set((s) => ({
-          boards: s.boards.map((b) =>
-            b.id === s.activeBoardId
-              ? { ...b, widgets: b.widgets.map((w) => w.id === widgetId ? { ...w, slotId: slotId ?? undefined } : w) }
-              : b
-          ),
-        })),
-
-      splitWidget: (widgetId) =>
-        set((s) => ({
-          boards: s.boards.map((b) => {
-            if (b.id !== s.activeBoardId) return b
-            const w = b.widgets.find((w) => w.id === widgetId)
-            if (!w) return b
-            // Convert: move the current widget into pane A, make this a split widget
-            const paneA = {
-              type:      w.type ?? '',
-              variantId: w.variantId ?? 'default',
-              settings:  w.settings ?? {},
-            }
-            return {
-              ...b,
-              widgets: b.widgets.map((ww) =>
-                ww.id === widgetId
-                  ? {
-                      ...ww,
-                      type:      '@whiteboard/split',
-                      variantId: 'default',
-                      settings:  {
-                        orientation: 'horizontal',
-                        split:       50,
-                        paneA,
-                        paneB:       null,
-                      },
-                      // Bump size if the widget is small
-                      width:  Math.max(ww.width,  480),
-                      height: Math.max(ww.height, 280),
-                    }
-                  : ww
-              ),
-            }
-          }),
-        })),
-
-      setLayoutSpacing: (boardId, gap, pad) =>
-        set((s) => ({
-          boards: s.boards.map((b) => b.id === boardId ? { ...b, slotGap: gap, slotPad: pad } : b),
-        })),
-
-      reorderBoards: (fromIndex, toIndex) =>
-        set((s) => {
-          const next = [...s.boards]
-          const [moved] = next.splice(fromIndex, 1)
-          next.splice(toIndex, 0, moved)
-          return { boards: next }
+    addWidget: (widget) =>
+      set((s) => ({
+        boards: s.boards.map((b) => {
+          if (b.id !== s.activeBoardId) return b
+          const id = (widget as any).id ?? crypto.randomUUID()
+          if (b.widgets.some((w) => w.id === id)) return b  // dedup
+          return { ...b, widgets: [...b.widgets, { ...widget, id }] }
         }),
+      })),
 
-      setBoardBackground: (boardId, background) =>
-        set((s) => ({
-          boards: s.boards.map((b) => b.id === boardId ? { ...b, background } : b),
-        })),
+    updateLayout: (id, updates) =>
+      set((s) => ({
+        boards: s.boards.map((b) =>
+          b.id === s.activeBoardId
+            ? { ...b, widgets: b.widgets.map((w) => w.id === id ? { ...w, ...updates } : w) }
+            : b
+        ),
+      })),
 
-      setBoardWidgetStyle: (boardId, widgetStyle) =>
-        set((s) => ({
-          boards: s.boards.map((b) => b.id === boardId ? { ...b, widgetStyle } : b),
-        })),
-    }),
-    {
-      name: 'whiteboard-layout',
-      version: 9,
-      migrate: (state: any, version: number) => {
-        if (version < 2) {
-          return {
-            boards: ensureSystemBoards([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: state?.widgets ?? [] }]),
-            activeBoardId: DEFAULT_ID,
+    updateSettings: (id, settings) =>
+      set((s) => ({
+        boards: s.boards.map((b) =>
+          b.id === s.activeBoardId
+            ? { ...b, widgets: b.widgets.map((w) => w.id === id ? { ...w, settings: { ...w.settings, ...settings } } : w) }
+            : b
+        ),
+      })),
+
+    removeWidget: (id) =>
+      set((s) => ({
+        boards: s.boards.map((b) =>
+          b.id === s.activeBoardId
+            ? { ...b, widgets: b.widgets.filter((w) => w.id !== id) }
+            : b
+        ),
+      })),
+
+    clearWidgets: () =>
+      set((s) => ({
+        boards: s.boards.map((b) =>
+          b.id === s.activeBoardId ? { ...b, widgets: [] } : b
+        ),
+      })),
+
+    assignSlot: (widgetId, slotId) =>
+      set((s) => ({
+        boards: s.boards.map((b) =>
+          b.id === s.activeBoardId
+            ? { ...b, widgets: b.widgets.map((w) => w.id === widgetId ? { ...w, slotId: slotId ?? undefined } : w) }
+            : b
+        ),
+      })),
+
+    splitWidget: (widgetId) =>
+      set((s) => ({
+        boards: s.boards.map((b) => {
+          if (b.id !== s.activeBoardId) return b
+          const w = b.widgets.find((w) => w.id === widgetId)
+          if (!w) return b
+          const paneA = {
+            type:      w.type ?? '',
+            variantId: w.variantId ?? 'default',
+            settings:  w.settings ?? {},
           }
-        }
-        if (version < 3) {
           return {
-            ...state,
-            boards: ensureSystemBoards((state.boards ?? []).map((b: any) => ({
-              ...b,
-              layoutId: b.layoutId ?? DEFAULT_LAYOUT_ID,
-            }))),
+            ...b,
+            widgets: b.widgets.map((ww) =>
+              ww.id === widgetId
+                ? {
+                    ...ww,
+                    type:      '@whiteboard/split',
+                    variantId: 'default',
+                    settings:  {
+                      orientation: 'horizontal',
+                      split:       50,
+                      paneA,
+                      paneB:       null,
+                    },
+                    width:  Math.max(ww.width,  480),
+                    height: Math.max(ww.height, 280),
+                  }
+                : ww
+            ),
           }
-        }
-        // v6: ensure every user has calendar, settings, and connectors boards
-        // v7: ensure every user has the today board
-        return { ...state, boards: ensureSystemBoards(state.boards ?? []) }
-      },
-    }
-  )
+        }),
+      })),
+
+    setLayoutSpacing: (boardId, gap, pad) =>
+      set((s) => ({
+        boards: s.boards.map((b) => b.id === boardId ? { ...b, slotGap: gap, slotPad: pad } : b),
+      })),
+
+    reorderBoards: (fromIndex, toIndex) =>
+      set((s) => {
+        const next = [...s.boards]
+        const [moved] = next.splice(fromIndex, 1)
+        next.splice(toIndex, 0, moved)
+        return { boards: next }
+      }),
+
+    setBoardBackground: (boardId, background) =>
+      set((s) => ({
+        boards: s.boards.map((b) => b.id === boardId ? { ...b, background } : b),
+      })),
+
+    setBoardWidgetStyle: (boardId, widgetStyle) =>
+      set((s) => ({
+        boards: s.boards.map((b) => b.id === boardId ? { ...b, widgetStyle } : b),
+      })),
+  })
 )
