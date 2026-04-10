@@ -425,9 +425,9 @@ server.registerTool(
 )
 
 const THEMES = [
-  'minimal', 'slate', 'paper', 'amber', 'rose', 'glass',
-  'sage', 'midnight', 'stark', 'forest', 'ocean', 'terminal',
-  'carbon', 'dusk', 'espresso', 'slate-dark',
+  'minimal', 'slate', 'paper', 'amber', 'rose', 'sage', 'sunset', 'lemon', 'teal', 'lavender',
+  'dracula', 'midnight', 'ocean', 'forest', 'dusk', 'espresso',
+  'carbon', 'terminal', 'volcanic', 'midnight-rose', 'plum-cyan', 'golden', 'deep-teal', 'aurora',
 ]
 
 server.registerTool(

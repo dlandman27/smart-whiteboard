@@ -13,7 +13,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006 --config-dir packages/ui-kit/.storybook",
-    "build-storybook": "storybook build --config-dir packages/ui-kit/.storybook"
+    "build-storybook": "storybook build --config-dir packages/ui-kit/.storybook",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "test:client": "vitest run --project client",
+    "test:server": "vitest run --project server"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -41,22 +46,31 @@
   },
   "devDependencies": {
     "@storybook/react-vite": "^10.2.16",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cors": "^2.8.17",
     "@types/express": "^4.17.21",
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "@types/supertest": "^7.2.0",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^4.6.0",
+    "@vitest/coverage-v8": "^4.1.4",
     "autoprefixer": "^10.4.19",
     "concurrently": "^8.2.2",
+    "jsdom": "^29.0.2",
+    "msw": "^2.13.2",
     "postcss": "^8.4.38",
+    "prettier": "^3.3.3",
     "storybook": "^10.2.16",
+    "supertest": "^7.2.2",
     "tailwindcss": "^3.4.4",
     "tsx": "^4.16.2",
     "typescript": "^5.5.3",
-    "prettier": "^3.3.3",
-    "vite": "^6.0.0"
+    "vite": "^6.0.0",
+    "vitest": "^4.1.4"
   }
 }
