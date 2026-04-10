@@ -10,13 +10,13 @@ interface ThemeStore {
   background:      Background
   petsEnabled:     boolean
 
-  setTheme:           (id: string) => void
-  setCustomTheme:     (vars: Partial<ThemeVars>, background?: Background, baseThemeId?: string) => void
-  setOverride:        (key: keyof ThemeVars, value: string) => void
-  clearOverrides:     () => void
-  applyToDOM:         () => void
-  setBackground:      (bg: Background) => void
-  setPetsEnabled:     (enabled: boolean) => void
+  setTheme:       (id: string) => void
+  setCustomTheme: (vars: Partial<ThemeVars>, background?: Background, baseThemeId?: string) => void
+  setOverride:    (key: keyof ThemeVars, value: string) => void
+  clearOverrides: () => void
+  applyToDOM:     () => void
+  setBackground:  (bg: Background) => void
+  setPetsEnabled: (enabled: boolean) => void
 }
 
 export const useThemeStore = create<ThemeStore>()(
@@ -78,10 +78,8 @@ export const useThemeStore = create<ThemeStore>()(
       version: 2,
       migrate: (persisted: unknown, version: number) => {
         const state = (persisted ?? {}) as Record<string, unknown>
-        // v0 → v1: petsEnabled didn't exist
         if (version < 1) state.petsEnabled = false
-        // v1 → v2: ensure background is always set
-        if (version < 2) state.background = state.background ?? DEFAULT_BACKGROUND
+        if (version < 2) state.background  = state.background ?? DEFAULT_BACKGROUND
         return state
       },
     }

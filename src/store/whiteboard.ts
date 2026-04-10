@@ -4,6 +4,8 @@ import type { WidgetLayout, LayoutSlot } from '../types'
 import type { Background } from '../constants/backgrounds'
 import { DEFAULT_LAYOUT_ID } from '../layouts/presets'
 
+export type WidgetStyle = 'solid' | 'glass' | 'borderless'
+
 export interface Board {
   id: string
   name: string
@@ -15,6 +17,7 @@ export interface Board {
   slotPad?: number
   customSlots?: LayoutSlot[]
   background?: Background
+  widgetStyle?: WidgetStyle
 }
 
 interface WhiteboardStore {
@@ -40,6 +43,7 @@ interface WhiteboardStore {
   setLayoutSpacing:    (boardId: string, gap: number, pad: number) => void
   reorderBoards:       (fromIndex: number, toIndex: number) => void
   setBoardBackground:  (boardId: string, background: Background) => void
+  setBoardWidgetStyle: (boardId: string, style: WidgetStyle) => void
 }
 
 const DEFAULT_ID           = crypto.randomUUID()
@@ -198,6 +202,11 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
       setBoardBackground: (boardId, background) =>
         set((s) => ({
           boards: s.boards.map((b) => b.id === boardId ? { ...b, background } : b),
+        })),
+
+      setBoardWidgetStyle: (boardId, widgetStyle) =>
+        set((s) => ({
+          boards: s.boards.map((b) => b.id === boardId ? { ...b, widgetStyle } : b),
         })),
     }),
     {

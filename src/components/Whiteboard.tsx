@@ -16,15 +16,15 @@ import { VoiceListener } from './VoiceListener'
 import { PetBar } from './PetBar'
 import { Sidebar } from './Sidebar'
 import { BoardContextMenu } from './BoardContextMenu'
-import { BackgroundPicker } from './BackgroundPicker'
 import { LayoutPicker } from './LayoutPicker'
+import { BoardSettingsPanel } from './BoardSettingsPanel'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
 import type { PendingWidget } from '../types'
 
 export function Whiteboard() {
   useCanvasSocket()
   const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize } = useUIStore()
-  const { boards, activeBoardId, setBoardBackground } = useWhiteboardStore()
+  const { boards, activeBoardId } = useWhiteboardStore()
   const activeBoard        = boards.find(b => b.id === activeBoardId)
   const boardType          = (activeBoard as any)?.boardType as string | undefined
   const isCalendarBoard    = boardType === 'calendar'
@@ -36,29 +36,22 @@ export function Whiteboard() {
   const [pendingWidget,     setPendingWidget]     = useState<PendingWidget | null>(null)
   const [boardMenu,         setBoardMenu]         = useState<{ x: number; y: number; widgetCtx?: { id: string; hasSettings: boolean } } | null>(null)
   const [pickerOpen,        setPickerOpen]        = useState(false)
-  const [layoutPickerOpen,  setLayoutPickerOpen]  = useState(false)
-  const [bgPickerOpen,      setBgPickerOpen]      = useState(false)
-  const [bgPickerClosing,   setBgPickerClosing]   = useState(false)
+  const [layoutPickerOpen,    setLayoutPickerOpen]    = useState(false)
+  const [boardSettingsOpen,   setBoardSettingsOpen]   = useState(false)
   const { background: themeBackground, petsEnabled } = useThemeStore()
   const boardBackground = activeBoard?.background ?? themeBackground
   const boardRef = useRef<HTMLDivElement>(null)
 
-  function closeBgPicker() {
-    setBgPickerClosing(true)
-    setTimeout(() => { setBgPickerOpen(false); setBgPickerClosing(false) }, 120)
-  }
-
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') {
-        if (bgPickerOpen)    { closeBgPicker(); return }
         if (boardMenu)       { setBoardMenu(null); return }
         if (focusedWidgetId) { setFocusedWidget(null); return }
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [focusedWidgetId, boardMenu, bgPickerOpen])
+  }, [focusedWidgetId, boardMenu])
 
   useEffect(() => {
     const el = boardRef.current
@@ -113,7 +106,7 @@ export function Whiteboard() {
                     onClose={() => setBoardMenu(null)}
                     onAddWidget={() => { setBoardMenu(null); setPickerOpen(true) }}
                     onChangeLayout={() => { setBoardMenu(null); setLayoutPickerOpen(true) }}
-                    onChangeBackground={() => { setBoardMenu(null); setBgPickerOpen(true) }}
+                    onBoardSettings={() => { setBoardMenu(null); setBoardSettingsOpen(true) }}
                     widgetCtx={boardMenu.widgetCtx}
                   />
                 )}
@@ -122,38 +115,10 @@ export function Whiteboard() {
                   <LayoutPicker onClose={() => setLayoutPickerOpen(false)} />
                 )}
 
-                {/* Board background picker panel */}
-                {bgPickerOpen && (
-                  <>
-                    {/* Backdrop — closes on outside click */}
-                    <div
-                      className="absolute inset-0 z-[10000]"
-                      onPointerDown={closeBgPicker}
-                    />
-                    <div
-                      className="absolute z-[10001] rounded-2xl overflow-hidden"
-                      style={{
-                        right: 16, bottom: 72, width: 380,
-                        backgroundColor: 'var(--wt-settings-bg)',
-                        border:          '1px solid var(--wt-settings-border)',
-                        boxShadow:       'var(--wt-shadow-lg)',
-                        backdropFilter:  'var(--wt-backdrop)',
-                        animation:       bgPickerClosing ? 'contextMenuOut 0.12s ease-out forwards' : 'contextMenuIn 0.12s ease-out',
-                      }}
-                      onPointerDown={(e) => e.stopPropagation()}
-                    >
-                      <div style={{ padding: '14px 16px 6px', borderBottom: '1px solid var(--wt-settings-border)' }}>
-                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--wt-text)' }}>Board Background</span>
-                      </div>
-                      <div style={{ padding: 16 }}>
-                        <BackgroundPicker
-                          background={boardBackground}
-                          onSelect={(bg) => setBoardBackground(activeBoardId, bg)}
-                        />
-                      </div>
-                    </div>
-                  </>
+                {boardSettingsOpen && (
+                  <BoardSettingsPanel onClose={() => setBoardSettingsOpen(false)} />
                 )}
+
 
                 <BottomToolbar
                   onToolChange={setActiveTool}

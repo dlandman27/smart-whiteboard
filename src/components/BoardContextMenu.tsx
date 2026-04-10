@@ -16,14 +16,14 @@ interface Props {
   onClose:            () => void
   onAddWidget:        () => void
   onChangeLayout:     () => void
-  onChangeBackground: () => void
+  onBoardSettings: () => void
   widgetCtx?:         WidgetCtx | null
 }
 
 const MENU_W = 200
 const MENU_H = 280 // upper-bound for clamping
 
-export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget, onChangeLayout, onChangeBackground, widgetCtx }: Props) {
+export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget, onChangeLayout, onBoardSettings, widgetCtx }: Props) {
   const { activeBoardId, renameBoard, boards } = useWhiteboardStore()
   const { sendWidgetCommand, fullscreenWidgetId } = useUIStore()
   const activeBoard  = boards.find((b) => b.id === activeBoardId)
@@ -75,7 +75,7 @@ export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget,
   function handleBoardItem(key: string) {
     if (key === 'add')        { dismiss(onAddWidget) }
     if (key === 'layout')     { dismiss(onChangeLayout) }
-    if (key === 'background') { dismiss(onChangeBackground) }
+    if (key === 'settings') { dismiss(onBoardSettings) }
     if (key === 'rename')     { handleRename() }
   }
 
@@ -87,10 +87,9 @@ export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget,
   }
 
   const boardItems = [
-    { icon: 'Plus',         label: 'Add widget',       key: 'add'        },
-    { icon: 'SquaresFour',  label: 'Change layout',    key: 'layout'     },
-    { icon: 'Image',        label: 'Board background', key: 'background' },
-    { icon: 'PencilSimple', label: 'Rename board',     key: 'rename'     },
+    { icon: 'Plus',        label: 'Add widget',     key: 'add'      },
+    { icon: 'SquaresFour', label: 'Change layout',  key: 'layout'   },
+    { icon: 'Gear',        label: 'Board settings', key: 'settings' },
   ]
 
   const widgetItems = widgetCtx ? [
