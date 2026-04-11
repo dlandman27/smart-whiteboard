@@ -50,12 +50,9 @@ initWebSocket(httpServer)
 const notion    = new Client({ auth: process.env.NOTION_API_KEY })
 const anthropic = new Anthropic()
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
+// ── Routes (auth applied only to /api) ────────────────────────────────────────
 
-app.use(requireAuth)
-
-// ── Routes ─────────────────────────────────────────────────────────────────────
-
+app.use('/api', requireAuth)
 app.use('/api', canvasRouter())
 app.use('/api', boardsRouter())
 app.use('/api', notionRouter())

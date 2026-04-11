@@ -12,9 +12,9 @@ declare global {
 
 // Paths that skip JWT verification (OAuth browser redirects, health checks)
 const PUBLIC_PATHS = [
-  '/api/gcal/callback',
-  '/api/spotify/callback',
-  '/api/health',
+  '/gcal/callback',
+  '/spotify/callback',
+  '/health',
 ]
 
 /**
