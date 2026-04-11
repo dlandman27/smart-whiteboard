@@ -31,6 +31,7 @@ import { walliRouter }         from './routes/walli.js'
 import { credentialsRouter }   from './routes/credentials.js'
 
 import { startAllCrons } from './crons/index.js'
+import rateLimit from 'express-rate-limit'
 import { errorMiddleware } from './middleware/error.js'
 import { requireAuth }    from './middleware/auth.js'
 import { log, warn } from './lib/logger.js'
@@ -38,8 +39,36 @@ import { log, warn } from './lib/logger.js'
 const app        = express()
 const httpServer = createServer(app)
 
-app.use(cors())
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:3001',
+  'https://smart-whiteboard-production.up.railway.app',
+]
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (server-to-server, curl, etc.)
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) callback(null, true)
+    else callback(new Error('CORS not allowed'))
+  },
+  credentials: true,
+}))
 app.use(express.json({ limit: '20mb' }))
+
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+
+// Global: 200 requests per minute per IP
+app.use('/api', rateLimit({
+  windowMs: 60_000,
+  max:      200,
+  standardHeaders: true,
+  legacyHeaders:   false,
+  message: { error: 'Too many requests, please try again later' },
+}))
+
+// Stricter limit on auth-adjacent routes: 10 per minute
+app.use('/api/gcal/connect',       rateLimit({ windowMs: 60_000, max: 10 }))
+app.use('/api/spotify/start-auth', rateLimit({ windowMs: 60_000, max: 10 }))
+app.use('/api/credentials',        rateLimit({ windowMs: 60_000, max: 20 }))
 
 // ── WebSocket ──────────────────────────────────────────────────────────────────
 

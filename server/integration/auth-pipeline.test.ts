@@ -19,16 +19,13 @@ const mockGetUser = supabaseAdmin.auth.getUser as ReturnType<typeof vi.fn>
 function createApp() {
   const app = express()
   app.use(express.json())
-  app.use(requireAuth)
-
-  // Protected route
-  app.get('/api/test', (req, res) => res.json({ userId: req.userId }))
-
-  // Public routes (OAuth callbacks, health)
-  app.get('/api/health', (_req, res) => res.json({ ok: true }))
-  app.get('/api/gcal/callback', (_req, res) => res.send('ok'))
-  app.get('/api/spotify/callback', (_req, res) => res.send('ok'))
-
+  const api = express.Router()
+  api.use(requireAuth)
+  api.get('/test', (req, res) => res.json({ userId: req.userId }))
+  api.get('/health', (_req, res) => res.json({ ok: true }))
+  api.get('/gcal/callback', (_req, res) => res.send('ok'))
+  api.get('/spotify/callback', (_req, res) => res.send('ok'))
+  app.use('/api', api)
   return app
 }
 

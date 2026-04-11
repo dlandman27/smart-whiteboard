@@ -1,5 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws'
 import type { Server } from 'http'
+import type { IncomingMessage } from 'http'
+import { supabaseAdmin } from './lib/supabase.js'
 
 export let wss: WebSocketServer
 
@@ -21,10 +23,29 @@ export function broadcast(msg: object) {
   }
 }
 
+async function verifyWsToken(req: IncomingMessage): Promise<string | null> {
+  try {
+    const url = new URL(req.url ?? '', 'http://localhost')
+    const token = url.searchParams.get('token')
+    if (!token) return null
+    const { data: { user }, error } = await supabaseAdmin.auth.getUser(token)
+    if (error || !user) return null
+    return user.id
+  } catch {
+    return null
+  }
+}
+
 export function initWebSocket(httpServer: Server) {
   wss = new WebSocketServer({ server: httpServer })
 
-  wss.on('connection', (ws) => {
+  wss.on('connection', async (ws, req) => {
+    const userId = await verifyWsToken(req)
+    if (!userId) {
+      ws.close(4001, 'Unauthorized')
+      return
+    }
+
     browserClients.add(ws)
     ws.on('message', (data) => {
       try {

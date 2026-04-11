@@ -24,8 +24,14 @@ export function notionRouter(): Router {
   const router = Router()
 
   router.get('/health', asyncRoute(async (req, res) => {
+    // Unauthenticated callers only get a basic health check
+    if (!req.userId) {
+      res.json({ ok: true })
+      return
+    }
+
     const hasGlobalKey = !!process.env.NOTION_API_KEY
-    const userCred = req.userId ? await loadCredential(req.userId, 'notion') : null
+    const userCred = await loadCredential(req.userId, 'notion')
     const notionConfigured = hasGlobalKey || !!userCred?.api_key
 
     res.json({

@@ -74,7 +74,7 @@ export function gcalRouter(): Router {
           </div>
           <script>
             if (window.opener) {
-              window.opener.postMessage({ type: 'gcal-connected' }, '*')
+              window.opener.postMessage({ type: 'gcal-connected' }, window.location.origin)
               setTimeout(() => window.close(), 800)
             }
           </script>

@@ -8,8 +8,9 @@ import { useNotificationStore } from '../store/notifications'
 import { usePetsStore } from '../store/pets'
 import { useWalliAgentsStore } from '../store/walliAgents'
 import { queryClient } from '../App'
+import { supabase } from '../lib/supabase'
 
-const WS_URL = 'ws://localhost:3001'
+const WS_BASE = `ws://${window.location.hostname}:3001`
 
 // Module-level dedup set — survives component remounts (Strict Mode, reconnects, multiple tabs via shared sessionStorage)
 const handledSpeakIds = new Set<string>()
@@ -45,8 +46,12 @@ export function useCanvasSocket() {
   }, [])
 
   useEffect(() => {
-    function connect() {
-      const ws = new WebSocket(WS_URL)
+    async function connect() {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      if (!token) return // not authenticated yet
+
+      const ws = new WebSocket(`${WS_BASE}?token=${encodeURIComponent(token)}`)
       wsRef.current = ws
 
       ws.onopen = () => sendState(ws)
