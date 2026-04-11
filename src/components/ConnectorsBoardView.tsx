@@ -328,10 +328,10 @@ export function ConnectorsBoardView() {
       <div className="flex-shrink-0 px-6" style={{ paddingTop: 28, paddingBottom: 0 }}>
         <div style={{ maxWidth: 960, margin: '0 auto' }}>
           <Text variant="heading" size="medium" style={{ fontWeight: 700, color: 'var(--wt-text)', fontSize: 22 }}>
-            Integrations
+            Connectors
           </Text>
           <Text variant="body" size="medium" color="muted" style={{ marginTop: 4 }}>
-            Enhance your whiteboard with apps and services.
+            Connect apps and services to power your whiteboard.
           </Text>
 
           {/* Search bar */}
@@ -344,7 +344,7 @@ export function ConnectorsBoardView() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search integrations"
+              placeholder="Search connectors"
               style={{
                 flex: 1, background: 'transparent', border: 'none', outline: 'none',
                 color: 'var(--wt-text)', fontSize: 15,
@@ -420,7 +420,7 @@ export function ConnectorsBoardView() {
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: 48, color: 'var(--wt-text-muted)', fontSize: 14 }}>
-              No integrations match "{search}"
+              No connectors match "{search}"
             </div>
           )}
 
