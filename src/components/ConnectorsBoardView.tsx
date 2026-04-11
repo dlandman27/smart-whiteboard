@@ -1,170 +1,153 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  FlexCol, FlexRow, Box, Text, Button, ScrollArea, Icon,
-} from '@whiteboard/ui-kit'
+import { Icon, ScrollArea, Text, Button, Input } from '@whiteboard/ui-kit'
 import { useGCalStatus, startGCalAuth, disconnectGCal } from '../hooks/useGCal'
 import { useTasksStatus } from '../hooks/useTasks'
 import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
 import { useSpotifyCredentials } from '../store/spotify'
-import { Input } from '@whiteboard/ui-kit'
+import { apiFetch } from '../lib/apiFetch'
 
-// ── Health services type ──────────────────────────────────────────────────────
+// ── Health services ──────────────────────────────────────────────────────────
 
 interface HealthServices {
-  notion:      boolean
-  anthropic:   boolean
-  elevenlabs:  boolean
-  youtube:     boolean
-  bing:        boolean
-  googleOauth: boolean
+  notion: boolean; anthropic: boolean; elevenlabs: boolean
+  youtube: boolean; bing: boolean; googleOauth: boolean
 }
 
 function useHealthServices() {
   const [services, setServices] = useState<HealthServices | null>(null)
   useEffect(() => {
-    fetch('/api/health')
-      .then((r) => r.json())
-      .then((d: any) => setServices(d.services ?? null))
+    apiFetch<any>('/api/health')
+      .then((d) => setServices(d.services ?? null))
       .catch(() => {})
   }, [])
   return services
 }
 
-// ── Section label ─────────────────────────────────────────────────────────────
+// ── Connector definitions ────────────────────────────────────────────────────
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+type Category = 'all' | 'apps' | 'services'
+
+interface ConnectorDef {
+  id: string
+  name: string
+  description: string
+  icon: string
+  category: 'apps' | 'services'
+}
+
+const CONNECTORS: ConnectorDef[] = [
+  { id: 'gcal',       name: 'Google Calendar', description: 'View and manage your calendar events on the whiteboard.',    icon: 'CalendarBlank',    category: 'apps' },
+  { id: 'gtasks',     name: 'Google Tasks',    description: 'Sync your task lists and manage todos.',                     icon: 'CheckSquare',      category: 'apps' },
+  { id: 'spotify',    name: 'Spotify',         description: 'Control playback and see what\'s currently playing.',        icon: 'MusicNote',        category: 'apps' },
+  { id: 'notion',     name: 'Notion',          description: 'Read and write to your Notion databases.',                   icon: 'BookOpen',         category: 'services' },
+  { id: 'anthropic',  name: 'Walli AI',        description: 'AI assistant powered by Anthropic.',                         icon: 'Robot',            category: 'services' },
+  { id: 'elevenlabs', name: 'ElevenLabs',      description: 'Voice synthesis for Walli and daily briefings.',             icon: 'Microphone',       category: 'services' },
+  { id: 'youtube',    name: 'YouTube',         description: 'Search and embed YouTube videos in widgets.',                icon: 'YoutubeLogo',      category: 'services' },
+  { id: 'bing',       name: 'Bing Search',     description: 'Web search for Walli\'s research capabilities.',             icon: 'MagnifyingGlass',  category: 'services' },
+]
+
+// ── Enabled pill (horizontal row) ────────────────────────────────────────────
+
+function EnabledPill({ icon, name }: { icon: string; name: string }) {
   return (
-    <Text
-      variant="label"
-      size="small"
-      style={{
-        textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        fontWeight:    700,
-        opacity:       0.5,
-      }}
-      color="muted"
-    >
-      {children}
-    </Text>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      background: 'var(--wt-surface)', border: '1px solid var(--wt-border)',
+      borderRadius: 12, padding: '10px 16px', flexShrink: 0, minWidth: 180,
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+        background: 'color-mix(in srgb, var(--wt-accent) 10%, transparent)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <Icon icon={icon as any} size={18} style={{ color: 'var(--wt-accent)' }} />
+      </div>
+      <div>
+        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--wt-text)' }}>{name}</div>
+        <div style={{ fontSize: 11, color: 'var(--wt-success)', fontWeight: 500 }}>Enabled</div>
+      </div>
+    </div>
   )
 }
 
-// ── Status badge ──────────────────────────────────────────────────────────────
+// ── Card (grid tile) ─────────────────────────────────────────────────────────
 
-function StatusBadge({ connected, label }: { connected: boolean; label?: string }) {
-  return (
-    <span
-      style={{
-        display:      'inline-flex',
-        alignItems:   'center',
-        padding:      '2px 10px',
-        borderRadius: 999,
-        fontSize:     11,
-        fontWeight:   600,
-        background:   connected
-          ? 'color-mix(in srgb, var(--wt-success) 12%, transparent)'
-          : 'var(--wt-surface-hover)',
-        color:        connected ? 'var(--wt-success)' : 'var(--wt-text-muted)',
-        border:       connected
-          ? '1px solid color-mix(in srgb, var(--wt-success) 25%, transparent)'
-          : '1px solid var(--wt-border)',
-      }}
-    >
-      {label ?? (connected ? 'Connected' : 'Not connected')}
-    </span>
-  )
-}
-
-// ── Connector card ────────────────────────────────────────────────────────────
-
-function ConnectorCard({
-  iconName,
-  name,
-  description,
-  connected,
-  configuredLabel,
-  actionLabel,
-  onAction,
-  children,
+function AppCard({
+  icon, name, description, connected, statusLabel,
+  actionLabel, onAction, children,
 }: {
-  iconName:        string
-  name:            string
-  description:     string
-  connected:       boolean
-  configuredLabel?: string
-  actionLabel?:    string
-  onAction?:       () => void
-  children?:       React.ReactNode
+  icon: string; name: string; description: string; connected: boolean
+  statusLabel?: string; actionLabel?: string; onAction?: () => void
+  children?: React.ReactNode
 }) {
+  const [hovered, setHovered] = useState(false)
   return (
     <div
+      onPointerEnter={() => setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
       style={{
         background:    'var(--wt-surface)',
-        border:        '1px solid var(--wt-border)',
-        borderRadius:  12,
+        border:        `1px solid ${hovered ? 'var(--wt-accent)' : 'var(--wt-border)'}`,
+        borderRadius:  16,
         padding:       20,
         display:       'flex',
         flexDirection: 'column',
         gap:           14,
+        transition:    'border-color 0.2s, box-shadow 0.2s',
+        boxShadow:     hovered ? '0 0 0 1px color-mix(in srgb, var(--wt-accent) 20%, transparent)' : 'none',
       }}
     >
-      <FlexRow align="center" gap="sm">
-        <div
-          style={{
-            width:           40,
-            height:          40,
-            borderRadius:    10,
-            flexShrink:      0,
-            background:      'var(--wt-surface-hover)',
-            display:         'flex',
-            alignItems:      'center',
-            justifyContent:  'center',
-          }}
-        >
-          <Icon
-            icon={iconName as any}
-            size={20}
-            style={{ color: 'var(--wt-text)', opacity: 0.7 }}
-          />
+      {/* Icon + status */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{
+          width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+          background: connected
+            ? 'color-mix(in srgb, var(--wt-success) 10%, transparent)'
+            : 'var(--wt-surface-hover)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon icon={icon as any} size={22} style={{
+            color: connected ? 'var(--wt-success)' : 'var(--wt-text)', opacity: connected ? 1 : 0.5,
+          }} />
         </div>
-        <FlexCol gap="none" style={{ flex: 1, minWidth: 0 }}>
-          <Text variant="heading" size="small" style={{ fontWeight: 600 }}>
-            {name}
-          </Text>
-          <Text variant="body" size="small" color="muted" style={{ marginTop: 1 }}>
-            {description}
-          </Text>
-        </FlexCol>
-        <FlexRow align="center" gap="sm" style={{ flexShrink: 0 }}>
-          {configuredLabel ? (
-            <StatusBadge connected={connected} label={configuredLabel} />
-          ) : (
-            <StatusBadge connected={connected} />
-          )}
-          {actionLabel && onAction && (
-            <Button
-              variant={connected ? 'ghost' : 'accent'}
-              size="sm"
-              onClick={onAction}
-            >
-              {actionLabel}
-            </Button>
-          )}
-        </FlexRow>
-      </FlexRow>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: connected ? 'var(--wt-success)' : 'var(--wt-text-muted)',
+            opacity: connected ? 1 : 0.25,
+          }} />
+          <span style={{
+            fontSize: 11, fontWeight: 600,
+            color: connected ? 'var(--wt-success)' : 'var(--wt-text-muted)',
+          }}>
+            {statusLabel ?? (connected ? 'Connected' : 'Not connected')}
+          </span>
+        </div>
+      </div>
 
+      {/* Name + description */}
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--wt-text)', marginBottom: 4 }}>{name}</div>
+        <div style={{ fontSize: 13, color: 'var(--wt-text-muted)', lineHeight: 1.5 }}>{description}</div>
+      </div>
+
+      {/* Action */}
+      {actionLabel && onAction && (
+        <Button variant={connected ? 'ghost' : 'accent'} size="sm" onClick={onAction} fullWidth>
+          {actionLabel}
+        </Button>
+      )}
       {children}
     </div>
   )
 }
 
-// ── Google Calendar card ──────────────────────────────────────────────────────
+// ── Google Calendar ──────────────────────────────────────────────────────────
 
 function GCalCard({ googleOauth }: { googleOauth: boolean }) {
-  const qc        = useQueryClient()
-  const { data }  = useGCalStatus()
+  const qc = useQueryClient()
+  const { data } = useGCalStatus()
   const connected = !!data?.connected
 
   function openPopup() {
@@ -189,30 +172,21 @@ function GCalCard({ googleOauth }: { googleOauth: boolean }) {
   }
 
   return (
-    <ConnectorCard
-      iconName="CalendarBlank"
-      name="Google Calendar"
-      description="Sync your Google Calendar events to the whiteboard."
+    <AppCard
+      icon="CalendarBlank" name="Google Calendar"
+      description="View and manage your calendar events on the whiteboard."
       connected={connected}
-      actionLabel={connected ? 'Disconnect' : googleOauth ? 'Connect' : undefined}
+      actionLabel={connected ? 'Disconnect' : googleOauth ? 'Connect' : 'Not available'}
       onAction={connected ? disconnect : googleOauth ? openPopup : undefined}
-    >
-      {!googleOauth && (
-        <Text variant="body" size="small" color="muted">
-          Set <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>GOOGLE_CLIENT_ID</code> and{' '}
-          <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>GOOGLE_CLIENT_SECRET</code> in your{' '}
-          <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>.env</code> to enable Google OAuth.
-        </Text>
-      )}
-    </ConnectorCard>
+    />
   )
 }
 
-// ── Google Tasks card ────────────────────────────────────────────────────────
+// ── Google Tasks ─────────────────────────────────────────────────────────────
 
 function GTasksCard({ googleOauth }: { googleOauth: boolean }) {
-  const qc        = useQueryClient()
-  const { data }  = useTasksStatus()
+  const qc = useQueryClient()
+  const { data } = useTasksStatus()
   const connected = !!data?.connected
 
   function openPopup() {
@@ -231,37 +205,23 @@ function GTasksCard({ googleOauth }: { googleOauth: boolean }) {
   }
 
   return (
-    <ConnectorCard
-      iconName="CheckSquare"
-      name="Google Tasks"
-      description="Sync your Google Tasks lists to the Todo board."
+    <AppCard
+      icon="CheckSquare" name="Google Tasks"
+      description="Sync your task lists and manage todos."
       connected={connected}
       actionLabel={connected ? undefined : googleOauth ? 'Connect' : undefined}
       onAction={connected ? undefined : googleOauth ? openPopup : undefined}
-    >
-      {!googleOauth && (
-        <Text variant="body" size="small" color="muted">
-          Set <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>GOOGLE_CLIENT_ID</code> and{' '}
-          <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>GOOGLE_CLIENT_SECRET</code> in your{' '}
-          <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>.env</code> to enable Google OAuth.
-        </Text>
-      )}
-      {connected && (
-        <Text variant="body" size="small" color="muted">
-          Google Tasks shares credentials with Google Calendar. Connected automatically.
-        </Text>
-      )}
-    </ConnectorCard>
+    />
   )
 }
 
-// ── Spotify card ──────────────────────────────────────────────────────────────
+// ── Spotify ──────────────────────────────────────────────────────────────────
 
 function SpotifyCard() {
-  const creds      = useSpotifyCredentials()
-  const status     = useSpotifyStatus()
-  const [expanded, setExpanded] = useState(!creds.clientId)
-  const connected  = !!status.data?.connected
+  const creds = useSpotifyCredentials()
+  const status = useSpotifyStatus()
+  const [expanded, setExpanded] = useState(false)
+  const connected = !!status.data?.connected
   const configured = !!(creds.clientId && creds.clientSecret)
 
   async function connect() {
@@ -270,85 +230,62 @@ function SpotifyCard() {
   }
 
   return (
-    <ConnectorCard
-      iconName="MusicNote"
-      name="Spotify"
-      description="Control Spotify playback and display now-playing on the board."
+    <AppCard
+      icon="MusicNote" name="Spotify"
+      description="Control playback and see what's currently playing."
       connected={connected}
-      actionLabel={connected ? 'Disconnect' : 'Configure'}
-      onAction={() => setExpanded((e) => !e)}
+      actionLabel={connected ? 'Connected' : expanded ? undefined : 'Set up'}
+      onAction={connected ? undefined : () => setExpanded(true)}
     >
-      {expanded && (
-        <FlexCol gap="sm" style={{ paddingLeft: 4 }}>
-          <Text variant="body" size="small" color="muted">
-            Create a Spotify app at{' '}
-            <a
-              href="https://developer.spotify.com/dashboard"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: 'var(--wt-accent)', textDecoration: 'underline' }}
-            >
-              developer.spotify.com
-            </a>{' '}
-            and add your redirect URI to the allowed list.
-          </Text>
-          <Input
-            label="Client ID"
-            value={creds.clientId}
-            onChange={(e) => creds.set({ clientId: e.target.value })}
-            placeholder="ef32f0586e5340e2929a7c77c3521afa"
-          />
-          <Input
-            label="Client Secret"
-            value={creds.clientSecret}
-            onChange={(e) => creds.set({ clientSecret: e.target.value })}
-            type="password"
-          />
-          <Input
-            label="Redirect URI"
-            value={creds.redirectUri}
-            onChange={(e) => creds.set({ redirectUri: e.target.value })}
-            placeholder="https://xxxx.ngrok-free.app/api/spotify/callback"
-          />
-          <Button variant="accent" fullWidth disabled={!configured} onClick={connect}>
-            {connected ? 'Reconnect Spotify' : 'Connect Spotify'}
-          </Button>
-        </FlexCol>
+      {expanded && !connected && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <Input label="Client ID" value={creds.clientId} onChange={(e) => creds.set({ clientId: e.target.value })} placeholder="Your Spotify app client ID" />
+          <Input label="Client Secret" value={creds.clientSecret} onChange={(e) => creds.set({ clientSecret: e.target.value })} type="password" />
+          <Input label="Redirect URI" value={creds.redirectUri} onChange={(e) => creds.set({ redirectUri: e.target.value })} />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="accent" size="sm" disabled={!configured} onClick={connect} fullWidth>Connect Spotify</Button>
+            <Button variant="ghost" size="sm" onClick={() => setExpanded(false)}>Cancel</Button>
+          </div>
+        </div>
       )}
-    </ConnectorCard>
+    </AppCard>
   )
 }
 
-// ── Env-var connector card (static) ──────────────────────────────────────────
+// ── Service card (static) ────────────────────────────────────────────────────
 
-function EnvCard({
-  iconName, name, description, configured, envKey,
-}: {
-  iconName:    string
-  name:        string
-  description: string
-  configured:  boolean
-  envKey:      string
+function ServiceCard({ icon, name, description, configured }: {
+  icon: string; name: string; description: string; configured: boolean
 }) {
   return (
-    <ConnectorCard
-      iconName={iconName}
-      name={name}
-      description={description}
+    <AppCard
+      icon={icon} name={name} description={description}
       connected={configured}
-      configuredLabel={configured ? 'Configured' : 'Not configured'}
-    >
-      {!configured && (
-        <Text variant="body" size="small" color="muted">
-          Set <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>{envKey}</code> in your{' '}
-          <code style={{ background: 'var(--wt-bg)', padding: '1px 5px', borderRadius: 4, fontSize: 11 }}>.env</code> file to enable this service.
-        </Text>
-      )}
-    </ConnectorCard>
+      statusLabel={configured ? 'Active' : 'Not configured'}
+    />
   )
 }
 
-// ── Main view ─────────────────────────────────────────────────────────────────
+// ── Category tab ─────────────────────────────────────────────────────────────
+
+function CategoryTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '6px 14px', borderRadius: 8, border: 'none', cursor: 'pointer',
+        fontSize: 13, fontWeight: 500,
+        background: active ? 'color-mix(in srgb, var(--wt-accent) 15%, transparent)' : 'transparent',
+        color: active ? 'var(--wt-accent)' : 'var(--wt-text-muted)',
+        transition: 'all 0.15s',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+// ── Main view ────────────────────────────────────────────────────────────────
 
 export function ConnectorsBoardView() {
   const services = useHealthServices()
@@ -356,89 +293,137 @@ export function ConnectorsBoardView() {
     notion: false, anthropic: false, elevenlabs: false,
     youtube: false, bing: false, googleOauth: false,
   }
+  const gcalStatus = useGCalStatus()
+  const tasksStatus = useTasksStatus()
+  const spotifyStatus = useSpotifyStatus()
+
+  const [search, setSearch] = useState('')
+  const [category, setCategory] = useState<Category>('all')
+
+  // Build enabled list
+  const enabledMap: Record<string, boolean> = {
+    gcal:       !!gcalStatus.data?.connected,
+    gtasks:     !!tasksStatus.data?.connected,
+    spotify:    !!spotifyStatus.data?.connected,
+    notion:     s.notion,
+    anthropic:  s.anthropic,
+    elevenlabs: s.elevenlabs,
+    youtube:    s.youtube,
+    bing:       s.bing,
+  }
+  const enabledConnectors = CONNECTORS.filter(c => enabledMap[c.id])
+
+  // Filter
+  const query = search.toLowerCase().trim()
+  const filtered = CONNECTORS
+    .filter(c => category === 'all' || c.category === category)
+    .filter(c => !query || c.name.toLowerCase().includes(query))
+
+  const hasResults = filtered.length > 0
 
   return (
-    <div
-      className="absolute inset-0 flex flex-col"
-      style={{ background: 'var(--wt-bg)' }}
-    >
+    <div className="absolute inset-0 flex flex-col" style={{ background: 'var(--wt-bg)' }}>
+
       {/* Header */}
-      <div
-        className="flex-shrink-0 flex items-center px-6 gap-3"
-        style={{
-          height:       64,
-          borderBottom: '1px solid var(--wt-border)',
-        }}
-      >
-        <Icon icon="Plugs" size={22} style={{ color: 'var(--wt-accent)', flexShrink: 0 }} />
-        <div>
-          <Text variant="label" size="medium" style={{ fontWeight: 700, color: 'var(--wt-text)', lineHeight: 1.2 }}>
-            Connectors
+      <div className="flex-shrink-0 px-6" style={{ paddingTop: 28, paddingBottom: 0 }}>
+        <div style={{ maxWidth: 960, margin: '0 auto' }}>
+          <Text variant="heading" size="medium" style={{ fontWeight: 700, color: 'var(--wt-text)', fontSize: 22 }}>
+            Integrations
           </Text>
-          <Text variant="body" size="small" color="muted" style={{ lineHeight: 1.4 }}>
-            Connect services to power your widgets and AI assistant.
+          <Text variant="body" size="medium" color="muted" style={{ marginTop: 4 }}>
+            Enhance your whiteboard with apps and services.
           </Text>
+
+          {/* Search bar */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12, marginTop: 20,
+            background: 'var(--wt-surface)', border: '1px solid var(--wt-border)',
+            borderRadius: 12, padding: '12px 16px',
+          }}>
+            <Icon icon="MagnifyingGlass" size={18} style={{ color: 'var(--wt-text-muted)', flexShrink: 0, opacity: 0.4 }} />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search integrations"
+              style={{
+                flex: 1, background: 'transparent', border: 'none', outline: 'none',
+                color: 'var(--wt-text)', fontSize: 15,
+              }}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--wt-text-muted)', padding: 2 }}
+              >
+                <Icon icon="X" size={14} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Body */}
-      <ScrollArea style={{ flex: 1 }}>
-        <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 40px' }}>
-          <FlexCol gap="lg">
+      {/* Scrollable content */}
+      <ScrollArea className="wt-scroll" style={{ flex: 1 }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 24px 48px' }}>
 
-            {/* OAuth group */}
-            <FlexCol gap="sm">
-              <SectionLabel>Connected Apps</SectionLabel>
-              <FlexCol gap="sm">
-                <GCalCard googleOauth={s.googleOauth} />
-                <GTasksCard googleOauth={s.googleOauth} />
-                <SpotifyCard />
-              </FlexCol>
-            </FlexCol>
+          {/* Enabled row */}
+          {enabledConnectors.length > 0 && !query && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.1em', color: 'var(--wt-text-muted)', opacity: 0.5,
+                }}>
+                  Enabled
+                </span>
+              </div>
+              <div style={{
+                display: 'flex', gap: 10, overflowX: 'auto',
+                paddingBottom: 4,
+                scrollbarWidth: 'none',
+              }}>
+                {enabledConnectors.map(c => (
+                  <EnabledPill key={c.id} icon={c.icon} name={c.name} />
+                ))}
+              </div>
+            </div>
+          )}
 
-            {/* API Keys group */}
-            <FlexCol gap="sm">
-              <SectionLabel>API Services</SectionLabel>
-              <FlexCol gap="sm">
-                <EnvCard
-                  iconName="BookOpen"
-                  name="Notion"
-                  description="Read and write to your Notion databases for tasks and notes."
-                  configured={s.notion}
-                  envKey="NOTION_API_KEY"
-                />
-                <EnvCard
-                  iconName="Robot"
-                  name="Anthropic (Walli AI)"
-                  description="Powers Walli, the AI assistant built into the whiteboard."
-                  configured={s.anthropic}
-                  envKey="ANTHROPIC_API_KEY"
-                />
-                <EnvCard
-                  iconName="Microphone"
-                  name="ElevenLabs (Voice)"
-                  description="Text-to-speech voice synthesis for Walli and briefings."
-                  configured={s.elevenlabs}
-                  envKey="ELEVENLABS_API_KEY"
-                />
-                <EnvCard
-                  iconName="YoutubeLogo"
-                  name="YouTube"
-                  description="Fetch YouTube video data and embed content in widgets."
-                  configured={s.youtube}
-                  envKey="YOUTUBE_API_KEY"
-                />
-                <EnvCard
-                  iconName="MagnifyingGlass"
-                  name="Bing Search"
-                  description="Web search capability for Walli's research tools."
-                  configured={s.bing}
-                  envKey="BING_API_KEY"
-                />
-              </FlexCol>
-            </FlexCol>
+          {/* Category tabs */}
+          <div style={{ display: 'flex', gap: 4, marginBottom: 18 }}>
+            <CategoryTab label="All" active={category === 'all'} onClick={() => setCategory('all')} />
+            <CategoryTab label="Apps" active={category === 'apps'} onClick={() => setCategory('apps')} />
+            <CategoryTab label="Services" active={category === 'services'} onClick={() => setCategory('services')} />
+          </div>
 
-          </FlexCol>
+          {/* Grid */}
+          {hasResults ? (
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(270px, 1fr))',
+              gap: 14,
+            }}>
+              {filtered.map(c => {
+                if (c.id === 'gcal')    return <GCalCard key={c.id} googleOauth={s.googleOauth} />
+                if (c.id === 'gtasks')  return <GTasksCard key={c.id} googleOauth={s.googleOauth} />
+                if (c.id === 'spotify') return <SpotifyCard key={c.id} />
+                return (
+                  <ServiceCard
+                    key={c.id}
+                    icon={c.icon}
+                    name={c.name}
+                    description={c.description}
+                    configured={enabledMap[c.id]}
+                  />
+                )
+              })}
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center', padding: 48, color: 'var(--wt-text-muted)', fontSize: 14 }}>
+              No integrations match "{search}"
+            </div>
+          )}
+
         </div>
       </ScrollArea>
     </div>
