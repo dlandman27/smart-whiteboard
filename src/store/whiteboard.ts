@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 import type { WidgetLayout, LayoutSlot } from '../types'
 import type { Background } from '../constants/backgrounds'
+import type { BoardSchedule } from '../constants/schedulePresets'
+import { DEFAULT_SCHEDULE } from '../constants/schedulePresets'
 import { DEFAULT_LAYOUT_ID } from '../layouts/presets'
-import { loadBoards } from '../lib/db'
+import { loadBoards, loadSchedule } from '../lib/db'
 
 export type WidgetStyle = 'solid' | 'glass' | 'borderless'
 
@@ -25,6 +27,8 @@ interface WhiteboardStore {
   activeBoardId: string
   userId: string | null
   isLoading: boolean
+  schedule: BoardSchedule
+  lastManualSwitch: number  // timestamp of last manual board switch
   init: (userId: string) => Promise<void>
 
   // Board management
@@ -48,6 +52,8 @@ interface WhiteboardStore {
   reorderBoards:       (fromIndex: number, toIndex: number) => void
   setBoardBackground:  (boardId: string, background: Background) => void
   setBoardWidgetStyle: (boardId: string, style: WidgetStyle) => void
+  setSchedule: (schedule: BoardSchedule) => void
+  setActiveBoardManual: (id: string) => void
 }
 
 // Deterministic UUIDs for system boards (v4 format, fixed values)
@@ -88,18 +94,23 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     activeBoardId: DEFAULT_ID,
     userId: null,
     isLoading: false,
+    schedule: DEFAULT_SCHEDULE,
+    lastManualSwitch: 0,
 
     init: async (userId: string) => {
       set({ isLoading: true, userId })
       try {
-        const boards = await loadBoards(userId)
+        const [boards, schedule] = await Promise.all([
+          loadBoards(userId),
+          loadSchedule(userId),
+        ])
         const hydrated = ensureSystemBoards(
           boards.length > 0
             ? boards
             : [{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }]
         )
         const activeBoardId = hydrated[0]?.id ?? DEFAULT_ID
-        set({ boards: hydrated, activeBoardId, isLoading: false })
+        set({ boards: hydrated, activeBoardId, schedule: schedule ?? DEFAULT_SCHEDULE, isLoading: false })
       } catch (err) {
         console.error('Failed to load boards from Supabase:', err)
         // Fall back to defaults on error
@@ -272,5 +283,9 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
       set((s) => ({
         boards: s.boards.map((b) => b.id === boardId ? { ...b, widgetStyle } : b),
       })),
+
+    setSchedule: (schedule) => set({ schedule }),
+
+    setActiveBoardManual: (id) => set({ activeBoardId: id, lastManualSwitch: Date.now() }),
   })
 )

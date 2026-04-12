@@ -1,34 +1,21 @@
-[22:28:19.325] [INFO] storybook v10.2.16
-[22:28:19.801] [DEBUG] Getting package.json info for C:/Users/dylan/Documents/projects/smart-whiteboard/package.json...
-[22:28:19.803] [WARN] You are currently using Storybook [1m10.2.16[22m but you have packages which are incompatible with it:
-
-- @storybook/addon-essentials@8.6.14 which depends on 8.6.14
- Repo: https://github.com/storybookjs/storybook/tree/next/code/addons/essentials
-
-Please consider updating your packages or contacting the maintainers for compatibility details.
-
-For more details on compatibility guidance, see:
-https://github.com/storybookjs/storybook/issues/32836
-[22:28:20.462] [INFO] Starting...
-[22:28:20.595] [ERROR] [38;2;241;97;97mSB_CORE-SERVER_0004 (NoMatchingExportError): There was an exports mismatch error when trying to build Storybook.
-Please check whether the versions of your Storybook packages match whenever possible, as this might be the cause.
-
-Problematic example:
-{ "@storybook/react": "7.5.3", "@storybook/react-vite": "7.4.5", "storybook": "7.3.0" }
-
-Correct example:
-{ "@storybook/react": "7.5.3", "@storybook/react-vite": "7.5.3", "storybook": "7.5.3" }
-
-Please run `npx storybook doctor` for guidance on how to fix this issue.
-
-More info: 
-[39m
-    at buildOrThrow (file:///C:/Users/dylan/Documents/projects/smart-whiteboard/node_modules/storybook/dist/core-server/index.js:4511:9)
-    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
-    at async buildDevStandalone (file:///C:/Users/dylan/Documents/projects/smart-whiteboard/node_modules/storybook/dist/core-server/index.js:7710:41)
-    at async withTelemetry (file:///C:/Users/dylan/Documents/projects/smart-whiteboard/node_modules/storybook/dist/_node-chunks/chunk-CSGMAQQ4.js:218:12)
-    at async dev (file:///C:/Users/dylan/Documents/projects/smart-whiteboard/node_modules/storybook/dist/bin/core.js:2734:3)
-    at async _Command.<anonymous> (file:///C:/Users/dylan/Documents/projects/smart-whiteboard/node_modules/storybook/dist/bin/core.js:2804:92)
-[22:28:20.598] [WARN] Broken build, fix the error above.
+[07:19:10.688] [INFO] storybook v10.2.16
+[07:19:10.919] [DEBUG] Getting package.json info for /Users/dylanlandman/Documents/projects/personal/smart-whiteboard/package.json...
+[07:19:11.229] [INFO] Starting...
+[07:19:11.263] [WARN] No story files found for the specified pattern: [34msrc/components/widgets/**/*.stories.@(ts|tsx)[39m
+[07:19:11.342] [DEBUG] Starting preview..
+[07:19:11.379] [DEBUG] Using tsconfig paths for react-docgen
+[07:19:11.379] [ERROR] Failed to build the preview
+[07:19:11.380] [ERROR] [38;2;241;97;97mReferenceError: __dirname is not defined[39m
+    at Object.viteFinal (file://./packages/ui-kit/.storybook/main.ts:13:31)
+    at file://./node_modules/storybook/dist/_node-chunks/chunk-UXMBIWPQ.js:10114:36
+    at async createViteServer (file://./node_modules/@storybook/builder-vite/dist/index.js:1887:21)
+    at async Module.start (file://./node_modules/@storybook/builder-vite/dist/index.js:1912:17)
+    at async storybookDevServer (file://./node_modules/storybook/dist/core-server/index.js:7295:83)
+    at async buildOrThrow (file://./node_modules/storybook/dist/core-server/index.js:4506:12)
+    at async buildDevStandalone (file://./node_modules/storybook/dist/core-server/index.js:7710:41)
+    at async withTelemetry (file://./node_modules/storybook/dist/_node-chunks/chunk-CSGMAQQ4.js:218:12)
+    at async dev (file://./node_modules/storybook/dist/bin/core.js:2734:3)
+    at async _Command.<anonymous> (file://./node_modules/storybook/dist/bin/core.js:2804:92)
+[07:19:11.382] [WARN] Broken build, fix the error above.
 You may need to refresh the browser.
-[22:28:23.326] [PROMPT] Would you like to send anonymous crash reports to improve Storybook and fix bugs faster? {"choice":true}
+[07:19:13.422] [PROMPT] Would you like to send anonymous crash reports to improve Storybook and fix bugs faster? {"choice":true}

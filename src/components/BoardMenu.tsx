@@ -11,8 +11,9 @@ interface Props {
 export function BoardMenu({ onClose, onSlide }: Props) {
   const {
     boards, activeBoardId,
-    setActiveBoard, addBoard, removeBoard,
+    setActiveBoardManual, addBoard, removeBoard,
   } = useWhiteboardStore()
+  const setActiveBoard = setActiveBoardManual
 
   const [isAdding,   setIsAdding]   = useState(false)
   const [newName,    setNewName]    = useState('')

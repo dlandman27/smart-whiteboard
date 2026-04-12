@@ -1,9 +1,10 @@
 import { useWhiteboardStore, type Board } from '../store/whiteboard'
-import { upsertBoard, deleteBoard, upsertWidget, deleteWidget } from './db'
+import { upsertBoard, deleteBoard, upsertWidget, deleteWidget, upsertSchedule } from './db'
 import { touchId } from './realtimeSync'
 
 let unsub: (() => void) | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let scheduleDebounce: ReturnType<typeof setTimeout> | null = null
 
 /**
  * Subscribe to whiteboard store changes and sync to Supabase.
@@ -13,9 +14,19 @@ export function startBoardSync(userId: string) {
   stopBoardSync()
 
   let prevBoards = useWhiteboardStore.getState().boards
+  let prevSchedule = useWhiteboardStore.getState().schedule
 
   unsub = useWhiteboardStore.subscribe((state) => {
     const nextBoards = state.boards
+
+    // Schedule sync (debounced)
+    if (state.schedule !== prevSchedule) {
+      prevSchedule = state.schedule
+      if (scheduleDebounce) clearTimeout(scheduleDebounce)
+      scheduleDebounce = setTimeout(() => {
+        upsertSchedule(userId, state.schedule)
+      }, 500)
+    }
 
     // Detect added/removed boards
     const prevIds = new Set(prevBoards.map(b => b.id))
@@ -69,6 +80,10 @@ export function stopBoardSync() {
   if (debounceTimer) {
     clearTimeout(debounceTimer)
     debounceTimer = null
+  }
+  if (scheduleDebounce) {
+    clearTimeout(scheduleDebounce)
+    scheduleDebounce = null
   }
 }
 

@@ -1,6 +1,8 @@
 import type { WidgetLayout, LayoutSlot } from '../types'
 import type { Board, WidgetStyle } from '../store/whiteboard'
 import type { Background } from '../constants/backgrounds'
+import type { BoardSchedule } from '../constants/schedulePresets'
+import { DEFAULT_SCHEDULE } from '../constants/schedulePresets'
 import { supabase } from './supabase'
 import { useNotificationStore } from '../store/notifications'
 
@@ -188,4 +190,25 @@ export async function upsertDrawing(boardId: string, userId: string, dataUrl: st
     data_url: dataUrl,
   })
   if (error) notifyError('upsertDrawing', error)
+}
+
+// ── Schedule ────────────────────────────────────────────────────────────────
+
+export async function loadSchedule(userId: string): Promise<BoardSchedule | null> {
+  const { data, error } = await supabase
+    .from('board_schedule')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  if (error || !data) return null
+  return (data.schedule as BoardSchedule) ?? DEFAULT_SCHEDULE
+}
+
+export async function upsertSchedule(userId: string, schedule: BoardSchedule): Promise<void> {
+  const { error } = await supabase.from('board_schedule').upsert({
+    user_id:  userId,
+    schedule,
+  })
+  if (error) notifyError('upsertSchedule', error)
 }

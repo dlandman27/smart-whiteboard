@@ -8,7 +8,8 @@ interface Props {
 }
 
 export function BoardNav({ onSlide }: Props) {
-  const { boards, activeBoardId, setActiveBoard, addBoard, renameBoard } = useWhiteboardStore()
+  const { boards, activeBoardId, setActiveBoardManual, addBoard, renameBoard } = useWhiteboardStore()
+  const setActiveBoard = setActiveBoardManual
 
   const [isNaming, setIsNaming]         = useState(false)
   const [newBoardName, setNewBoardName] = useState('')

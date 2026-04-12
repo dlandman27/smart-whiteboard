@@ -3,6 +3,7 @@ import { FlexRow, FlexCol, Box, Text, Icon, ScrollArea, Button } from '@whiteboa
 import { supabase } from '../lib/supabase'
 import { ThemePicker } from './ThemePicker'
 import { BackgroundPicker } from './BackgroundPicker'
+import { SchedulePanel } from './SchedulePanel'
 import { useThemeStore } from '../store/theme'
 import { DEFAULT_BACKGROUND } from '../constants/backgrounds'
 import { SPRITES, PX, PixelSprite } from './PetBar'
@@ -234,6 +235,13 @@ function GeneralSection() {
       <PetsSection />
       <Box style={{ height: 1, background: 'var(--wt-border)' }} />
       <BriefingSection />
+      <Box style={{ height: 1, background: 'var(--wt-border)' }} />
+      <div>
+        <div style={{ marginBottom: 12 }}>
+          <SectionLabel>Display</SectionLabel>
+        </div>
+        <SchedulePanel />
+      </div>
     </FlexCol>
   )
 }

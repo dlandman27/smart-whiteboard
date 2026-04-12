@@ -20,10 +20,12 @@ import { BoardContextMenu } from './BoardContextMenu'
 import { LayoutPicker } from './LayoutPicker'
 import { BoardSettingsPanel } from './BoardSettingsPanel'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
+import { useScheduleEngine } from '../hooks/useScheduleEngine'
 import type { PendingWidget } from '../types'
 
 export function Whiteboard() {
   useCanvasSocket()
+  useScheduleEngine()
   const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize, displayMode, setDisplayMode, toggleDisplayMode } = useUIStore()
   const { boards, activeBoardId } = useWhiteboardStore()
   const activeBoard        = boards.find(b => b.id === activeBoardId)
@@ -186,7 +188,7 @@ export function Whiteboard() {
 function DisplayModeOverlay({ onExit }: { onExit: () => void }) {
   const [visible, setVisible] = useState(false)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const { boards, activeBoardId, setActiveBoard } = useWhiteboardStore()
+  const { boards, activeBoardId, setActiveBoardManual } = useWhiteboardStore()
   const userBoards = boards.filter((b) => !b.boardType)
 
   const showBar = useCallback(() => {
@@ -230,7 +232,7 @@ function DisplayModeOverlay({ onExit }: { onExit: () => void }) {
           {userBoards.map((b) => (
             <button
               key={b.id}
-              onClick={() => setActiveBoard(b.id)}
+              onClick={() => setActiveBoardManual(b.id)}
               className="px-3 py-1 rounded-md text-xs font-medium transition-colors flex-shrink-0"
               style={{
                 background: b.id === activeBoardId ? 'rgba(255,255,255,0.2)' : 'transparent',

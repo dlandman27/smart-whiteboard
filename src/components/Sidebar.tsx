@@ -8,7 +8,8 @@ import { Logo } from './Logo'
 type AddStep = 'idle' | 'name-board'
 
 export function Sidebar() {
-  const { boards, activeBoardId, setActiveBoard, addBoard, removeBoard, reorderBoards } = useWhiteboardStore()
+  const { boards, activeBoardId, setActiveBoardManual, addBoard, removeBoard, reorderBoards } = useWhiteboardStore()
+  const setActiveBoard = setActiveBoardManual
   const toggleDisplayMode = useUIStore((s) => s.toggleDisplayMode)
 
   const dragIndex   = useRef<number | null>(null)
