@@ -25,6 +25,8 @@ export class TodoistProvider implements TaskProvider {
 
   private _connected = false
   private _checkedStatus = false
+  private _projectsCache: TodoistProject[] | null = null
+  private _projectsCacheTime = 0
 
   isConnected(): boolean {
     if (!this._checkedStatus) {
@@ -43,8 +45,18 @@ export class TodoistProvider implements TaskProvider {
     this._checkedStatus = true
   }
 
-  async fetchGroups(): Promise<SourceGroup[]> {
+  private async _getProjects(): Promise<TodoistProject[]> {
+    if (this._projectsCache && Date.now() - this._projectsCacheTime < 2 * 60_000) {
+      return this._projectsCache
+    }
     const projects = await apiFetch<TodoistProject[]>('/api/todoist/projects')
+    this._projectsCache = projects
+    this._projectsCacheTime = Date.now()
+    return projects
+  }
+
+  async fetchGroups(): Promise<SourceGroup[]> {
+    const projects = await this._getProjects()
     return projects.map((project) => ({
       provider: 'todoist',
       groupName: project.name,
@@ -53,8 +65,7 @@ export class TodoistProvider implements TaskProvider {
   }
 
   async fetchTasks(groupIds?: string[]): Promise<UnifiedTask[]> {
-    // Fetch projects for name mapping
-    const projects = await apiFetch<TodoistProject[]>('/api/todoist/projects')
+    const projects = await this._getProjects()
     const projectMap = new Map(projects.map((p) => [p.id, p]))
 
     // If specific group IDs are requested, fetch per-project; otherwise fetch all
@@ -82,6 +93,14 @@ export class TodoistProvider implements TaskProvider {
         groupName: project?.name ?? 'Inbox',
         groupColor: project?.color,
       }
+    })
+  }
+
+  async createGroup(name: string): Promise<void> {
+    await apiFetch('/api/todoist/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
     })
   }
 

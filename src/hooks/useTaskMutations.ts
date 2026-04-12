@@ -26,6 +26,20 @@ export async function deleteUnifiedTask(task: UnifiedTask): Promise<void> {
 }
 
 /**
+ * Create a new task group (list/project) in the specified provider.
+ */
+export async function createUnifiedGroup(
+  providerId: string,
+  name: string,
+): Promise<void> {
+  const provider = getTaskProviders().find(p => p.id === providerId)
+  if (!provider?.createGroup) {
+    throw new Error(`Provider "${providerId}" does not support creating groups`)
+  }
+  await provider.createGroup(name)
+}
+
+/**
  * Create a new task in the specified provider and group.
  */
 export async function createUnifiedTask(

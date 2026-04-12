@@ -14,10 +14,14 @@ export { BuiltinEventProvider } from './events/builtin'
 export { GCalProvider } from './events/gcal'
 export { ICalProvider } from './events/ical'
 
+// Singleton instances so async status checks persist across calls
+const taskProviders: TaskProvider[] = [new BuiltinTaskProvider(), new GTasksProvider(), new TodoistProvider()]
+const eventProviders: EventProvider[] = [new BuiltinEventProvider(), new GCalProvider(), new ICalProvider()]
+
 export function getTaskProviders(): TaskProvider[] {
-  return [new BuiltinTaskProvider(), new GTasksProvider(), new TodoistProvider()]
+  return taskProviders
 }
 
 export function getEventProviders(): EventProvider[] {
-  return [new BuiltinEventProvider(), new GCalProvider(), new ICalProvider()]
+  return eventProviders
 }

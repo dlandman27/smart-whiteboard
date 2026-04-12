@@ -36,8 +36,8 @@ export function eventsRouter(): Router {
 
     if (error) throw new AppError(500, `Failed to fetch calendars: ${error.message}`)
 
-    const calendars = [...new Set((data ?? []).map((r: any) => r.calendar_name))]
-    res.json(calendars)
+    const names = [...new Set((data ?? []).map((r: any) => r.calendar_name))]
+    res.json(names.map(name => ({ id: name, name })))
   }))
 
   // ── Create event ───────────────────────────────────────────────────────

@@ -41,7 +41,6 @@ import { RoutinesWidget, RoutinesSettings } from './RoutinesWidget'
 import { TimersWidget } from './TimersWidget'
 import { CalendarWidget } from './CalendarWidget'
 import { DatabaseWidget } from './DatabaseWidget'
-import { WalliAgentWidget, WalliAgentSettings } from './WalliAgentWidget'
 import { SplitWidget } from './SplitWidget'
 import { SplitSettings } from './SplitSettings'
 import { GooglePhotosWidget } from './GooglePhotosWidget'
@@ -590,23 +589,6 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       description: 'Display a database table',
       shape:       WIDGET_SHAPES['large-wide'],
       component:   DatabaseWidget,
-    }],
-  },
-  {
-    typeId:      '@whiteboard/walli-agent',
-    label:       'Agent Widget',
-    Icon:        'Robot',
-    iconColor:   '#7c3aed',
-    keywords:    ['walli', 'agent', 'apollo', 'miles', 'harvey', 'health', 'tasks', 'habits'],
-    description: 'AI agent assistant',
-    variants: [{
-      variantId:         'default',
-      label:             'Agent Widget',
-      description:       'AI agent assistant',
-      shape:             WIDGET_SHAPES['small-wide'],
-      constraints:       { minWidth: 220, minHeight: 200, maxWidth: 600, maxHeight: 600 },
-      component:         WalliAgentWidget,
-      settingsComponent: WalliAgentSettings,
     }],
   },
   {

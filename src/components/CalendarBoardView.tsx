@@ -8,10 +8,53 @@ import {
 import { useUnifiedEvents, useEventGroups } from '../hooks/useUnifiedEvents'
 import { createUnifiedEvent, deleteUnifiedEvent } from '../hooks/useEventMutations'
 import type { UnifiedEvent, SourceGroup } from '../types/unified'
+import { ProviderIcon } from './ProviderIcon'
 
 // ── Color helpers ─────────────────────────────────────────────────────────────
 
-const DEFAULT_COLOR = '#4285f4'
+// Resolved at render time via CSS variable
+const DEFAULT_COLOR = 'var(--wt-accent)'
+
+/** Resolve a color string to a hex value (handles CSS vars, rgb(), etc.) */
+function resolveColor(raw: string): string {
+  if (raw.startsWith('#')) return raw
+  if (typeof document === 'undefined') return raw
+  const el = document.createElement('div')
+  el.style.color = raw
+  document.body.appendChild(el)
+  const computed = getComputedStyle(el).color
+  document.body.removeChild(el)
+  return computed
+}
+
+/** Parse any CSS color (hex, rgb(), etc.) into [r, g, b]. */
+function parseColor(raw: string): [number, number, number] | null {
+  const resolved = resolveColor(raw)
+  // Try hex
+  const hexM = resolved.match(/^#([0-9a-f]{3,8})$/i)
+  if (hexM) {
+    const h = hexM[1]
+    if (h.length === 3) return [parseInt(h[0]+h[0],16), parseInt(h[1]+h[1],16), parseInt(h[2]+h[2],16)]
+    if (h.length >= 6) return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]
+  }
+  // Try rgb(r, g, b) / rgba(r, g, b, a)
+  const rgbM = resolved.match(/rgba?\(\s*(\d+)[, ]\s*(\d+)[, ]\s*(\d+)/)
+  if (rgbM) return [+rgbM[1], +rgbM[2], +rgbM[3]]
+  return null
+}
+
+/** Returns dark text for light backgrounds, white for dark ones. */
+function contrastText(bg: string): string {
+  const rgb = parseColor(bg)
+  if (!rgb) return '#fff'
+  const [r, g, b] = rgb.map(c => { const s = c / 255; return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4 })
+  const L = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  return L > 0.4 ? 'rgba(0,0,0,0.8)' : '#fff'
+}
+
+function contrastSub(fg: string): string {
+  return fg === '#fff' ? 'rgba(255,255,255,0.78)' : 'rgba(0,0,0,0.55)'
+}
 
 // Render-compatible event shape that the Week/Day/Month grids expect
 interface RenderEvent {
@@ -25,6 +68,8 @@ interface RenderEvent {
   colorId?: string
   htmlLink?: string
   _color: string
+  _fg: string       // contrast text color for on top of _color
+  _fgSub: string    // subdued contrast (times, secondary text)
   _calendarId: string
   _source: { provider: string; id: string }
   _readOnly: boolean
@@ -33,6 +78,7 @@ interface RenderEvent {
 
 function toRenderEvent(e: UnifiedEvent): RenderEvent {
   const color = e.color || e.groupColor || DEFAULT_COLOR
+  const fg    = contrastText(color)
   return {
     id: `${e.source.provider}:${e.source.id}`,
     summary: e.title,
@@ -42,6 +88,8 @@ function toRenderEvent(e: UnifiedEvent): RenderEvent {
     end: e.end ? (e.allDay ? { date: e.end } : { dateTime: e.end }) : { dateTime: e.start },
     allDay: e.allDay,
     _color: color,
+    _fg: fg,
+    _fgSub: contrastSub(fg),
     _calendarId: `${e.source.provider}:${e.groupName}`,
     _source: e.source,
     _readOnly: e.readOnly,
@@ -58,15 +106,9 @@ function eventColor(e: RenderEvent): string {
 
 // Provider display labels
 const PROVIDER_LABELS: Record<string, string> = {
-  builtin: 'My Calendar',
+  builtin: 'Wiigit Calendar',
   gcal:    'Google Calendar',
   ical:    'iCal Feeds',
-}
-
-const PROVIDER_ICONS: Record<string, string> = {
-  builtin: 'CalendarBlank',
-  gcal:    'GoogleLogo',
-  ical:    'Link',
 }
 
 const timeInputStyle: React.CSSProperties = {
@@ -188,30 +230,33 @@ function EventBlock({
   if (!event.start.dateTime) return null
   const top    = topFor(event.start.dateTime)
   const height = heightFor(event.start.dateTime, event.end.dateTime ?? event.start.dateTime)
-
   return (
     <Box
       onClick={onClick}
+      data-event
       style={{
         position:     'absolute',
         top,
         left:         2,
         right:        2,
         height,
-        background:   `color-mix(in srgb, ${color} 18%, var(--wt-bg))`,
-        borderLeft:   `3px solid ${color}`,
-        borderRadius: 4,
-        padding:      '2px 6px',
+        background:   color,
+        borderRadius: 6,
+        padding:      '3px 7px',
         overflow:     'hidden',
         cursor:       'pointer',
         zIndex:       1,
+        boxShadow:    '0 1px 3px rgba(0,0,0,0.18)',
       }}
     >
-      <Text variant="label" size="medium" numberOfLines={1}>
-        {event.summary || '(No title)'}
-      </Text>
+      <FlexRow align="center" gap="xs" className="min-w-0">
+        <ProviderIcon provider={event._source.provider} size={11} style={{ color: event._fg, flexShrink: 0, opacity: 0.85 }} />
+        <Text variant="label" size="medium" numberOfLines={1} style={{ color: event._fg }}>
+          {event.summary || '(No title)'}
+        </Text>
+      </FlexRow>
       {height > HOUR_H / 3 && (
-        <Text variant="caption" size="medium" color="muted" style={{ opacity: 0.7, marginTop: 1 }}>
+        <Text variant="caption" size="medium" style={{ color: event._fgSub, marginTop: 1 }}>
           {fmt(event.start.dateTime)} – {fmt(event.end.dateTime ?? event.start.dateTime)}
         </Text>
       )}
@@ -367,17 +412,19 @@ function DayGrid({
       {allDay.length > 0 && (
         <FlexRow wrap gap="xs" className="flex-shrink-0 px-2 py-1.5" style={{ paddingLeft: 60, borderBottom: '1px solid var(--wt-border)' }}>
           {allDay.map(ev => (
-            <Box
+            <FlexRow
               key={ev.id}
+              align="center"
+              gap="xs"
               onClick={() => onEventClick(ev)}
               style={{
-                fontSize: 12, padding: '2px 10px', borderRadius: 12, cursor: 'pointer',
-                background: `color-mix(in srgb, ${eventColor(ev)} 20%, var(--wt-surface))`,
-                border:     `1px solid color-mix(in srgb, ${eventColor(ev)} 30%, transparent)`,
+                fontSize: 12, padding: '2px 10px', borderRadius: 6, cursor: 'pointer',
+                background: eventColor(ev),
               }}
             >
-              <Text variant="label" size="medium">{ev.summary || '(No title)'}</Text>
-            </Box>
+              <ProviderIcon provider={ev._source.provider} size={11} style={{ color: ev._fg, flexShrink: 0, opacity: 0.85 }} />
+              <Text variant="label" size="medium" style={{ color: ev._fg }}>{ev.summary || '(No title)'}</Text>
+            </FlexRow>
           ))}
         </FlexRow>
       )}
@@ -485,24 +532,33 @@ function MonthGrid({
                   >
                     {day}
                   </Text>
-                  {evs.slice(0, 3).map(ev => (
-                    <Box
+                  {evs.slice(0, 3).map(ev => {
+                    const c = eventColor(ev)
+                    const fg = contrastText(c)
+                    return (
+                    <FlexRow
                       key={ev.id}
+                      align="center"
+                      gap="xs"
                       onClick={e => { e.stopPropagation(); onEventClick(ev) }}
                       style={{
-                        background:   `color-mix(in srgb, ${eventColor(ev)} 22%, transparent)`,
-                        borderLeft:   `2px solid ${eventColor(ev)}`,
-                        borderRadius: 3,
-                        padding:      '1px 4px',
+                        background:   c,
+                        borderRadius: 4,
+                        padding:      '1px 5px',
                         overflow:     'hidden',
                         cursor:       'pointer',
+                        minWidth:     0,
                       }}
                     >
-                      <Text variant="caption" size="medium" numberOfLines={1}>
+                      <Box style={{ flexShrink: 0, opacity: 0.75, color: fg }}>
+                        <ProviderIcon provider={ev._source.provider} size={10} style={{ color: fg }} />
+                      </Box>
+                      <Text variant="caption" size="medium" numberOfLines={1} style={{ color: fg }}>
                         {ev.summary || '(No title)'}
                       </Text>
-                    </Box>
-                  ))}
+                    </FlexRow>
+                    )
+                  })}
                   {evs.length > 3 && (
                     <Text variant="caption" size="medium" color="muted" style={{ opacity: 0.55 }}>
                       +{evs.length - 3} more
@@ -597,11 +653,13 @@ function EventDetail({
 
           {event._groupName && (
             <FlexRow align="center" gap="sm">
-              <Box style={{ width: 12, height: 12, borderRadius: '50%', background: color, flexShrink: 0 }} />
+              <Box style={{ flexShrink: 0, color }}>
+                <ProviderIcon provider={event._source.provider} size={15} style={{ color }} />
+              </Box>
               <Text variant="body" size="medium" color="muted">
                 {event._groupName}
                 {event._source.provider !== 'builtin' && (
-                  <span style={{ opacity: 0.5 }}>{' '}{PROVIDER_LABELS[event._source.provider] ? `(${PROVIDER_LABELS[event._source.provider]})` : ''}</span>
+                  <span style={{ opacity: 0.5 }}>{' · '}{PROVIDER_LABELS[event._source.provider] ?? ''}</span>
                 )}
               </Text>
             </FlexRow>
@@ -693,7 +751,9 @@ function CreateEventModal({
     setSaving(true)
     setError('')
     try {
-      await createUnifiedEvent(groupKey, {
+      const [providerId, ...rest] = groupKey.split(':')
+      const groupId = rest.join(':')
+      await createUnifiedEvent(providerId, groupId, {
         title: title.trim(),
         start: `${date}T${startTime}:00`,
         end:   `${date}T${endTime}:00`,
@@ -761,8 +821,8 @@ function CreateEventModal({
                       border: active ? '1px solid var(--wt-border)' : '1px solid transparent',
                     }}
                   >
-                    <Box style={{ width: 10, height: 10, borderRadius: '50%', background: g.color, flexShrink: 0 }} />
-                    <Text variant="body" size="medium" style={{ flex: 1 }} numberOfLines={1}>{g.name}</Text>
+                    <Box style={{ width: 10, height: 10, borderRadius: '50%', background: g.color || 'var(--wt-accent)', flexShrink: 0 }} />
+                    <Text variant="body" size="medium" style={{ flex: 1 }} numberOfLines={1}>{g.groupName}</Text>
                     {g.provider !== 'builtin' && (
                       <Text variant="caption" size="medium" color="muted" style={{ opacity: 0.5 }}>
                         {PROVIDER_LABELS[g.provider]}
@@ -856,7 +916,7 @@ function InfoPanel({
         <div key={section.provider}>
           <FlexCol gap="xs" className="px-4 py-3">
             <FlexRow align="center" gap="xs" style={{ marginBottom: 4 }}>
-              <Icon icon={PROVIDER_ICONS[section.provider] ?? 'CalendarBlank'} size={12} style={{ color: 'var(--wt-text-muted)', opacity: 0.5 }} />
+              <ProviderIcon provider={section.provider} size={12} />
               <Text variant="label" size="small" color="muted" textTransform="uppercase" style={{ opacity: 0.5, letterSpacing: '0.1em' }}>
                 {section.label}
               </Text>
@@ -873,8 +933,8 @@ function InfoPanel({
                 >
                   <Box style={{
                     width: 12, height: 12, borderRadius: '50%', flexShrink: 0,
-                    background: on ? g.color : 'transparent',
-                    border: `2px solid ${g.color}`,
+                    background: on ? (g.color || 'var(--wt-accent)') : 'transparent',
+                    border: `2px solid ${g.color || 'var(--wt-accent)'}`,
                   }} />
                   <Text
                     variant="body"
@@ -882,7 +942,7 @@ function InfoPanel({
                     numberOfLines={1}
                     style={{ flex: 1, opacity: on ? 1 : 0.4 }}
                   >
-                    {g.name}
+                    {g.groupName}
                   </Text>
                   {g.readOnly && (
                     <Icon icon="EyeSlash" size={11} style={{ color: 'var(--wt-text-muted)', opacity: 0.3 }} />
@@ -962,9 +1022,8 @@ export function CalendarBoardView() {
     : view === 'week'  ? weekRange(current)
     : monthRange(current)
 
-  const visibleKeys = Array.from(visibleGroupKeys)
   const { data: unifiedEvents, isLoading, isFetching, refetch } = useUnifiedEvents(
-    range.timeMin, range.timeMax, visibleKeys,
+    range.timeMin, range.timeMax, visibleGroupKeys,
   )
 
   // Map unified events to render events
@@ -973,15 +1032,30 @@ export function CalendarBoardView() {
     [unifiedEvents],
   )
 
-  // Today's events for the sidebar "Upcoming" section
-  const todayRange = dayRange(new Date())
+  // Today's events for the sidebar "Upcoming" section — derive from the
+  // main query when today falls within the current range, avoiding a second fetch
+  const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
+  const todayEnd   = new Date(); todayEnd.setHours(23, 59, 59, 999)
+  const todayInRange = new Date(range.timeMin) <= todayStart && new Date(range.timeMax) >= todayEnd
+
   const { data: todayUnifiedEvents } = useUnifiedEvents(
-    todayRange.timeMin, todayRange.timeMax, visibleKeys,
+    todayInRange ? range.timeMin : todayStart.toISOString(),
+    todayInRange ? range.timeMax : todayEnd.toISOString(),
+    visibleGroupKeys,
   )
-  const todayEvents: RenderEvent[] = useMemo(
-    () => (todayUnifiedEvents ?? []).map(toRenderEvent),
-    [todayUnifiedEvents],
-  )
+  const todayEvents: RenderEvent[] = useMemo(() => {
+    const all = (todayUnifiedEvents ?? []).map(toRenderEvent)
+    if (todayInRange) {
+      // Filter to just today's events from the broader range
+      const ds = todayStart.toISOString()
+      const de = todayEnd.toISOString()
+      return all.filter(e => {
+        const eStart = e.start.dateTime ?? e.start.date ?? ''
+        return eStart >= ds && eStart <= de
+      })
+    }
+    return all
+  }, [todayUnifiedEvents, todayInRange])
 
   const weekDays = view === 'week' ? getWeekDays(current) : []
 
@@ -1037,7 +1111,7 @@ export function CalendarBoardView() {
   // Default group for creating events (first writable group)
   const defaultGroupKey = groups.find(g => !g.readOnly)?.key ?? 'builtin:My Calendar'
 
-  if (groupsLoading) return (
+  if (groupsLoading && groups.length === 0) return (
     <Center className="absolute inset-0">
       <div style={{
         width: 20, height: 20, borderRadius: '50%',
@@ -1090,7 +1164,7 @@ export function CalendarBoardView() {
       <FlexRow flex1 overflow="hidden" align="stretch" className="min-h-0">
 
         <FlexCol flex1 overflow="hidden" className="min-h-0">
-          {isLoading ? (
+          {isLoading && !events.length ? (
             <Center flex1>
               <Text variant="body" size="medium" color="muted" style={{ opacity: 0.5 }}>Loading…</Text>
             </Center>

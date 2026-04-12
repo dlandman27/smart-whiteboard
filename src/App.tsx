@@ -20,7 +20,8 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       retry:     1,
-      staleTime: 10_000,
+      staleTime: 3 * 60_000,   // 3 minutes — avoids refetch on every mount
+      gcTime:    10 * 60_000,  // 10 minutes — keep unused data in memory
     },
   },
 })

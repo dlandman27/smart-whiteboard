@@ -30,6 +30,8 @@ export class GCalProvider implements EventProvider {
 
   private _connected = false
   private _checkedStatus = false
+  private _calendarsCache: GCalCalendar[] | null = null
+  private _calendarsCacheTime = 0
 
   isConnected(): boolean {
     if (!this._checkedStatus) {
@@ -48,9 +50,20 @@ export class GCalProvider implements EventProvider {
     this._checkedStatus = true
   }
 
-  async fetchGroups(): Promise<SourceGroup[]> {
+  private async _getCalendars(): Promise<GCalCalendar[]> {
+    // Reuse cached calendars for 2 minutes
+    if (this._calendarsCache && Date.now() - this._calendarsCacheTime < 2 * 60_000) {
+      return this._calendarsCache
+    }
     const data = await apiFetch<{ items: GCalCalendar[] }>('/api/gcal/calendars')
-    return (data.items ?? []).map((cal) => ({
+    this._calendarsCache = data.items ?? []
+    this._calendarsCacheTime = Date.now()
+    return this._calendarsCache
+  }
+
+  async fetchGroups(): Promise<SourceGroup[]> {
+    const calendars = await this._getCalendars()
+    return calendars.map((cal) => ({
       provider: 'gcal',
       groupName: cal.summary,
       color: cal.backgroundColor,
@@ -58,8 +71,7 @@ export class GCalProvider implements EventProvider {
   }
 
   async fetchEvents(timeMin: string, timeMax: string, groupIds?: string[]): Promise<UnifiedEvent[]> {
-    const calendars = await apiFetch<{ items: GCalCalendar[] }>('/api/gcal/calendars')
-    const allCalendars = calendars.items ?? []
+    const allCalendars = await this._getCalendars()
 
     const targetCalendars = groupIds?.length
       ? allCalendars.filter((c) => groupIds.includes(c.id))

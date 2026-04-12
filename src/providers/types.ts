@@ -7,6 +7,7 @@ export interface TaskProvider {
   isConnected: () => boolean
   fetchGroups: () => Promise<SourceGroup[]>
   fetchTasks: (groupIds?: string[]) => Promise<UnifiedTask[]>
+  createGroup?: (name: string) => Promise<void>
   createTask?: (groupId: string, task: { title: string; notes?: string; due?: string; priority?: number }) => Promise<void>
   toggleTask?: (task: UnifiedTask) => Promise<void>
   deleteTask?: (task: UnifiedTask) => Promise<void>

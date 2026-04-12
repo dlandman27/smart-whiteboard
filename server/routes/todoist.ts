@@ -6,7 +6,7 @@ import { AppError, asyncRoute } from '../middleware/error.js'
 
 interface CacheEntry { data: any; expiry: number }
 const cache = new Map<string, CacheEntry>()
-const CACHE_TTL = 60_000
+const CACHE_TTL = 3 * 60_000  // 3 minutes
 
 function getCached(key: string): any | null {
   const entry = cache.get(key)
@@ -17,6 +17,13 @@ function getCached(key: string): any | null {
 
 function setCache(key: string, data: any) {
   cache.set(key, { data, expiry: Date.now() + CACHE_TTL })
+}
+
+/** Clear only task-related cache entries for a user (not projects) */
+function clearUserTaskCache(userId: string) {
+  for (const key of cache.keys()) {
+    if (key.startsWith(userId + ':tasks')) cache.delete(key)
+  }
 }
 
 function clearUserCache(userId: string) {
@@ -35,7 +42,7 @@ const pendingOAuth = new Map<string, string>()
 
 // ── Todoist API helper ──────────────────────────────────────────────────────
 
-const TODOIST_API = 'https://api.todoist.com/rest/v2'
+const TODOIST_API = 'https://api.todoist.com/api/v1'
 
 async function todoistFetch(apiKey: string, path: string, options?: RequestInit) {
   const res = await fetch(`${TODOIST_API}${path}`, {
@@ -187,7 +194,10 @@ export function todoistRouter(): Router {
     const cached = getCached(cacheKey)
     if (cached) return res.json(cached)
 
-    const projects = await todoistFetch(token, '/projects')
+    const raw = await todoistFetch(token, '/projects')
+    console.log('[todoist] GET /projects response shape:', Array.isArray(raw) ? 'array' : typeof raw, Array.isArray(raw) ? `(${raw.length} items)` : Object.keys(raw ?? {}))
+    // v1 may wrap in { results: [...] }, v2 returns bare array
+    const projects = Array.isArray(raw) ? raw : raw?.results ?? raw?.items ?? []
     setCache(cacheKey, projects)
     res.json(projects)
   }))
@@ -206,7 +216,8 @@ export function todoistRouter(): Router {
     if (cached) return res.json(cached)
 
     const qs = params.toString()
-    const tasks = await todoistFetch(token, `/tasks${qs ? `?${qs}` : ''}`)
+    const raw = await todoistFetch(token, `/tasks${qs ? `?${qs}` : ''}`)
+    const tasks = Array.isArray(raw) ? raw : raw?.results ?? raw?.items ?? []
     setCache(cacheKey, tasks)
     res.json(tasks)
   }))
@@ -215,7 +226,7 @@ export function todoistRouter(): Router {
   router.post('/todoist/tasks/:id/complete', asyncRoute(async (req, res) => {
     const token = await getTodoistToken(req.userId!)
     await todoistFetch(token, `/tasks/${req.params.id}/close`, { method: 'POST' })
-    clearUserCache(req.userId!)
+    clearUserTaskCache(req.userId!)
     res.json({ ok: true })
   }))
 
@@ -223,8 +234,24 @@ export function todoistRouter(): Router {
   router.post('/todoist/tasks/:id/reopen', asyncRoute(async (req, res) => {
     const token = await getTodoistToken(req.userId!)
     await todoistFetch(token, `/tasks/${req.params.id}/reopen`, { method: 'POST' })
-    clearUserCache(req.userId!)
+    clearUserTaskCache(req.userId!)
     res.json({ ok: true })
+  }))
+
+  // Create a project
+  router.post('/todoist/projects', asyncRoute(async (req, res) => {
+    const token = await getTodoistToken(req.userId!)
+    const { name } = req.body as { name: string }
+
+    if (!name?.trim()) throw new AppError(400, 'Project name is required')
+
+    const project = await todoistFetch(token, '/projects', {
+      method: 'POST',
+      body:   JSON.stringify({ name: name.trim() }),
+    })
+
+    clearUserCache(req.userId!)
+    res.json(project)
   }))
 
   // Create a task
@@ -243,7 +270,7 @@ export function todoistRouter(): Router {
       body:   JSON.stringify(body),
     })
 
-    clearUserCache(req.userId!)
+    clearUserTaskCache(req.userId!)
     res.json(task)
   }))
 

@@ -13,15 +13,15 @@ interface BuiltinEvent {
   title: string
   description?: string
   location?: string
-  start: string
-  end?: string
-  allDay: boolean
-  calendar_id: string
+  start_at: string
+  end_at?: string
+  all_day: boolean
+  calendar_name: string
 }
 
 export class BuiltinEventProvider implements EventProvider {
   id = 'builtin'
-  label = 'Built-in Calendar'
+  label = 'Wiigit Calendar'
   icon = 'CalendarBlank'
 
   isConnected(): boolean {
@@ -44,31 +44,29 @@ export class BuiltinEventProvider implements EventProvider {
     }
     const events = await apiFetch<BuiltinEvent[]>(`/api/events?${params}`)
 
-    // Fetch calendars for group name mapping
-    const calendars = await apiFetch<BuiltinCalendar[]>('/api/events/calendars')
-    const calMap = new Map(calendars.map((c) => [c.id, c]))
-
-    return events.map((event) => {
-      const cal = calMap.get(event.calendar_id)
-      return {
-        source: { provider: 'builtin' as const, id: event.id },
-        title: event.title,
-        description: event.description,
-        location: event.location,
-        start: event.start,
-        end: event.end,
-        allDay: event.allDay,
-        groupName: cal?.name ?? 'Calendar',
-        groupColor: cal?.color,
-      }
-    })
+    return events.map((event) => ({
+      source: { provider: 'builtin' as const, id: event.id },
+      title: event.title,
+      description: event.description,
+      location: event.location,
+      start: event.start_at,
+      end: event.end_at,
+      allDay: event.all_day,
+      groupName: event.calendar_name ?? 'Wiigit Calendar',
+    }))
   }
 
   async createEvent(groupId: string, event: { title: string; start: string; end?: string; allDay?: boolean }): Promise<void> {
     await apiFetch('/api/events', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ calendar_id: groupId, ...event }),
+      body: JSON.stringify({
+        calendar_id: groupId,
+        title: event.title,
+        start_at: event.start,
+        end_at: event.end ?? null,
+        all_day: event.allDay ?? false,
+      }),
     })
   }
 

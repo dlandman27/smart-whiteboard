@@ -60,6 +60,57 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   )
 }
 
+// ── Size presets ─────────────────────────────────────────────────────────────
+
+const GAP_OPTIONS: { label: string; value: number }[] = [
+  { label: 'None', value: 0 },
+  { label: 'SM',   value: 6 },
+  { label: 'MD',   value: 12 },
+  { label: 'LG',   value: 20 },
+  { label: 'XL',   value: 28 },
+]
+
+const PAD_OPTIONS: { label: string; value: number }[] = [
+  { label: 'None', value: 0 },
+  { label: 'SM',   value: 8 },
+  { label: 'MD',   value: 16 },
+  { label: 'LG',   value: 28 },
+  { label: 'XL',   value: 40 },
+]
+
+function SizeSegment({ options, value, onChange }: { options: { label: string; value: number }[]; value: number; onChange: (v: number) => void }) {
+  // Find closest option to current value
+  const activeIdx = options.reduce((best, opt, i) =>
+    Math.abs(opt.value - value) < Math.abs(options[best].value - value) ? i : best, 0)
+
+  return (
+    <div
+      className="flex rounded-lg overflow-hidden"
+      style={{ border: '1.5px solid var(--wt-border)', background: 'var(--wt-surface)' }}
+    >
+      {options.map((opt, i) => {
+        const isActive = i === activeIdx
+        return (
+          <button
+            key={opt.label}
+            onClick={() => onChange(opt.value)}
+            className="flex-1 text-[11px] font-semibold py-1.5"
+            style={{
+              background: isActive ? 'color-mix(in srgb, var(--wt-accent) 15%, transparent)' : 'transparent',
+              color: isActive ? 'var(--wt-accent)' : 'var(--wt-text-muted)',
+              border: 'none',
+              borderRight: i < options.length - 1 ? '1px solid var(--wt-border)' : 'none',
+              cursor: 'pointer',
+            }}
+          >
+            {opt.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 export function BoardSettingsPanel({ onClose }: Props) {
@@ -197,27 +248,19 @@ export function BoardSettingsPanel({ onClose }: Props) {
           <SectionLabel>Slot Spacing</SectionLabel>
           <div className="flex flex-col gap-4">
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium" style={{ color: 'var(--wt-text)' }}>Gap</span>
-                <span className="text-xs font-mono" style={{ color: 'var(--wt-text-muted)' }}>{slotGap}px</span>
-              </div>
-              <input
-                type="range" min={0} max={32} step={2} value={slotGap}
-                onChange={(e) => setLayoutSpacing(activeBoardId, Number(e.target.value), slotPad)}
-                className="w-full"
-                style={{ accentColor: 'var(--wt-accent)', height: 3 }}
+              <span className="text-xs font-medium mb-2 block" style={{ color: 'var(--wt-text)' }}>Gap</span>
+              <SizeSegment
+                options={GAP_OPTIONS}
+                value={slotGap}
+                onChange={(v) => setLayoutSpacing(activeBoardId, v, slotPad)}
               />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-medium" style={{ color: 'var(--wt-text)' }}>Padding</span>
-                <span className="text-xs font-mono" style={{ color: 'var(--wt-text-muted)' }}>{slotPad}px</span>
-              </div>
-              <input
-                type="range" min={0} max={48} step={2} value={slotPad}
-                onChange={(e) => setLayoutSpacing(activeBoardId, slotGap, Number(e.target.value))}
-                className="w-full"
-                style={{ accentColor: 'var(--wt-accent)', height: 3 }}
+              <span className="text-xs font-medium mb-2 block" style={{ color: 'var(--wt-text)' }}>Padding</span>
+              <SizeSegment
+                options={PAD_OPTIONS}
+                value={slotPad}
+                onChange={(v) => setLayoutSpacing(activeBoardId, slotGap, v)}
               />
             </div>
           </div>

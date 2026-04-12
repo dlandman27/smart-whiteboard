@@ -26,19 +26,41 @@ export function tasksRouter(): Router {
     res.json(data)
   }))
 
-  // ── Distinct list names ────────────────────────────────────────────────
+  // ── Task lists ──────────────────────────────────────────────────────────
 
   router.get('/tasks/lists', asyncRoute(async (req, res) => {
     const { data, error } = await supabaseAdmin
-      .from('tasks')
-      .select('list_name')
+      .from('task_lists')
+      .select('name, color')
       .eq('user_id', req.userId!)
+      .order('created_at', { ascending: true })
 
     if (error) throw new AppError(500, `Failed to fetch task lists: ${error.message}`)
 
-    const names = [...new Set((data ?? []).map((r: any) => r.list_name))]
-    if (!names.includes('My Tasks')) names.unshift('My Tasks')
-    res.json(names)
+    const lists = (data ?? []).map((r: any) => ({ id: r.name, name: r.name, color: r.color }))
+    // Ensure "My Tasks" always exists
+    if (!lists.some((l: any) => l.name === 'My Tasks')) {
+      lists.unshift({ id: 'My Tasks', name: 'My Tasks', color: null })
+    }
+    res.json(lists)
+  }))
+
+  router.post('/tasks/lists', asyncRoute(async (req, res) => {
+    const { name } = req.body
+    if (!name?.trim()) throw new AppError(400, 'List name is required')
+
+    const { data, error } = await supabaseAdmin
+      .from('task_lists')
+      .insert({ user_id: req.userId!, name: name.trim() })
+      .select()
+      .single()
+
+    if (error) {
+      if (error.code === '23505') throw new AppError(409, 'A list with this name already exists')
+      throw new AppError(500, `Failed to create list: ${error.message}`)
+    }
+
+    res.status(201).json({ id: data.name, name: data.name, color: data.color })
   }))
 
   // ── Create task ────────────────────────────────────────────────────────

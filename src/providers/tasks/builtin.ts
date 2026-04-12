@@ -4,7 +4,7 @@ import type { UnifiedTask, SourceGroup } from '../../types/unified'
 
 export class BuiltinTaskProvider implements TaskProvider {
   id = 'builtin'
-  label = 'Built-in Tasks'
+  label = 'Wiigit Tasks'
   icon = 'CheckSquare'
 
   isConnected(): boolean {
@@ -12,10 +12,11 @@ export class BuiltinTaskProvider implements TaskProvider {
   }
 
   async fetchGroups(): Promise<SourceGroup[]> {
-    const lists = await apiFetch<string[]>('/api/tasks/lists')
-    return lists.map((name) => ({
+    const lists = await apiFetch<{ id: string; name: string; color?: string }[]>('/api/tasks/lists')
+    return lists.map((list) => ({
       provider: 'builtin',
-      groupName: name,
+      groupName: list.name,
+      color: list.color,
     }))
   }
 
@@ -30,6 +31,14 @@ export class BuiltinTaskProvider implements TaskProvider {
       due: task.due,
       groupName: task.list_name ?? 'My Tasks',
     }))
+  }
+
+  async createGroup(name: string): Promise<void> {
+    await apiFetch('/api/tasks/lists', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    })
   }
 
   async createTask(groupId: string, task: { title: string; notes?: string; due?: string; priority?: number }): Promise<void> {

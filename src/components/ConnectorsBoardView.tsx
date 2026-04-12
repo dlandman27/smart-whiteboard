@@ -7,6 +7,7 @@ import { useTasksStatus } from '../hooks/useTasks'
 import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
 import { useSpotifyCredentials } from '../store/spotify'
 import { apiFetch } from '../lib/apiFetch'
+import { ProviderIcon } from './ProviderIcon'
 
 // ── Health services ──────────────────────────────────────────────────────────
 
@@ -51,7 +52,7 @@ const CONNECTORS: ConnectorDef[] = [
 
 // ── Enabled pill (horizontal row) ────────────────────────────────────────────
 
-function EnabledPill({ icon, name }: { icon: string; name: string }) {
+function EnabledPill({ icon, name, providerId }: { icon: string; name: string; providerId?: string }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 10,
@@ -63,7 +64,10 @@ function EnabledPill({ icon, name }: { icon: string; name: string }) {
         background: 'color-mix(in srgb, var(--wt-accent) 10%, transparent)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <Icon icon={icon as any} size={18} style={{ color: 'var(--wt-accent)' }} />
+        {providerId
+          ? <ProviderIcon provider={providerId} size={20} />
+          : <Icon icon={icon as any} size={18} style={{ color: 'var(--wt-accent)' }} />
+        }
       </div>
       <div>
         <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--wt-text)' }}>{name}</div>
@@ -77,11 +81,11 @@ function EnabledPill({ icon, name }: { icon: string; name: string }) {
 
 function AppCard({
   icon, name, description, connected, statusLabel,
-  actionLabel, onAction, children,
+  actionLabel, onAction, children, providerId,
 }: {
   icon: string; name: string; description: string; connected: boolean
   statusLabel?: string; actionLabel?: string; onAction?: () => void
-  children?: React.ReactNode
+  children?: React.ReactNode; providerId?: string
 }) {
   const [hovered, setHovered] = useState(false)
   return (
@@ -109,9 +113,12 @@ function AppCard({
             : 'var(--wt-surface-hover)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Icon icon={icon as any} size={22} style={{
-            color: connected ? 'var(--wt-success)' : 'var(--wt-text)', opacity: connected ? 1 : 0.5,
-          }} />
+          {providerId
+            ? <ProviderIcon provider={providerId} size={24} />
+            : <Icon icon={icon as any} size={22} style={{
+                color: connected ? 'var(--wt-success)' : 'var(--wt-text)', opacity: connected ? 1 : 0.5,
+              }} />
+          }
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{
@@ -175,7 +182,7 @@ function GCalCard({ googleOauth }: { googleOauth: boolean }) {
 
   return (
     <AppCard
-      icon="CalendarBlank" name="Google Calendar"
+      icon="CalendarBlank" name="Google Calendar" providerId="gcal"
       description="View and manage your calendar events on the whiteboard."
       connected={connected}
       actionLabel={connected ? 'Disconnect' : googleOauth ? 'Connect' : 'Not available'}
@@ -208,7 +215,7 @@ function GTasksCard({ googleOauth }: { googleOauth: boolean }) {
 
   return (
     <AppCard
-      icon="CheckSquare" name="Google Tasks"
+      icon="CheckSquare" name="Google Tasks" providerId="gtasks"
       description="Sync your task lists and manage todos."
       connected={connected}
       actionLabel={connected ? undefined : googleOauth ? 'Connect' : undefined}
@@ -296,7 +303,7 @@ function TodoistCard() {
 
   return (
     <AppCard
-      icon="CheckCircle" name="Todoist"
+      icon="CheckCircle" name="Todoist" providerId="todoist"
       description="View and manage your Todoist tasks on the whiteboard."
       connected={connected}
       actionLabel={connected ? 'Disconnect' : configured ? 'Connect' : 'Not available'}
@@ -578,7 +585,7 @@ export function ConnectorsBoardView() {
                 scrollbarWidth: 'none',
               }}>
                 {enabledConnectors.map(c => (
-                  <EnabledPill key={c.id} icon={c.icon} name={c.name} />
+                  <EnabledPill key={c.id} icon={c.icon} name={c.name} providerId={c.id} />
                 ))}
               </div>
             </div>

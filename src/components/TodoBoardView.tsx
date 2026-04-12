@@ -5,10 +5,11 @@ import {
   IconButton, ScrollArea,
 } from '@whiteboard/ui-kit'
 import { useTaskGroups, useUnifiedTasks } from '../hooks/useUnifiedTasks'
-import { toggleUnifiedTask, deleteUnifiedTask, createUnifiedTask } from '../hooks/useTaskMutations'
+import { toggleUnifiedTask, deleteUnifiedTask, createUnifiedTask, createUnifiedGroup } from '../hooks/useTaskMutations'
 import type { UnifiedTask, SourceGroup } from '../types/unified'
 import { navigateHash } from '../hooks/useHashRouter'
-import { Logo } from './Logo'
+import { getTaskProviders } from '../providers'
+import { ProviderIcon } from './ProviderIcon'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -272,7 +273,7 @@ function TaskGroupSection({
       {/* Pending tasks */}
       {pending.map(task => (
         <TaskRow
-          key={task.id}
+          key={`${task.source.provider}:${task.source.id}`}
           task={task}
           onToggle={() => handleToggle(task)}
           onDelete={() => handleDelete(task)}
@@ -293,7 +294,7 @@ function TaskGroupSection({
         <div style={{ opacity: 0.6, marginTop: 4 }}>
           {completed.map(task => (
             <TaskRow
-              key={task.id}
+              key={`${task.source.provider}:${task.source.id}`}
               task={task}
               onToggle={() => handleToggle(task)}
               onDelete={() => handleDelete(task)}
@@ -312,19 +313,26 @@ export function TodoBoardView() {
 
   const { data: groups = [] } = useTaskGroups()
 
-  // Track which groups are visible (default: all)
-  const [visibleGroups, setVisibleGroups] = useState<Set<string>>(new Set())
+  // Single active list
+  const [activeGroupKey, setActiveGroupKey] = useState<string | null>(null)
   const [showCompleted, setShowCompleted] = useState(false)
   const [spinning, setSpinning] = useState(false)
+  const [showNewList, setShowNewList] = useState(false)
+  const [newListName, setNewListName] = useState('')
+  const [newListProvider, setNewListProvider] = useState('builtin')
+  const [creatingList, setCreatingList] = useState(false)
 
-  // Initialize visible groups when data loads
+  // Auto-select first list when data loads
   useEffect(() => {
-    if (groups.length > 0 && visibleGroups.size === 0) {
-      setVisibleGroups(new Set(groups.map(g => g.key)))
+    if (groups.length > 0 && !activeGroupKey) {
+      setActiveGroupKey(groups[0].key)
     }
   }, [groups])
 
+  // Pass only the active group to the query
+  const visibleGroups = activeGroupKey ? new Set([activeGroupKey]) : new Set<string>()
   const { data: tasks = [] } = useUnifiedTasks(visibleGroups, showCompleted)
+  const activeGroup = groups.find(g => g.key === activeGroupKey)
 
   // Group the sidebar items by provider
   const providerSections = groups.reduce<
@@ -339,21 +347,20 @@ export function TodoBoardView() {
     return acc
   }, [])
 
-  // Compute task counts per group
-  const countByGroup = new Map<string, number>()
-  for (const t of tasks) {
-    if (t.completed) continue
-    const key = `${t.source.provider}:${t.groupName}`
-    countByGroup.set(key, (countByGroup.get(key) ?? 0) + 1)
-  }
-
-  function toggleGroupVisibility(key: string) {
-    setVisibleGroups(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+  async function handleCreateList() {
+    if (!newListName.trim() || creatingList) return
+    setCreatingList(true)
+    try {
+      const name = newListName.trim()
+      await createUnifiedGroup(newListProvider, name)
+      qc.invalidateQueries({ queryKey: ['unified-task-groups'] })
+      qc.invalidateQueries({ queryKey: ['unified-tasks'] })
+      setActiveGroupKey(`${newListProvider}:${name}`)
+      setNewListName('')
+      setShowNewList(false)
+    } finally {
+      setCreatingList(false)
+    }
   }
 
   function refresh() {
@@ -418,41 +425,33 @@ export function TodoBoardView() {
       {/* ── Body ───────────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
-        {/* Sidebar — multi-provider source picker */}
+        {/* Sidebar */}
         <div
           style={{
-            width:         220,
-            flexShrink:    0,
-            borderRight:   '1px solid var(--wt-border)',
-            display:       'flex',
-            flexDirection: 'column',
+            width:           240,
+            flexShrink:      0,
+            display:         'flex',
+            flexDirection:   'column',
+            backgroundColor: 'var(--wt-settings-bg)',
+            borderRight:     '1px solid var(--wt-settings-border)',
+            backdropFilter:  'var(--wt-backdrop)',
           }}
         >
-          <ScrollArea style={{ flex: 1 }}>
+          <ScrollArea style={{ flex: 1, padding: '8px' }}>
             {providerSections.map(section => (
-              <div key={section.provider}>
+              <div key={section.provider} style={{ marginBottom: 8 }}>
                 {/* Provider header */}
                 <FlexRow
                   align="center"
                   gap="xs"
-                  style={{ padding: '14px 16px 6px' }}
+                  style={{ padding: '10px 10px 6px' }}
                 >
-                  {section.provider === 'builtin' ? (
-                    <Logo size={14} />
-                  ) : (
-                    <span style={{
-                      width: 16, height: 16, borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 10, fontWeight: 700, color: '#fff', flexShrink: 0,
-                      background: section.provider === 'todoist' ? '#e44332' : section.provider === 'gtasks' ? '#4285f4' : 'var(--wt-text-muted)',
-                    }}>
-                      {section.provider === 'todoist' ? 'T' : section.provider === 'gtasks' ? 'G' : '?'}
-                    </span>
-                  )}
+                  <ProviderIcon provider={section.provider} size={15} />
                   <Text
                     variant="label"
                     size="small"
                     color="muted"
-                    style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, opacity: 0.5 }}
+                    style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 700, fontSize: 10, opacity: 0.5 }}
                   >
                     {section.label}
                   </Text>
@@ -460,38 +459,39 @@ export function TodoBoardView() {
 
                 {/* Groups under this provider */}
                 {section.groups.map(group => {
-                  const active = visibleGroups.has(group.key)
-                  const count = countByGroup.get(group.key) ?? 0
+                  const active = group.key === activeGroupKey
                   return (
                     <button
                       key={group.key}
-                      onClick={() => toggleGroupVisibility(group.key)}
+                      onClick={() => setActiveGroupKey(group.key)}
                       style={{
-                        display:    'flex',
-                        alignItems: 'center',
-                        gap:        10,
-                        width:      '100%',
-                        padding:    '8px 16px',
-                        background: 'none',
-                        border:     'none',
-                        cursor:     'pointer',
-                        opacity:    active ? 1 : 0.4,
-                        transition: 'opacity 0.15s',
-                        textAlign:  'left',
+                        display:      'flex',
+                        alignItems:   'center',
+                        gap:          10,
+                        width:        '100%',
+                        padding:      '8px 10px',
+                        background:   active ? 'color-mix(in srgb, var(--wt-accent) 12%, transparent)' : 'transparent',
+                        border:       active ? '1px solid color-mix(in srgb, var(--wt-accent) 25%, transparent)' : '1px solid transparent',
+                        borderRadius: 10,
+                        cursor:       'pointer',
+                        transition:   'all 0.15s',
+                        textAlign:    'left',
                       }}
                     >
                       <div style={{
-                        width: 10, height: 10, borderRadius: '50%',
-                        background: group.color, flexShrink: 0,
+                        width: 9, height: 9, borderRadius: '50%',
+                        background: group.color ?? 'var(--wt-text-muted)', flexShrink: 0,
                       }} />
-                      <Text variant="body" size="small" style={{ flex: 1, fontWeight: 500 }} numberOfLines={1}>
+                      <Text
+                        variant="body" size="small" numberOfLines={1}
+                        style={{
+                          flex: 1, fontWeight: active ? 600 : 400,
+                          color: active ? 'var(--wt-accent)' : 'var(--wt-text)',
+                          fontSize: 13,
+                        }}
+                      >
                         {group.groupName}
                       </Text>
-                      {active && count > 0 && (
-                        <Text variant="caption" size="medium" color="muted" style={{ opacity: 0.5 }}>
-                          {count}
-                        </Text>
-                      )}
                     </button>
                   )
                 })}
@@ -499,57 +499,114 @@ export function TodoBoardView() {
             ))}
           </ScrollArea>
 
-          {/* Connect more link */}
-          <button
-            onClick={() => navigateHash('connectors', 'tasks')}
-            style={{
-              display:      'flex',
-              alignItems:   'center',
-              justifyContent: 'center',
-              gap:          6,
-              padding:      '12px 16px',
-              borderTop:    '1px solid var(--wt-border)',
-              background:   'none',
-              border:       'none',
-              borderTopStyle: 'solid',
-              borderTopWidth: 1,
-              borderTopColor: 'var(--wt-border)',
-              cursor:       'pointer',
-              color:        'var(--wt-text-muted)',
-              fontSize:     12,
-              fontWeight:   500,
-              opacity:      0.6,
-              transition:   'opacity 0.15s',
-            }}
-            onPointerEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
-            onPointerLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.6' }}
-          >
-            <Icon icon="Plus" size={12} />
-            Connect more sources
-          </button>
+          {/* New list + Connect more */}
+          <div style={{ padding: '6px 8px', borderTop: '1px solid var(--wt-settings-divider)' }}>
+            {showNewList ? (
+              <div style={{ padding: '6px 4px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <input
+                  autoFocus
+                  value={newListName}
+                  onChange={(e) => setNewListName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleCreateList()
+                    if (e.key === 'Escape') { setShowNewList(false); setNewListName('') }
+                  }}
+                  placeholder="List name..."
+                  style={{
+                    background: 'var(--wt-surface)', border: '1px solid var(--wt-settings-border)',
+                    borderRadius: 8, padding: '7px 10px', fontSize: 12, color: 'var(--wt-text)',
+                    outline: 'none', width: '100%',
+                  }}
+                />
+                <select
+                  value={newListProvider}
+                  onChange={(e) => setNewListProvider(e.target.value)}
+                  style={{
+                    background: 'var(--wt-surface)', border: '1px solid var(--wt-settings-border)',
+                    borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--wt-text)',
+                    outline: 'none', width: '100%',
+                  }}
+                >
+                  {getTaskProviders()
+                    .filter(p => p.createGroup)
+                    .map(p => (
+                      <option key={p.id} value={p.id}>{p.label}</option>
+                    ))
+                  }
+                </select>
+                <FlexRow gap="xs">
+                  <button
+                    onClick={handleCreateList}
+                    disabled={creatingList || !newListName.trim()}
+                    style={{
+                      flex: 1, padding: '6px 0', borderRadius: 8, border: 'none',
+                      background: 'var(--wt-accent)', color: 'var(--wt-accent-text)',
+                      fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                      opacity: creatingList || !newListName.trim() ? 0.5 : 1,
+                    }}
+                  >
+                    {creatingList ? 'Creating...' : 'Create'}
+                  </button>
+                  <button
+                    onClick={() => { setShowNewList(false); setNewListName('') }}
+                    style={{
+                      padding: '6px 10px', borderRadius: 8, border: '1px solid var(--wt-settings-border)',
+                      background: 'none', color: 'var(--wt-text-muted)', fontSize: 12, cursor: 'pointer',
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </FlexRow>
+              </div>
+            ) : (
+              <button
+                onClick={() => setShowNewList(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  padding: '8px 10px', width: '100%', borderRadius: 10,
+                  background: 'none', border: '1px solid transparent', cursor: 'pointer',
+                  color: 'var(--wt-accent)', fontSize: 12, fontWeight: 500,
+                  opacity: 0.7, transition: 'all 0.15s',
+                }}
+                onPointerEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '1' }}
+                onPointerLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.7' }}
+              >
+                <Icon icon="Plus" size={12} />
+                New list
+              </button>
+            )}
+            <button
+              onClick={() => navigateHash('connectors', 'tasks')}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 10px', width: '100%', borderRadius: 10,
+                background: 'none', border: '1px solid transparent', cursor: 'pointer',
+                color: 'var(--wt-text-muted)', fontSize: 12, fontWeight: 500,
+                opacity: 0.5, transition: 'all 0.15s',
+              }}
+              onPointerEnter={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.8' }}
+              onPointerLeave={(e) => { (e.currentTarget as HTMLElement).style.opacity = '0.5' }}
+            >
+              <Icon icon="Link" size={12} />
+              Connect sources
+            </button>
+          </div>
         </div>
 
         {/* Main task content */}
         <ScrollArea style={{ flex: 1 }}>
           <div style={{ maxWidth: 720, margin: '0 auto', padding: '16px 24px 48px' }}>
-            {groups.filter(g => visibleGroups.has(g.key)).map(group => {
-              const groupTasks = tasks.filter(
-                t => t.source.provider === group.provider && t.groupName === group.groupName
-              )
-              return (
-                <TaskGroupSection
-                  key={group.key}
-                  group={group}
-                  tasks={groupTasks}
-                  showCompleted={showCompleted}
-                />
-              )
-            })}
-
-            {visibleGroups.size === 0 && (
+            {activeGroup ? (
+              <TaskGroupSection
+                key={activeGroup.key}
+                group={activeGroup}
+                tasks={tasks}
+                showCompleted={showCompleted}
+              />
+            ) : (
               <Center style={{ padding: 48 }}>
                 <Text variant="body" size="medium" color="muted">
-                  Select a task list from the sidebar to view tasks.
+                  Select a task list from the sidebar.
                 </Text>
               </Center>
             )}

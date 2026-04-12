@@ -1,4 +1,5 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { getEventProviders } from '../providers'
 import type { UnifiedEvent, SourceGroup } from '../types/unified'
 
@@ -7,6 +8,8 @@ import type { UnifiedEvent, SourceGroup } from '../types/unified'
 /**
  * Fetches events from all connected event providers within a time window,
  * merged into a single list. One provider failing does not break the others.
+ *
+ * Visibility filtering is done client-side so toggling calendars is instant.
  *
  * @param timeMin       ISO-8601 start of the window
  * @param timeMax       ISO-8601 end of the window
@@ -19,38 +22,35 @@ export function useUnifiedEvents(
 ) {
   const providers = getEventProviders()
 
-  return useQuery({
-    queryKey: [
-      'unified-events',
-      timeMin,
-      timeMax,
-      Array.from(visibleGroups ?? []).sort().join(','),
-    ],
+  const query = useQuery({
+    queryKey: ['unified-events', timeMin, timeMax],
     queryFn: async () => {
       const results = await Promise.allSettled(
-        providers
-          .filter(p => p.isConnected())
-          .map(p => p.fetchEvents(timeMin, timeMax)),
+        providers.map(p => p.fetchEvents(timeMin, timeMax)),
       )
 
-      let events = results
+      return results
         .filter(
           (r): r is PromiseFulfilledResult<UnifiedEvent[]> =>
             r.status === 'fulfilled',
         )
         .flatMap(r => r.value)
-
-      if (visibleGroups && visibleGroups.size > 0) {
-        events = events.filter(e =>
-          visibleGroups.has(`${e.source.provider}:${e.groupName}`),
-        )
-      }
-
-      return events
     },
     enabled: !!(timeMin && timeMax),
     refetchInterval: 5 * 60_000,
+    placeholderData: keepPreviousData,
   })
+
+  // Filter client-side — no refetch when visibility changes
+  const data = useMemo(() => {
+    if (!query.data) return undefined
+    if (!visibleGroups || visibleGroups.size === 0) return query.data
+    return query.data.filter(e =>
+      visibleGroups.has(`${e.source.provider}:${e.groupName}`),
+    )
+  }, [query.data, visibleGroups])
+
+  return { ...query, data }
 }
 
 /**
@@ -64,12 +64,11 @@ export function useEventGroups() {
     queryKey: ['unified-event-groups'],
     queryFn: async () => {
       const results = await Promise.allSettled(
-        providers
-          .filter(p => p.isConnected())
-          .map(async p => {
+        providers.map(async p => {
             const groups = await p.fetchGroups()
             return groups.map(g => ({
               ...g,
+              key: `${p.id}:${g.groupName}`,
               providerId: p.id,
               providerLabel: p.label,
               providerIcon: p.icon,
