@@ -72,6 +72,7 @@ app.use('/api', rateLimit({
 
 // Stricter limit on auth-adjacent routes: 10 per minute
 app.use('/api/gcal/connect',       rateLimit({ windowMs: 60_000, max: 10 }))
+app.use('/api/todoist/connect',    rateLimit({ windowMs: 60_000, max: 10 }))
 app.use('/api/spotify/start-auth', rateLimit({ windowMs: 60_000, max: 10 }))
 app.use('/api/credentials',        rateLimit({ windowMs: 60_000, max: 20 }))
 

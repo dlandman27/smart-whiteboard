@@ -257,82 +257,50 @@ function SpotifyCard() {
 
 function useTodoistStatus() {
   const [connected, setConnected] = useState(false)
+  const [configured, setConfigured] = useState(false)
   const [loading, setLoading] = useState(true)
-  useEffect(() => {
-    apiFetch<{ connected: boolean }>('/api/todoist/status')
-      .then((d) => setConnected(d.connected))
+
+  const refresh = () => {
+    apiFetch<{ connected: boolean; configured: boolean }>('/api/todoist/status')
+      .then((d) => { setConnected(d.connected); setConfigured(d.configured) })
       .catch(() => {})
       .finally(() => setLoading(false))
-  }, [])
-  return { connected, loading }
+  }
+
+  useEffect(() => { refresh() }, [])
+  return { connected, configured, loading, refresh }
 }
 
 function TodoistCard() {
-  const { connected, loading } = useTodoistStatus()
-  const [expanded, setExpanded] = useState(false)
-  const [apiKey, setApiKey] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [isConnected, setIsConnected] = useState(false)
+  const { connected, configured, refresh } = useTodoistStatus()
 
-  useEffect(() => { setIsConnected(connected) }, [connected])
-
-  async function save() {
-    if (!apiKey.trim()) return
-    setSaving(true)
-    try {
-      await apiFetch('/api/credentials/todoist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: apiKey.trim() }),
-      })
-      setApiKey('')
-      setExpanded(false)
-      setIsConnected(true)
-    } finally {
-      setSaving(false)
-    }
+  function openPopup() {
+    apiFetch<{ url: string }>('/api/todoist/connect', { method: 'POST' }).then(({ url }) => {
+      const popup = window.open(url, 'todoist-auth', 'width=500,height=620,left=200,top=100')
+      const onMessage = (e: MessageEvent) => {
+        if (e.data?.type === 'todoist-connected') {
+          refresh()
+          window.removeEventListener('message', onMessage)
+          popup?.close()
+        }
+      }
+      window.addEventListener('message', onMessage)
+    })
   }
 
   async function disconnect() {
-    await apiFetch('/api/credentials/todoist', { method: 'DELETE' })
-    setIsConnected(false)
+    await apiFetch('/api/todoist/disconnect', { method: 'POST' })
+    refresh()
   }
 
   return (
     <AppCard
       icon="CheckCircle" name="Todoist"
       description="View and manage your Todoist tasks on the whiteboard."
-      connected={isConnected}
-      actionLabel={isConnected ? 'Disconnect' : expanded ? undefined : 'Set up'}
-      onAction={isConnected ? disconnect : () => setExpanded(true)}
-    >
-      {expanded && !isConnected && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ fontSize: 12, color: 'var(--wt-text-muted)', lineHeight: 1.5 }}>
-            Get your API token from{' '}
-            <a href="https://todoist.com/app/settings/integrations/developer" target="_blank" rel="noopener noreferrer"
-              style={{ color: 'var(--wt-accent)', textDecoration: 'underline' }}>
-              Todoist Developer Settings
-            </a>
-          </div>
-          <Input
-            label="API Token"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            type="password"
-            placeholder="Your Todoist API token"
-          />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="accent" size="sm" disabled={!apiKey.trim() || saving} onClick={save} fullWidth>
-              {saving ? 'Saving...' : 'Connect'}
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => { setExpanded(false); setApiKey('') }}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
-    </AppCard>
+      connected={connected}
+      actionLabel={connected ? 'Disconnect' : configured ? 'Connect' : 'Not available'}
+      onAction={connected ? disconnect : configured ? openPopup : undefined}
+    />
   )
 }
 

@@ -14,6 +14,7 @@ declare global {
 const PUBLIC_PATHS = [
   '/gcal/callback',
   '/spotify/callback',
+  '/todoist/callback',
   '/health',
 ]
 
