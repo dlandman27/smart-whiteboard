@@ -399,11 +399,7 @@ export function SettingsBoardView() {
           <div style={{ maxWidth: 720, padding: '32px 40px' }}>
             {activeSection === 'appearance' && <AppearanceSection />}
             {activeSection === 'general'    && <GeneralSection />}
-<<<<<<< HEAD
             {activeSection === 'agents'     && <AgentsSection />}
-=======
-            {activeSection === 'agents'     && <AgentManager />}
->>>>>>> 3dedfda (feat: agent management UI + proactive toast notifications)
             {activeSection === 'account'    && <AccountSection />}
           </div>
         </div>

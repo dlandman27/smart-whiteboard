@@ -31,11 +31,8 @@ import { credentialsRouter }   from './routes/credentials.js'
 import { gphotosRouter }       from './routes/gphotos.js'
 import { rssRouter }           from './routes/rss.js'
 import { stocksRouter }        from './routes/stocks.js'
-<<<<<<< HEAD
 import { todoistRouter }       from './routes/todoist.js'
-=======
 import { icalRouter }          from './routes/ical.js'
->>>>>>> 77accfc (feat: add iCal feed widget for universal calendar integration)
 
 import { startAllCrons } from './crons/index.js'
 import rateLimit from 'express-rate-limit'
@@ -105,11 +102,8 @@ app.use('/api', credentialsRouter())
 app.use('/api', gphotosRouter())
 app.use('/api', rssRouter())
 app.use('/api', stocksRouter())
-<<<<<<< HEAD
 app.use('/api', todoistRouter())
-=======
 app.use('/api', icalRouter())
->>>>>>> 77accfc (feat: add iCal feed widget for universal calendar integration)
 
 // ── Agent scheduler ────────────────────────────────────────────────────────────
 

@@ -50,13 +50,10 @@ import { RSSWidget } from './RSSWidget'
 import { RSSSettings } from './RSSSettings'
 import { StockTickerWidget } from './StockTickerWidget'
 import { StockTickerSettings } from './StockTickerSettings'
-<<<<<<< HEAD
 import { TodoistWidget } from './TodoistWidget'
 import { TodoistSettings } from './TodoistSettings'
-=======
 import { ICalWidget } from './ICalWidget'
 import { ICalSettings } from './ICalSettings'
->>>>>>> 77accfc (feat: add iCal feed widget for universal calendar integration)
 
 export type { WidgetProps } from '@whiteboard/sdk'
 export type { WidgetTypeDef, WidgetVariantDef } from './types'
