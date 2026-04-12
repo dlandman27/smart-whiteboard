@@ -50,6 +50,8 @@ import { RSSWidget } from './RSSWidget'
 import { RSSSettings } from './RSSSettings'
 import { StockTickerWidget } from './StockTickerWidget'
 import { StockTickerSettings } from './StockTickerSettings'
+import { TodoistWidget } from './TodoistWidget'
+import { TodoistSettings } from './TodoistSettings'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 export type { WidgetTypeDef, WidgetVariantDef } from './types'
@@ -674,6 +676,24 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       constraints:       { minWidth: 320, minHeight: 200, maxWidth: 1400, maxHeight: 900 },
       component:         SplitWidget,
       settingsComponent: SplitSettings,
+    }],
+  },
+  {
+    typeId:      '@whiteboard/todoist',
+    label:       'Todoist',
+    Icon:        'CheckCircle',
+    iconColor:   '#e44332',
+    keywords:    ['todoist', 'tasks', 'todo', 'checklist', 'productivity'],
+    description: 'View and manage your Todoist tasks',
+    variants: [{
+      variantId:         'default',
+      label:             'Todoist',
+      description:       'View and manage your Todoist tasks',
+      shape:             WIDGET_SHAPES['tall-rect'],
+      scalable:          true,
+      constraints:       { minWidth: 240, minHeight: 280, maxWidth: 500, maxHeight: 700 },
+      component:         TodoistWidget,
+      settingsComponent: TodoistSettings,
     }],
   },
 ]

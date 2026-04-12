@@ -2,7 +2,7 @@ import { Router } from 'express'
 import { loadCredential, saveCredential, deleteCredential } from '../services/credentials.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
 
-const ALLOWED_SERVICES = new Set(['notion', 'gcal', 'spotify'])
+const ALLOWED_SERVICES = new Set(['notion', 'gcal', 'spotify', 'todoist'])
 
 export function credentialsRouter(): Router {
   const router = Router()

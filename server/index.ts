@@ -31,6 +31,7 @@ import { credentialsRouter }   from './routes/credentials.js'
 import { gphotosRouter }       from './routes/gphotos.js'
 import { rssRouter }           from './routes/rss.js'
 import { stocksRouter }        from './routes/stocks.js'
+import { todoistRouter }       from './routes/todoist.js'
 
 import { startAllCrons } from './crons/index.js'
 import rateLimit from 'express-rate-limit'
@@ -100,6 +101,7 @@ app.use('/api', credentialsRouter())
 app.use('/api', gphotosRouter())
 app.use('/api', rssRouter())
 app.use('/api', stocksRouter())
+app.use('/api', todoistRouter())
 
 // ── Agent scheduler ────────────────────────────────────────────────────────────
 

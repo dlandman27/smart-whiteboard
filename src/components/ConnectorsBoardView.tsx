@@ -40,6 +40,7 @@ const CONNECTORS: ConnectorDef[] = [
   { id: 'gcal',       name: 'Google Calendar', description: 'View and manage your calendar events on the whiteboard.',    icon: 'CalendarBlank',    category: 'apps' },
   { id: 'gtasks',     name: 'Google Tasks',    description: 'Sync your task lists and manage todos.',                     icon: 'CheckSquare',      category: 'apps' },
   { id: 'spotify',    name: 'Spotify',         description: 'Control playback and see what\'s currently playing.',        icon: 'MusicNote',        category: 'apps' },
+  { id: 'todoist',    name: 'Todoist',         description: 'View and manage your Todoist tasks on the whiteboard.',      icon: 'CheckCircle',      category: 'apps' },
   { id: 'notion',     name: 'Notion',          description: 'Read and write to your Notion databases.',                   icon: 'BookOpen',         category: 'services' },
   { id: 'anthropic',  name: 'Walli AI',        description: 'AI assistant powered by Anthropic.',                         icon: 'Robot',            category: 'services' },
   { id: 'elevenlabs', name: 'ElevenLabs',      description: 'Voice synthesis for Walli and daily briefings.',             icon: 'Microphone',       category: 'services' },
@@ -252,6 +253,89 @@ function SpotifyCard() {
   )
 }
 
+// ── Todoist ─────────────────────────────────────────────────────────────
+
+function useTodoistStatus() {
+  const [connected, setConnected] = useState(false)
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    apiFetch<{ connected: boolean }>('/api/todoist/status')
+      .then((d) => setConnected(d.connected))
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+  return { connected, loading }
+}
+
+function TodoistCard() {
+  const { connected, loading } = useTodoistStatus()
+  const [expanded, setExpanded] = useState(false)
+  const [apiKey, setApiKey] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [isConnected, setIsConnected] = useState(false)
+
+  useEffect(() => { setIsConnected(connected) }, [connected])
+
+  async function save() {
+    if (!apiKey.trim()) return
+    setSaving(true)
+    try {
+      await apiFetch('/api/credentials/todoist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: apiKey.trim() }),
+      })
+      setApiKey('')
+      setExpanded(false)
+      setIsConnected(true)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function disconnect() {
+    await apiFetch('/api/credentials/todoist', { method: 'DELETE' })
+    setIsConnected(false)
+  }
+
+  return (
+    <AppCard
+      icon="CheckCircle" name="Todoist"
+      description="View and manage your Todoist tasks on the whiteboard."
+      connected={isConnected}
+      actionLabel={isConnected ? 'Disconnect' : expanded ? undefined : 'Set up'}
+      onAction={isConnected ? disconnect : () => setExpanded(true)}
+    >
+      {expanded && !isConnected && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--wt-text-muted)', lineHeight: 1.5 }}>
+            Get your API token from{' '}
+            <a href="https://todoist.com/app/settings/integrations/developer" target="_blank" rel="noopener noreferrer"
+              style={{ color: 'var(--wt-accent)', textDecoration: 'underline' }}>
+              Todoist Developer Settings
+            </a>
+          </div>
+          <Input
+            label="API Token"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            type="password"
+            placeholder="Your Todoist API token"
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="accent" size="sm" disabled={!apiKey.trim() || saving} onClick={save} fullWidth>
+              {saving ? 'Saving...' : 'Connect'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => { setExpanded(false); setApiKey('') }}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </AppCard>
+  )
+}
+
 // ── Notion card ──────────────────────────────────────────────────────────────
 
 function NotionCard({ configured }: { configured: boolean }) {
@@ -360,6 +444,7 @@ export function ConnectorsBoardView() {
   const gcalStatus = useGCalStatus()
   const tasksStatus = useTasksStatus()
   const spotifyStatus = useSpotifyStatus()
+  const todoistStatus = useTodoistStatus()
 
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState<Category>('all')
@@ -369,6 +454,7 @@ export function ConnectorsBoardView() {
     gcal:       !!gcalStatus.data?.connected,
     gtasks:     !!tasksStatus.data?.connected,
     spotify:    !!spotifyStatus.data?.connected,
+    todoist:    todoistStatus.connected,
     notion:     s.notion,
     anthropic:  s.anthropic,
     elevenlabs: s.elevenlabs,
@@ -471,6 +557,7 @@ export function ConnectorsBoardView() {
                 if (c.id === 'gcal')    return <GCalCard key={c.id} googleOauth={s.googleOauth} />
                 if (c.id === 'gtasks')  return <GTasksCard key={c.id} googleOauth={s.googleOauth} />
                 if (c.id === 'spotify') return <SpotifyCard key={c.id} />
+                if (c.id === 'todoist') return <TodoistCard key={c.id} />
                 if (c.id === 'notion')  return <NotionCard key={c.id} configured={enabledMap[c.id]} />
                 return (
                   <ServiceCard
