@@ -13,6 +13,7 @@ declare global {
 // Paths that skip JWT verification (OAuth browser redirects, health checks)
 const PUBLIC_PATHS = [
   '/gcal/callback',
+  '/notion/callback',
   '/spotify/callback',
   '/todoist/callback',
   '/health',

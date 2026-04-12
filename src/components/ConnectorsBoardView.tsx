@@ -10,7 +10,7 @@ import { apiFetch } from '../lib/apiFetch'
 // ── Health services ──────────────────────────────────────────────────────────
 
 interface HealthServices {
-  notion: boolean; anthropic: boolean; elevenlabs: boolean
+  notion: boolean; notionOauth: boolean; anthropic: boolean; elevenlabs: boolean
   youtube: boolean; bing: boolean; googleOauth: boolean
 }
 
@@ -306,12 +306,55 @@ function TodoistCard() {
 
 // ── Notion card ──────────────────────────────────────────────────────────────
 
-function NotionCard({ configured }: { configured: boolean }) {
+function useNotionStatus() {
+  const [status, setStatus] = useState<{ connected: boolean; method: string | null; configured: boolean }>({
+    connected: false, method: null, configured: false,
+  })
+  const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  useEffect(() => {
+    apiFetch<{ connected: boolean; method: string | null; configured: boolean }>('/api/notion/status')
+      .then(setStatus)
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [refreshKey])
+
+  return { ...status, loading, refresh: () => setRefreshKey((k) => k + 1) }
+}
+
+function NotionCard({ notionOauth }: { notionOauth: boolean }) {
   const [expanded, setExpanded] = useState(false)
   const [apiKey, setApiKey] = useState('')
   const [saving, setSaving] = useState(false)
   const qc = useQueryClient()
+  const notionStatus = useNotionStatus()
+  const connected = notionStatus.connected
 
+  // OAuth connect
+  function openOAuthPopup() {
+    apiFetch<{ url: string }>('/api/notion/connect', { method: 'POST' }).then(({ url }) => {
+      const popup = window.open(url, 'notion-auth', 'width=500,height=700,left=200,top=100')
+      const onMessage = (e: MessageEvent) => {
+        if (e.data?.type === 'notion-connected') {
+          notionStatus.refresh()
+          qc.invalidateQueries({ queryKey: ['health'] })
+          window.removeEventListener('message', onMessage)
+          popup?.close()
+        }
+      }
+      window.addEventListener('message', onMessage)
+    })
+  }
+
+  // OAuth disconnect
+  async function disconnect() {
+    await apiFetch('/api/notion/disconnect', { method: 'POST' })
+    notionStatus.refresh()
+    qc.invalidateQueries({ queryKey: ['health'] })
+  }
+
+  // API key save (fallback method)
   async function save() {
     if (!apiKey.trim()) return
     setSaving(true)
@@ -323,22 +366,44 @@ function NotionCard({ configured }: { configured: boolean }) {
       })
       setApiKey('')
       setExpanded(false)
+      notionStatus.refresh()
       qc.invalidateQueries({ queryKey: ['health'] })
     } finally {
       setSaving(false)
     }
   }
 
+  // Determine action label and handler
+  const isOAuthConnected = notionStatus.method === 'oauth'
+
+  let actionLabel: string | undefined
+  let onAction: (() => void) | undefined
+
+  if (connected && isOAuthConnected) {
+    actionLabel = 'Disconnect'
+    onAction = disconnect
+  } else if (connected) {
+    // Connected via API key — offer to reconfigure or connect via OAuth
+    actionLabel = notionOauth ? 'Upgrade to OAuth' : 'Reconfigure'
+    onAction = notionOauth ? openOAuthPopup : () => setExpanded(true)
+  } else if (notionOauth) {
+    actionLabel = 'Connect'
+    onAction = openOAuthPopup
+  } else if (!expanded) {
+    actionLabel = 'Set up'
+    onAction = () => setExpanded(true)
+  }
+
   return (
     <AppCard
       icon="BookOpen" name="Notion"
       description="Read and write to your Notion databases."
-      connected={configured}
-      statusLabel={configured ? 'Active' : 'Not configured'}
-      actionLabel={configured ? 'Reconfigure' : expanded ? undefined : 'Set up'}
-      onAction={() => setExpanded(true)}
+      connected={connected}
+      statusLabel={connected ? (isOAuthConnected ? 'Connected' : 'Active (API key)') : 'Not connected'}
+      actionLabel={actionLabel}
+      onAction={onAction}
     >
-      {expanded && (
+      {expanded && !notionOauth && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ fontSize: 12, color: 'var(--wt-text-muted)', lineHeight: 1.5 }}>
             Get your API key from{' '}
@@ -406,7 +471,7 @@ function CategoryTab({ label, active, onClick }: { label: string; active: boolea
 export function ConnectorsBoardView() {
   const services = useHealthServices()
   const s = services ?? {
-    notion: false, anthropic: false, elevenlabs: false,
+    notion: false, notionOauth: false, anthropic: false, elevenlabs: false,
     youtube: false, bing: false, googleOauth: false,
   }
   const gcalStatus = useGCalStatus()
@@ -526,7 +591,7 @@ export function ConnectorsBoardView() {
                 if (c.id === 'gtasks')  return <GTasksCard key={c.id} googleOauth={s.googleOauth} />
                 if (c.id === 'spotify') return <SpotifyCard key={c.id} />
                 if (c.id === 'todoist') return <TodoistCard key={c.id} />
-                if (c.id === 'notion')  return <NotionCard key={c.id} configured={enabledMap[c.id]} />
+                if (c.id === 'notion')  return <NotionCard key={c.id} notionOauth={s.notionOauth} />
                 return (
                   <ServiceCard
                     key={c.id}

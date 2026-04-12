@@ -73,6 +73,7 @@ app.use('/api', rateLimit({
 // Stricter limit on auth-adjacent routes: 10 per minute
 app.use('/api/gcal/connect',       rateLimit({ windowMs: 60_000, max: 10 }))
 app.use('/api/todoist/connect',    rateLimit({ windowMs: 60_000, max: 10 }))
+app.use('/api/notion/connect',     rateLimit({ windowMs: 60_000, max: 10 }))
 app.use('/api/spotify/start-auth', rateLimit({ windowMs: 60_000, max: 10 }))
 app.use('/api/credentials',        rateLimit({ windowMs: 60_000, max: 20 }))
 
@@ -96,8 +97,8 @@ app.use('/api', gtasksRouter())
 app.use('/api', spotifyRouter())
 app.use('/api', sportsRouter())
 app.use('/api', youtubeRouter())
-app.use('/api', voiceRouter(notion))
-app.use('/api', briefingRouter(notion))
+app.use('/api', voiceRouter())
+app.use('/api', briefingRouter())
 app.use('/api', notificationsRouter())
 app.use('/api', miscRouter())
 app.use('/api', credentialsRouter())

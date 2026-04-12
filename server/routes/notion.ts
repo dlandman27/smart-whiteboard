@@ -1,22 +1,38 @@
 import { Router } from 'express'
 import { Client } from '@notionhq/client'
 import { loadCredential, saveCredential } from '../services/credentials.js'
+import { loadOAuthTokens, saveOAuthTokens, deleteOAuthTokens } from '../services/credentials.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
 
+const NOTION_CLIENT_ID     = process.env.NOTION_OAUTH_CLIENT_ID
+const NOTION_CLIENT_SECRET = process.env.NOTION_OAUTH_CLIENT_SECRET
+const NOTION_REDIRECT_URI  = process.env.NOTION_REDIRECT_URI ?? 'http://localhost:3001/api/notion/callback'
+
+// Short-lived map: OAuth state → userId (for callback)
+const pendingOAuth = new Map<string, string>()
+
 /**
- * Get a per-user Notion client. Tries user credentials first,
- * falls back to the global NOTION_API_KEY env var.
+ * Get a per-user Notion client.
+ * Priority: OAuth token → user API key credential → global NOTION_API_KEY env var.
  */
-async function getNotionClient(userId: string): Promise<Client | null> {
+export async function getNotionClient(userId: string): Promise<Client | null> {
+  // 1. Try user's OAuth token first
+  const tokens = await loadOAuthTokens(userId, 'notion')
+  if (tokens?.access_token) return new Client({ auth: tokens.access_token })
+
+  // 2. Try user's stored API key
   const cred = await loadCredential(userId, 'notion')
   if (cred?.api_key) return new Client({ auth: cred.api_key })
+
+  // 3. Fall back to global API key
   if (process.env.NOTION_API_KEY) return new Client({ auth: process.env.NOTION_API_KEY })
+
   return null
 }
 
 async function requireNotion(userId: string): Promise<Client> {
   const client = await getNotionClient(userId)
-  if (!client) throw new AppError(401, 'Notion not configured — add your API key in Connectors')
+  if (!client) throw new AppError(401, 'Notion not connected — connect via OAuth or add your API key in Connectors')
   return client
 }
 
@@ -32,13 +48,15 @@ export function notionRouter(): Router {
 
     const hasGlobalKey = !!process.env.NOTION_API_KEY
     const userCred = await loadCredential(req.userId, 'notion')
-    const notionConfigured = hasGlobalKey || !!userCred?.api_key
+    const userOAuth = await loadOAuthTokens(req.userId, 'notion')
+    const notionConfigured = hasGlobalKey || !!userCred?.api_key || !!userOAuth?.access_token
 
     res.json({
       ok:         true,
       configured: notionConfigured,
       services: {
         notion:      notionConfigured,
+        notionOauth: !!(NOTION_CLIENT_ID && NOTION_CLIENT_SECRET),
         anthropic:   !!process.env.ANTHROPIC_API_KEY,
         elevenlabs:  !!process.env.ELEVENLABS_API_KEY,
         youtube:     !!process.env.YOUTUBE_API_KEY,
@@ -46,6 +64,114 @@ export function notionRouter(): Router {
         googleOauth: !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
       },
     })
+  }))
+
+  // ── Notion OAuth status ──────────────────────────────────────────────────
+
+  router.get('/notion/status', asyncRoute(async (req, res) => {
+    const oauthTokens = await loadOAuthTokens(req.userId!, 'notion')
+    const userCred    = await loadCredential(req.userId!, 'notion')
+    const hasOAuth    = !!oauthTokens?.access_token
+    const hasApiKey   = !!userCred?.api_key || !!process.env.NOTION_API_KEY
+    res.json({
+      connected:  hasOAuth || hasApiKey,
+      method:     hasOAuth ? 'oauth' : hasApiKey ? 'api_key' : null,
+      configured: !!(NOTION_CLIENT_ID && NOTION_CLIENT_SECRET),
+      workspace_name: oauthTokens?.refresh_token ?? null,  // we store workspace_name in refresh_token field
+    })
+  }))
+
+  // ── Connect (start OAuth) ─────────────────────────────────────────────────
+
+  router.post('/notion/connect', (req, res) => {
+    if (!NOTION_CLIENT_ID || !NOTION_CLIENT_SECRET) {
+      throw new AppError(500, 'Notion OAuth credentials not configured on the server. Set NOTION_OAUTH_CLIENT_ID and NOTION_OAUTH_CLIENT_SECRET in .env')
+    }
+    const state = crypto.randomUUID()
+    pendingOAuth.set(state, req.userId!)
+    // Clean up after 10 minutes
+    setTimeout(() => pendingOAuth.delete(state), 10 * 60_000)
+
+    const url = `https://api.notion.com/v1/oauth/authorize?client_id=${encodeURIComponent(NOTION_CLIENT_ID)}&response_type=code&owner=user&redirect_uri=${encodeURIComponent(NOTION_REDIRECT_URI)}&state=${state}`
+    res.json({ url })
+  })
+
+  // ── OAuth callback ────────────────────────────────────────────────────────
+
+  router.get('/notion/callback', asyncRoute(async (req, res) => {
+    if (!NOTION_CLIENT_ID || !NOTION_CLIENT_SECRET) {
+      throw new AppError(500, 'Notion OAuth credentials not configured')
+    }
+    if (req.query.error) {
+      throw new AppError(400, `Notion OAuth error: ${req.query.error}`)
+    }
+
+    const state  = req.query.state as string
+    const userId = pendingOAuth.get(state)
+    if (!userId) {
+      throw new AppError(400, 'Invalid or expired OAuth state. Please try connecting again.')
+    }
+    pendingOAuth.delete(state)
+
+    const code = req.query.code as string
+    const basicAuth = Buffer.from(`${NOTION_CLIENT_ID}:${NOTION_CLIENT_SECRET}`).toString('base64')
+
+    let tokenData: any
+    try {
+      const resp = await fetch('https://api.notion.com/v1/oauth/token', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+          'Content-Type':  'application/json',
+        },
+        body: JSON.stringify({
+          grant_type:   'authorization_code',
+          code,
+          redirect_uri: NOTION_REDIRECT_URI,
+        }),
+      })
+      tokenData = await resp.json()
+      if (!resp.ok) {
+        throw new Error(tokenData?.error ?? 'Token exchange failed')
+      }
+    } catch (e: any) {
+      throw new AppError(500, `Failed to exchange code: ${e?.message ?? 'unknown error'}`)
+    }
+
+    await saveOAuthTokens(userId, 'notion', {
+      access_token:  tokenData.access_token,
+      // Store workspace_name in refresh_token field (Notion tokens are permanent, no refresh needed)
+      refresh_token: tokenData.workspace_name ?? undefined,
+    })
+
+    const workspaceName = tokenData.workspace_name ?? 'Notion'
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head><title>Connected</title></head>
+        <body style="font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#f0fdf4;color:#166534">
+          <div style="text-align:center;padding:32px">
+            <div style="font-size:52px;margin-bottom:12px">&#10003;</div>
+            <h2 style="margin:0 0 8px;font-size:20px">Notion connected!</h2>
+            <p style="margin:0;color:#555;font-size:14px">Workspace: ${workspaceName}</p>
+            <p style="margin:8px 0 0;color:#555;font-size:14px">You can close this window.</p>
+          </div>
+          <script>
+            if (window.opener) {
+              window.opener.postMessage({ type: 'notion-connected' }, window.location.origin)
+              setTimeout(() => window.close(), 800)
+            }
+          </script>
+        </body>
+      </html>
+    `)
+  }))
+
+  // ── Disconnect ────────────────────────────────────────────────────────────
+
+  router.post('/notion/disconnect', asyncRoute(async (req, res) => {
+    await deleteOAuthTokens(req.userId!, 'notion')
+    res.json({ ok: true })
   }))
 
   router.get('/databases', asyncRoute(async (req, res) => {

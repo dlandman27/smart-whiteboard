@@ -1,13 +1,15 @@
 import { Router } from 'express'
-import type { Client } from '@notionhq/client'
+import { Client } from '@notionhq/client'
 import { compileBriefing } from '../services/briefing.js'
 import { loadTokens, saveTokens } from '../services/tokens.js'
 import { asyncRoute } from '../middleware/error.js'
+import { getNotionClient } from './notion.js'
 
-export function briefingRouter(notion: Client): Router {
+export function briefingRouter(): Router {
   const router = Router()
 
-  router.get('/briefing', asyncRoute(async (_req, res) => {
+  router.get('/briefing', asyncRoute(async (req, res) => {
+    const notion = await getNotionClient(req.userId!) ?? new Client({ auth: 'noop' })
     const text = await compileBriefing(notion)
     res.json({ text })
   }))

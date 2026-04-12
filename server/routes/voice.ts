@@ -1,11 +1,12 @@
 import { Router } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
-import type { Client } from '@notionhq/client'
+import { Client } from '@notionhq/client'
 import { VOICE_TOOLS, executeVoiceTool } from '../services/voice-tools/registry.js'
 import { loadMemory, memoryToPrompt } from '../services/memory.js'
 import { getBoardSnapshot } from '../services/board-utils.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
 import { normalizeTtsText } from '../services/tts-normalize.js'
+import { getNotionClient } from './notion.js'
 
 // ── Domain classifier ─────────────────────────────────────────────────────────
 
@@ -59,7 +60,7 @@ async function routeToWalli(text: string, domain: AgentDomain): Promise<string> 
   return data.response
 }
 
-export function voiceRouter(notion: Client): Router {
+export function voiceRouter(): Router {
   const router = Router()
 
   router.post('/voice', asyncRoute(async (req, res) => {
@@ -133,6 +134,7 @@ export function voiceRouter(notion: Client): Router {
         const toolResults: Anthropic.ToolResultBlockParam[] = []
         for (const block of response.content) {
           if (block.type === 'tool_use') {
+            const notion = await getNotionClient(req.userId!) ?? new Client({ auth: 'noop' })
             const result = await executeVoiceTool(block.name, block.input as Record<string, any>, notion)
             toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result })
           }
