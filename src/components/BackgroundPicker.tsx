@@ -1,6 +1,7 @@
-import React, { useRef } from 'react'
+import React, { useRef, useState, useEffect, useCallback } from 'react'
 import { BACKGROUNDS, type Background, type BackgroundPattern } from '../constants/backgrounds'
 import { Icon } from '@whiteboard/ui-kit'
+import { apiFetch } from '../lib/apiFetch'
 
 const PATTERN_LABELS: Record<BackgroundPattern, string> = {
   dots:     'Dots',
@@ -9,9 +10,10 @@ const PATTERN_LABELS: Record<BackgroundPattern, string> = {
   solid:    'Solid',
   gradient: 'Gradient',
   image:    'Image',
+  photos:   'Photos',
 }
 
-const PATTERNS: BackgroundPattern[] = ['dots', 'lines', 'grid', 'solid', 'gradient', 'image']
+const PATTERNS: BackgroundPattern[] = ['dots', 'lines', 'grid', 'solid', 'gradient', 'image', 'photos']
 
 function PatternIcon({ pattern }: { pattern: BackgroundPattern }) {
   const s       = { stroke: 'var(--wt-text)', strokeWidth: 1.2, fill: 'none' } as React.SVGProps<SVGLineElement>
@@ -58,6 +60,8 @@ function PatternIcon({ pattern }: { pattern: BackgroundPattern }) {
       )
     case 'image':
       return <Icon icon="Image" size={14} />
+    case 'photos':
+      return <Icon icon="Camera" size={14} />
   }
 }
 
@@ -241,6 +245,165 @@ function ImageSection({ background, onSelect }: { background: Background; onSele
   )
 }
 
+// ── Photos background section ─────────────────────────────────────────────
+
+interface Album { id: string; title: string; coverPhotoBaseUrl?: string; mediaItemsCount?: string }
+interface PhotoItem { id: string; baseUrl: string }
+
+function PhotosBackgroundSection({ background, onSelect }: { background: Background; onSelect: (b: Background) => void }) {
+  const [connected, setConnected] = useState<boolean | null>(null)
+  const [albums, setAlbums]       = useState<Album[]>([])
+  const [preview, setPreview]     = useState<string | null>(null)
+
+  const albumId   = background.albumId ?? ''
+  const interval  = background.photoInterval ?? 30
+  const dimValue  = background.imageDim ?? 0
+
+  // Check Google Photos connection
+  useEffect(() => {
+    apiFetch<{ connected: boolean }>('/api/gphotos/status')
+      .then((d) => setConnected(d?.connected ?? false))
+      .catch(() => setConnected(false))
+  }, [])
+
+  // Fetch albums
+  useEffect(() => {
+    if (!connected) return
+    apiFetch<{ albums: Album[] }>('/api/gphotos/albums')
+      .then((d) => { if (d?.albums) setAlbums(d.albums) })
+      .catch(() => {})
+  }, [connected])
+
+  // Fetch first photo for preview
+  const fetchPreview = useCallback(async () => {
+    if (!connected) return
+    try {
+      const params = new URLSearchParams({ pageSize: '1' })
+      if (albumId) params.set('albumId', albumId)
+      const data = await apiFetch<{ items: PhotoItem[] }>(`/api/gphotos/photos?${params}`)
+      if (data?.items?.[0]) {
+        setPreview(`${data.items[0].baseUrl}=w400-h200`)
+      } else {
+        setPreview(null)
+      }
+    } catch {
+      setPreview(null)
+    }
+  }, [connected, albumId])
+
+  useEffect(() => { fetchPreview() }, [fetchPreview])
+
+  function update(patch: Partial<Background>) {
+    onSelect({
+      label: 'Google Photos', bg: '#0a0a0a', dot: '#0a0a0a', pattern: 'photos',
+      albumId, photoInterval: interval, imageDim: dimValue,
+      ...patch,
+    })
+  }
+
+  // Loading
+  if (connected === null) {
+    return (
+      <p className="text-xs text-center py-6 animate-pulse" style={{ color: 'var(--wt-text-muted)' }}>
+        Checking Google Photos connection...
+      </p>
+    )
+  }
+
+  // Not connected
+  if (!connected) {
+    return (
+      <div className="flex flex-col items-center gap-2 py-6">
+        <Icon icon="Camera" size={28} style={{ color: 'var(--wt-text-muted)', opacity: 0.5 }} />
+        <p className="text-xs text-center" style={{ color: 'var(--wt-text-muted)' }}>
+          Connect your Google account to use photo wallpapers
+        </p>
+        <p className="text-[10px] text-center" style={{ color: 'var(--wt-text-muted)', opacity: 0.6 }}>
+          Go to Connectors to set up Google Photos
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      {/* Album picker */}
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'var(--wt-text-muted)' }}>
+          Album
+        </p>
+        <select
+          className="wt-input w-full rounded-lg px-3 text-xs"
+          style={{ height: 34, color: 'var(--wt-text)', background: 'var(--wt-surface)', border: '1px solid var(--wt-border)' }}
+          value={albumId}
+          onChange={(e) => update({ albumId: e.target.value || undefined })}
+        >
+          <option value="">All recent photos</option>
+          {albums.map((a) => (
+            <option key={a.id} value={a.id}>{a.title}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Preview */}
+      {preview && (
+        <div className="w-full rounded-xl overflow-hidden relative" style={{ height: 80 }}>
+          <img
+            src={preview}
+            alt="Album preview"
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          {dimValue > 0 && (
+            <div style={{ position: 'absolute', inset: 0, background: `rgba(0,0,0,${dimValue})` }} />
+          )}
+        </div>
+      )}
+
+      {/* Interval slider */}
+      <div>
+        <p className="text-[10px] font-semibold uppercase tracking-widest mb-1.5" style={{ color: 'var(--wt-text-muted)' }}>
+          Rotate every
+        </p>
+        <div className="flex items-center gap-2">
+          <input
+            type="range"
+            min={10}
+            max={120}
+            step={5}
+            value={interval}
+            onChange={(e) => update({ photoInterval: parseInt(e.target.value) })}
+            className="flex-1"
+            style={{ accentColor: 'var(--wt-accent)', height: 3 }}
+          />
+          <span className="text-[10px] w-8 text-right flex-shrink-0" style={{ color: 'var(--wt-text-muted)' }}>
+            {interval}s
+          </span>
+        </div>
+      </div>
+
+      {/* Dim slider */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-widest w-8 flex-shrink-0" style={{ color: 'var(--wt-text-muted)' }}>
+          Dim
+        </span>
+        <input
+          type="range"
+          min={0}
+          max={0.8}
+          step={0.05}
+          value={dimValue}
+          onChange={(e) => update({ imageDim: parseFloat(e.target.value) })}
+          className="flex-1"
+          style={{ accentColor: 'var(--wt-accent)', height: 3 }}
+        />
+        <span className="text-[10px] w-8 text-right flex-shrink-0" style={{ color: 'var(--wt-text-muted)' }}>
+          {Math.round(dimValue * 100)}%
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export function BackgroundPicker({ background, onSelect }: { background: Background; onSelect: (b: Background) => void }) {
   const activePattern = background.pattern ?? 'dots'
 
@@ -258,6 +421,8 @@ export function BackgroundPicker({ background, onSelect }: { background: Backgro
             onClick={() => {
               if (p === 'image') {
                 onSelect({ label: 'Custom Image', bg: '#000', dot: '#000', pattern: 'image', imageUrl: background.imageUrl ?? '', imageDim: background.imageDim ?? 0 })
+              } else if (p === 'photos') {
+                onSelect({ label: 'Google Photos', bg: '#0a0a0a', dot: '#0a0a0a', pattern: 'photos', albumId: background.albumId, photoInterval: background.photoInterval ?? 30, imageDim: background.imageDim ?? 0 })
               } else {
                 const first = BACKGROUNDS.find((b) => (b.pattern ?? 'dots') === p)
                 if (first) onSelect(first)
@@ -279,14 +444,17 @@ export function BackgroundPicker({ background, onSelect }: { background: Backgro
       {/* Image controls */}
       {activePattern === 'image' && <ImageSection background={background} onSelect={onSelect} />}
 
+      {/* Photos controls */}
+      {activePattern === 'photos' && <PhotosBackgroundSection background={background} onSelect={onSelect} />}
+
       {/* Swatches for non-image patterns */}
-      {activePattern !== 'image' && lightBgs.length > 0 && (
+      {activePattern !== 'image' && activePattern !== 'photos' && lightBgs.length > 0 && (
         <SwatchGroup title="Light" backgrounds={lightBgs} active={background} onSelect={onSelect} />
       )}
-      {activePattern !== 'image' && darkBgs.length > 0 && (
+      {activePattern !== 'image' && activePattern !== 'photos' && darkBgs.length > 0 && (
         <SwatchGroup title="Dark" backgrounds={darkBgs} active={background} onSelect={onSelect} />
       )}
-      {activePattern !== 'image' && lightBgs.length === 0 && darkBgs.length === 0 && filtered.length > 0 && (
+      {activePattern !== 'image' && activePattern !== 'photos' && lightBgs.length === 0 && darkBgs.length === 0 && filtered.length > 0 && (
         <SwatchGroup title="Presets" backgrounds={filtered} active={background} onSelect={onSelect} />
       )}
     </div>

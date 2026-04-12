@@ -61,7 +61,8 @@
       "Bash(npx vitest:*)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); deps={**d.get\\('dependencies',{}\\),**d.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in sorted\\(deps.items\\(\\)\\)]\")",
       "Bash(git -C /Users/dylanlandman/Documents/projects/personal/smart-whiteboard ls-files --error-unmatch .env)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "Bash(git cherry-pick:*)"
     ]
   }
 }

@@ -1,4 +1,4 @@
-export type BackgroundPattern = 'dots' | 'lines' | 'grid' | 'solid' | 'gradient' | 'image'
+export type BackgroundPattern = 'dots' | 'lines' | 'grid' | 'solid' | 'gradient' | 'image' | 'photos'
 
 export interface Background {
   label:         string
@@ -8,6 +8,8 @@ export interface Background {
   gradientTo?:   string             // used when pattern === 'gradient'
   imageUrl?:     string             // used when pattern === 'image'
   imageDim?:     number             // 0–1 dark overlay opacity, default 0
+  albumId?:      string             // used when pattern === 'photos'
+  photoInterval?: number            // seconds between transitions, default 30
 }
 
 export const BACKGROUNDS: Background[] = [
