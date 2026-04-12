@@ -232,8 +232,6 @@ function BriefingSection() {
 function GeneralSection() {
   return (
     <FlexCol style={{ gap: 32 }}>
-      <PetsSection />
-      <Box style={{ height: 1, background: 'var(--wt-border)' }} />
       <BriefingSection />
       <Box style={{ height: 1, background: 'var(--wt-border)' }} />
       <div>
@@ -246,13 +244,22 @@ function GeneralSection() {
   )
 }
 
+function AgentsSection() {
+  return (
+    <FlexCol style={{ gap: 32 }}>
+      <PetsSection />
+    </FlexCol>
+  )
+}
+
 // ── Nav sections ──────────────────────────────────────────────────────────────
 
-type Section = 'appearance' | 'general' | 'account'
+type Section = 'appearance' | 'general' | 'agents' | 'account'
 
 const SECTIONS: { id: Section; label: string; icon: string }[] = [
   { id: 'appearance', label: 'Appearance', icon: 'Palette' },
   { id: 'general',    label: 'General',    icon: 'SlidersHorizontal' },
+  { id: 'agents',     label: 'Agents',     icon: 'Robot' },
   { id: 'account',    label: 'Account',    icon: 'User' },
 ]
 
@@ -324,7 +331,7 @@ export function SettingsBoardView() {
       </div>
 
       {/* Body: left nav + content */}
-      <FlexRow style={{ flex: 1, minHeight: 0 }}>
+      <FlexRow style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
         {/* Left nav */}
         <div
           className="flex-shrink-0 flex flex-col pt-5 pb-4 px-2 gap-0.5"
@@ -383,13 +390,14 @@ export function SettingsBoardView() {
         </div>
 
         {/* Content */}
-        <ScrollArea style={{ flex: 1 }}>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           <div style={{ maxWidth: 720, padding: '32px 40px' }}>
             {activeSection === 'appearance' && <AppearanceSection />}
             {activeSection === 'general'    && <GeneralSection />}
+            {activeSection === 'agents'     && <AgentsSection />}
             {activeSection === 'account'    && <AccountSection />}
           </div>
-        </ScrollArea>
+        </div>
       </FlexRow>
     </div>
   )
