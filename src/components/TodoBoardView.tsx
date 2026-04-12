@@ -351,7 +351,7 @@ function ListSection({
 
 export function TodoBoardView() {
   const qc = useQueryClient()
-  const { data: status } = useTasksStatus()
+  const { data: status, isLoading: statusLoading } = useTasksStatus()
   const { data: listsData } = useTaskLists()
   const connected = !!status?.connected
 
@@ -392,6 +392,16 @@ export function TodoBoardView() {
     setTimeout(() => setSpinning(false), 600)
   }
 
+  if (statusLoading) return (
+    <Center style={{ position: 'absolute', inset: 0 }}>
+      <div style={{
+        width: 20, height: 20, borderRadius: '50%',
+        border: '2px solid var(--wt-border)', borderTopColor: 'var(--wt-accent)',
+        animation: 'spin 0.8s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </Center>
+  )
   if (!connected) return <ConnectPrompt />
 
   return (

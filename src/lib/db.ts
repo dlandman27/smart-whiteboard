@@ -2,6 +2,21 @@ import type { WidgetLayout, LayoutSlot } from '../types'
 import type { Board, WidgetStyle } from '../store/whiteboard'
 import type { Background } from '../constants/backgrounds'
 import { supabase } from './supabase'
+import { useNotificationStore } from '../store/notifications'
+
+// Debounce error notifications to avoid flooding on rapid failures
+let lastErrorTime = 0
+function notifyError(label: string, error: any) {
+  console.error(`${label}:`, error)
+  const now = Date.now()
+  if (now - lastErrorTime < 5000) return // max one error toast per 5s
+  lastErrorTime = now
+  useNotificationStore.getState().addNotification({
+    title: 'Sync error',
+    body:  `Failed to save ${label.replace(/^(upsert|delete)/, '').toLowerCase()}. Changes may not persist.`,
+    type:  'error',
+  })
+}
 
 // ── Board helpers ────────────────────────────────────────────────────────────
 
@@ -81,12 +96,12 @@ export async function upsertBoard(board: Board, userId: string, ord: number): Pr
     widget_style: board.widgetStyle ?? null,
     ord,
   })
-  if (error) console.error('upsertBoard:', error)
+  if (error) notifyError('upsertBoard', error)
 }
 
 export async function deleteBoard(boardId: string): Promise<void> {
   const { error } = await supabase.from('boards').delete().eq('id', boardId)
-  if (error) console.error('deleteBoard:', error)
+  if (error) notifyError('deleteBoard', error)
 }
 
 export async function upsertWidget(widget: WidgetLayout, boardId: string, userId: string): Promise<void> {
@@ -106,12 +121,12 @@ export async function upsertWidget(widget: WidgetLayout, boardId: string, userId
     height:         Math.round(widget.height),
     slot_id:        widget.slotId ?? null,
   })
-  if (error) console.error('upsertWidget:', error)
+  if (error) notifyError('upsertWidget', error)
 }
 
 export async function deleteWidget(widgetId: string): Promise<void> {
   const { error } = await supabase.from('widgets').delete().eq('id', widgetId)
-  if (error) console.error('deleteWidget:', error)
+  if (error) notifyError('deleteWidget', error)
 }
 
 // ── Theme ────────────────────────────────────────────────────────────────────
@@ -150,7 +165,7 @@ export async function upsertTheme(userId: string, theme: ThemeRow): Promise<void
     background:       theme.background,
     pets_enabled:     theme.petsEnabled,
   })
-  if (error) console.error('upsertTheme:', error)
+  if (error) notifyError('upsertTheme', error)
 }
 
 // ── Drawings ─────────────────────────────────────────────────────────────────
@@ -172,5 +187,5 @@ export async function upsertDrawing(boardId: string, userId: string, dataUrl: st
     user_id:  userId,
     data_url: dataUrl,
   })
-  if (error) console.error('upsertDrawing:', error)
+  if (error) notifyError('upsertDrawing', error)
 }

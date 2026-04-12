@@ -914,7 +914,7 @@ export function CalendarBoardView() {
   const calendarId  = (activeBoard as any)?.calendarId ?? 'primary'
 
   const qc = useQueryClient()
-  const { data: gcalStatus }   = useGCalStatus()
+  const { data: gcalStatus, isLoading: statusLoading } = useGCalStatus()
   const { data: calData }      = useGCalCalendars()
   const connected              = !!gcalStatus?.connected
   const calendars: GCalCalendar[] = calData?.items ?? []
@@ -1008,6 +1008,16 @@ export function CalendarBoardView() {
     return calendars.find(c => c.id === ev._calendarId)?.summary ?? ''
   }
 
+  if (statusLoading) return (
+    <Center className="absolute inset-0">
+      <div style={{
+        width: 20, height: 20, borderRadius: '50%',
+        border: '2px solid var(--wt-border)', borderTopColor: 'var(--wt-accent)',
+        animation: 'spin 0.8s linear infinite',
+      }} />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </Center>
+  )
   if (!connected) return <ConnectPrompt />
 
   return (
