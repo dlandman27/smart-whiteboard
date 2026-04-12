@@ -50,8 +50,13 @@ import { RSSWidget } from './RSSWidget'
 import { RSSSettings } from './RSSSettings'
 import { StockTickerWidget } from './StockTickerWidget'
 import { StockTickerSettings } from './StockTickerSettings'
+<<<<<<< HEAD
 import { TodoistWidget } from './TodoistWidget'
 import { TodoistSettings } from './TodoistSettings'
+=======
+import { ICalWidget } from './ICalWidget'
+import { ICalSettings } from './ICalSettings'
+>>>>>>> 77accfc (feat: add iCal feed widget for universal calendar integration)
 
 export type { WidgetProps } from '@whiteboard/sdk'
 export type { WidgetTypeDef, WidgetVariantDef } from './types'
@@ -641,6 +646,24 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       constraints:       { minWidth: 240, minHeight: 260, maxWidth: 600, maxHeight: 800 },
       component:         RSSWidget,
       settingsComponent: RSSSettings,
+    }],
+  },
+  {
+    typeId:      '@whiteboard/ical',
+    label:       'Calendar Feed',
+    Icon:        'CalendarBlank',
+    iconColor:   '#0078d4',
+    keywords:    ['ical', 'calendar', 'outlook', 'apple', 'ics', 'feed', 'events', 'schedule'],
+    description: 'Display events from any iCal/ICS calendar feed',
+    variants: [{
+      variantId:         'default',
+      label:             'Agenda',
+      description:       'Upcoming events from an iCal feed',
+      shape:             WIDGET_SHAPES['tall-rect'],
+      scalable:          true,
+      constraints:       { minWidth: 240, minHeight: 260, maxWidth: 500, maxHeight: 800 },
+      component:         ICalWidget,
+      settingsComponent: ICalSettings,
     }],
   },
   {
