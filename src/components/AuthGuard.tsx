@@ -83,10 +83,8 @@ function LoadingSkeleton() {
  * Returns true when the user has no real content — only system boards exist
  * and no user board has any widgets. This indicates a brand-new account.
  */
-function isFirstRun(boards: ReturnType<typeof useWhiteboardStore.getState>['boards']): boolean {
-  const userBoards = boards.filter((b) => !b.boardType)
-  // No user boards at all, or all user boards are empty
-  return userBoards.every((b) => b.widgets.length === 0)
+function isFirstRun(): boolean {
+  return !localStorage.getItem('onboarding-complete')
 }
 
 export function AuthGuard({ children }: Props) {
@@ -123,6 +121,7 @@ export function AuthGuard({ children }: Props) {
         stopBoardSync()
         stopThemeSync()
         stopRealtimeSync()
+        localStorage.removeItem('onboarding-complete')
         setTemplatePickerDismissed(false)
       }
     })
@@ -132,7 +131,7 @@ export function AuthGuard({ children }: Props) {
 
   // Check for first-run after loading completes
   useEffect(() => {
-    if (!isLoading && session && !templatePickerDismissed && isFirstRun(boards)) {
+    if (!isLoading && session && !templatePickerDismissed && isFirstRun()) {
       setShowTemplatePicker(true)
     }
   }, [isLoading, session, boards, templatePickerDismissed])
@@ -145,6 +144,7 @@ export function AuthGuard({ children }: Props) {
     return (
       <TemplatePicker
         onComplete={() => {
+          localStorage.setItem('onboarding-complete', '1')
           setShowTemplatePicker(false)
           setTemplatePickerDismissed(true)
         }}

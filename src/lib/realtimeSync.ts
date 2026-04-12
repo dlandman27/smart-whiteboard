@@ -8,6 +8,10 @@ let channel: RealtimeChannel | null = null
 const recentlyTouched = new Map<string, number>() // id → timestamp
 const TOUCH_TTL = 2000 // ignore remote updates for 2s after local change
 
+// Permanently track deleted board IDs to prevent Realtime from re-inserting them
+const deletedBoardIds = new Set<string>()
+export function markBoardDeleted(id: string) { deletedBoardIds.add(id) }
+
 export function touchId(id: string) {
   recentlyTouched.set(id, Date.now())
 }
@@ -29,13 +33,11 @@ function isRecentlyTouched(id: string): boolean {
 export function startRealtimeSync(userId: string) {
   stopRealtimeSync()
 
+  // Realtime disabled for boards — single-user app, sync subscriber handles everything.
+  // Board Realtime was causing deleted boards to reappear due to Supabase event log replay.
+  // Re-enable when multi-user collaboration is implemented.
   channel = supabase
     .channel('board-sync')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'boards', filter: `user_id=eq.${userId}` },
-      (payload) => handleBoardChange(payload)
-    )
     .on(
       'postgres_changes',
       { event: '*', schema: 'public', table: 'widgets', filter: `user_id=eq.${userId}` },
@@ -56,6 +58,7 @@ function handleBoardChange(payload: any) {
   const store = useWhiteboardStore
 
   if (eventType === 'DELETE' && oldRow?.id) {
+    deletedBoardIds.add(oldRow.id)
     if (isRecentlyTouched(oldRow.id)) return
     store.setState((s) => ({
       boards: s.boards.filter((b) => b.id !== oldRow.id),
@@ -64,24 +67,7 @@ function handleBoardChange(payload: any) {
   }
 
   if (eventType === 'INSERT' && newRow) {
-    if (isRecentlyTouched(newRow.id)) return
-    const board = {
-      id:          newRow.id,
-      name:        newRow.name,
-      layoutId:    newRow.layout_id,
-      boardType:   newRow.board_type ?? undefined,
-      calendarId:  newRow.calendar_id ?? undefined,
-      slotGap:     newRow.slot_gap ?? undefined,
-      slotPad:     newRow.slot_pad ?? undefined,
-      customSlots: newRow.custom_slots ?? undefined,
-      background:  newRow.background && Object.keys(newRow.background).length > 0 ? newRow.background : undefined,
-      widgetStyle: newRow.widget_style ?? undefined,
-      widgets:     [],
-    }
-    store.setState((s) => {
-      if (s.boards.some((b) => b.id === board.id)) return s
-      return { boards: [...s.boards, board] }
-    })
+    // Skip — boards are synced via syncBoards.ts. Realtime INSERT caused ghost boards in multi-tab.
     return
   }
 

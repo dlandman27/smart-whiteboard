@@ -1,24 +1,36 @@
 import { useWhiteboardStore, type Board } from '../store/whiteboard'
 import { upsertBoard, deleteBoard, upsertWidget, deleteWidget, upsertSchedule } from './db'
-import { touchId } from './realtimeSync'
+import { touchId, markBoardDeleted } from './realtimeSync'
 
 let unsub: (() => void) | null = null
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let scheduleDebounce: ReturnType<typeof setTimeout> | null = null
+const deletedBoardIds = new Set<string>()
+const createdThisSession = new Set<string>()
+const prevKnownIds = new Set<string>()
+
+export function markBoardCreated(id: string) { createdThisSession.add(id); prevKnownIds.add(id) }
 
 /**
  * Subscribe to whiteboard store changes and sync to Supabase.
  * Board add/remove/rename: immediate. Widget position: debounced 300ms.
  */
+let activeSyncUserId: string | null = null
+
 export function startBoardSync(userId: string) {
+  // Prevent double-init — if already syncing for this user, skip
+  if (activeSyncUserId === userId && unsub) return
   stopBoardSync()
+  activeSyncUserId = userId
 
   let prevBoards = useWhiteboardStore.getState().boards
   let prevSchedule = useWhiteboardStore.getState().schedule
 
+  // Track all boards from initial load as "known" — safe to upsert for ord changes
+  prevBoards.forEach(b => prevKnownIds.add(b.id))
+
   unsub = useWhiteboardStore.subscribe((state) => {
     const nextBoards = state.boards
-
     // Schedule sync (debounced)
     if (state.schedule !== prevSchedule) {
       prevSchedule = state.schedule
@@ -35,6 +47,8 @@ export function startBoardSync(userId: string) {
     // Deleted boards
     for (const b of prevBoards) {
       if (!nextIds.has(b.id)) {
+        deletedBoardIds.add(b.id)
+        markBoardDeleted(b.id)
         touchId(b.id)
         deleteBoard(b.id)
       }
@@ -46,7 +60,12 @@ export function startBoardSync(userId: string) {
       const prev = prevBoards.find(b => b.id === board.id)
 
       if (!prev) {
-        // New board — immediate upsert
+        // Skip system boards
+        if (board.boardType) continue
+        // Skip deleted boards
+        if (deletedBoardIds.has(board.id)) continue
+        // Only upsert boards we explicitly created this session
+        if (!createdThisSession.has(board.id)) continue
         touchId(board.id)
         upsertBoard(board, userId, i)
         for (const w of board.widgets) {
@@ -77,6 +96,7 @@ export function startBoardSync(userId: string) {
 export function stopBoardSync() {
   unsub?.()
   unsub = null
+  activeSyncUserId = null
   if (debounceTimer) {
     clearTimeout(debounceTimer)
     debounceTimer = null
@@ -160,6 +180,9 @@ function scheduleDebouncedSync(boards: Board[], userId: string) {
   if (debounceTimer) clearTimeout(debounceTimer)
   debounceTimer = setTimeout(() => {
     boards.forEach((board, i) => {
+      // Only upsert boards that are either system boards or were created this session
+      // Skip ghost boards that came from Realtime or stale state
+      if (!board.boardType && !createdThisSession.has(board.id) && !prevKnownIds.has(board.id)) return
       touchId(board.id)
       upsertBoard(board, userId, i)
     })

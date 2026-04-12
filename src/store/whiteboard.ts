@@ -5,6 +5,7 @@ import type { BoardSchedule } from '../constants/schedulePresets'
 import { DEFAULT_SCHEDULE } from '../constants/schedulePresets'
 import { DEFAULT_LAYOUT_ID } from '../layouts/presets'
 import { loadBoards, loadSchedule } from '../lib/db'
+import { markBoardCreated } from '../lib/syncBoards'
 
 export type WidgetStyle = 'solid' | 'glass' | 'borderless'
 
@@ -124,6 +125,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
 
     addBoard: (name, presetId) => {
       const id = presetId ?? crypto.randomUUID()
+      markBoardCreated(id)
       set((s) => ({
         boards:        [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
         activeBoardId: id,
@@ -293,3 +295,4 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     setActiveBoardManual: (id) => set({ activeBoardId: id, lastManualSwitch: Date.now() }),
   })
 )
+
