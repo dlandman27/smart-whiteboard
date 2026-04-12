@@ -20,7 +20,7 @@ export function useUnifiedTasks(visibleGroups?: Set<string>) {
     ],
     queryFn: async () => {
       const results = await Promise.allSettled(
-        providers.filter(p => p.isConnected()).map(p => p.fetchTasks()),
+        providers.map(p => p.fetchTasks()),
       )
 
       let tasks = results
@@ -54,7 +54,6 @@ export function useTaskGroups() {
     queryFn: async () => {
       const results = await Promise.allSettled(
         providers
-          .filter(p => p.isConnected())
           .map(async p => {
             const groups = await p.fetchGroups()
             return groups.map(g => ({

@@ -36,8 +36,9 @@ export function tasksRouter(): Router {
 
     if (error) throw new AppError(500, `Failed to fetch task lists: ${error.message}`)
 
-    const lists = [...new Set((data ?? []).map((r: any) => r.list_name))]
-    res.json(lists)
+    const names = [...new Set((data ?? []).map((r: any) => r.list_name))]
+    if (!names.includes('My Tasks')) names.unshift('My Tasks')
+    res.json(names)
   }))
 
   // ── Create task ────────────────────────────────────────────────────────
