@@ -4,6 +4,7 @@ import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID } from '../store/whiteboard'
 import { Logo } from './Logo'
+import { TemplatePicker } from './TemplatePicker'
 
 type AddStep = 'idle' | 'name-board'
 
@@ -18,6 +19,8 @@ export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false)
   const [addStep,   setAddStep]   = useState<AddStep>('idle')
   const [newName,   setNewName]   = useState('')
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [pendingBoardId, setPendingBoardId] = useState<string | null>(null)
 
   // System boards
   const settingsBoard   = boards.find((b) => b.boardType === 'settings')
@@ -43,9 +46,13 @@ export function Sidebar() {
 
   function handleAdd() {
     if (!newName.trim()) return
-    addBoard(newName.trim())
+    const id = crypto.randomUUID()
+    addBoard(newName.trim(), id)
+    setActiveBoard(id)
     setNewName('')
     setAddStep('idle')
+    setPendingBoardId(id)
+    setShowTemplatePicker(true)
   }
 
   return (
@@ -250,6 +257,16 @@ export function Sidebar() {
           onClick={toggleDisplayMode}
         />
       </div>
+
+      {showTemplatePicker && (
+        <TemplatePicker
+          boardId={pendingBoardId ?? undefined}
+          onComplete={() => {
+            setShowTemplatePicker(false)
+            setPendingBoardId(null)
+          }}
+        />
+      )}
     </div>
   )
 }

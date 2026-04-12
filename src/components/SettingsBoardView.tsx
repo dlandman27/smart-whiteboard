@@ -273,7 +273,8 @@ function AccountSection() {
   async function handleSignOut() {
     setSigningOut(true)
     await supabase.auth.signOut()
-    // AuthGuard will detect the sign-out and show LoginScreen
+    // Reset theme to default (Dracula) so login screen looks right
+    window.location.href = '/'
   }
 
   return (

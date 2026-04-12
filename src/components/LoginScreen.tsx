@@ -105,7 +105,7 @@ export function LoginScreen() {
           max-width: 400px;
           padding: 48px 40px 40px;
           border-radius: 20px;
-          background: var(--wt-bg-surface);
+          background: var(--wt-surface);
           border: 1px solid var(--wt-border);
           box-shadow: 0 24px 64px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.15);
           animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;

@@ -7,9 +7,10 @@ import { Logo } from './Logo'
 
 interface Props {
   onComplete: () => void
+  boardId?: string  // If provided, apply template to this specific board
 }
 
-export function TemplatePicker({ onComplete }: Props) {
+export function TemplatePicker({ onComplete, boardId }: Props) {
   const { addBoard, setActiveBoard, addWidget, setLayout, boards } = useWhiteboardStore()
   const [selected, setSelected] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -18,48 +19,32 @@ export function TemplatePicker({ onComplete }: Props) {
     if (creating) return
     setCreating(true)
 
-    // Find the first user board (non-system) to populate, or create one
-    const userBoard = boards.find((b) => !b.boardType)
+    // Find target board: specific boardId, first user board, or create new
+    let targetId = boardId
+    if (!targetId) {
+      const userBoard = boards.find((b) => !b.boardType)
+      targetId = userBoard?.id
+    }
+    if (!targetId) {
+      targetId = crypto.randomUUID()
+      addBoard(template.name, targetId)
+    }
 
-    if (userBoard) {
-      // Set the layout on the existing board
-      setLayout(userBoard.id, template.layoutId)
-      setActiveBoard(userBoard.id)
+    setLayout(targetId, template.layoutId)
+    setActiveBoard(targetId)
 
-      // Add widgets to the board
-      for (const w of template.widgets) {
-        addWidget({
-          type:          w.type,
-          variantId:     w.variantId,
-          settings:      w.settings,
-          slotId:        w.slotId,
-          databaseTitle: '',
-          x:             0,
-          y:             0,
-          width:         320,
-          height:        240,
-        })
-      }
-    } else {
-      // Create a new board
-      const boardId = crypto.randomUUID()
-      addBoard(template.name, boardId)
-      setLayout(boardId, template.layoutId)
-
-      // Need to set active and add widgets
-      for (const w of template.widgets) {
-        addWidget({
-          type:          w.type,
-          variantId:     w.variantId,
-          settings:      w.settings,
-          slotId:        w.slotId,
-          databaseTitle: '',
-          x:             0,
-          y:             0,
-          width:         320,
-          height:        240,
-        })
-      }
+    for (const w of template.widgets) {
+      addWidget({
+        type:          w.type,
+        variantId:     w.variantId,
+        settings:      w.settings,
+        slotId:        w.slotId,
+        databaseTitle: '',
+        x:             0,
+        y:             0,
+        width:         320,
+        height:        240,
+      })
     }
 
     onComplete()
