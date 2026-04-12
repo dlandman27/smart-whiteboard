@@ -1,0 +1,9 @@
+{
+  "codeConnect": {
+    "parser": "react",
+    "include": ["src/**/*.figma.tsx", "src/**/*.tsx"],
+    "importPaths": {
+      "src/*": "@whiteboard/ui-kit"
+    }
+  }
+}

@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react'
 import {
-  Plus, X, Check, Search, Settings, Trash2,
-  ChevronLeft, ChevronRight, Calendar, Database,
-  MousePointer2, Pen, Eraser, RefreshCw, ExternalLink,
-} from 'lucide-react'
+  Plus, X, Check, MagnifyingGlass, Gear, Trash,
+  CaretLeft, CaretRight, Calendar, Database,
+  Cursor, Pen, Eraser, ArrowClockwise, ArrowSquareOut,
+} from '@phosphor-icons/react'
 import { Icon } from './Icon'
 
 const meta: Meta<typeof Icon> = {
@@ -58,21 +58,21 @@ export const Sizes: Story = {
 }
 
 const ALL_ICONS = [
-  { icon: Plus,          name: 'Plus' },
-  { icon: X,             name: 'X' },
-  { icon: Check,         name: 'Check' },
-  { icon: Search,        name: 'Search' },
-  { icon: Settings,      name: 'Settings' },
-  { icon: Trash2,        name: 'Trash2' },
-  { icon: ChevronLeft,   name: 'ChevronLeft' },
-  { icon: ChevronRight,  name: 'ChevronRight' },
-  { icon: Calendar,      name: 'Calendar' },
-  { icon: Database,      name: 'Database' },
-  { icon: MousePointer2, name: 'MousePointer2' },
-  { icon: Pen,           name: 'Pen' },
-  { icon: Eraser,        name: 'Eraser' },
-  { icon: RefreshCw,     name: 'RefreshCw' },
-  { icon: ExternalLink,  name: 'ExternalLink' },
+  { icon: Plus,             name: 'Plus' },
+  { icon: X,                name: 'X' },
+  { icon: Check,            name: 'Check' },
+  { icon: MagnifyingGlass,  name: 'MagnifyingGlass' },
+  { icon: Gear,             name: 'Gear' },
+  { icon: Trash,            name: 'Trash' },
+  { icon: CaretLeft,        name: 'CaretLeft' },
+  { icon: CaretRight,       name: 'CaretRight' },
+  { icon: Calendar,         name: 'Calendar' },
+  { icon: Database,         name: 'Database' },
+  { icon: Cursor,           name: 'Cursor' },
+  { icon: Pen,              name: 'Pen' },
+  { icon: Eraser,           name: 'Eraser' },
+  { icon: ArrowClockwise,   name: 'ArrowClockwise' },
+  { icon: ArrowSquareOut,   name: 'ArrowSquareOut' },
 ]
 
 export const Gallery: Story = {

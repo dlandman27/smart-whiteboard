@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { Search } from 'lucide-react'
+import { MagnifyingGlass } from '@phosphor-icons/react'
 import { Input } from './Input'
 
 const meta: Meta<typeof Input> = {
@@ -62,7 +62,7 @@ export const WithIcon: Story = {
     <div className="w-72 p-4">
       <Input
         placeholder="Search databases…"
-        iconLeft={<Search size={14} />}
+        iconLeft={<MagnifyingGlass size={14} />}
       />
     </div>
   ),

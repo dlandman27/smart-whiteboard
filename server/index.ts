@@ -34,6 +34,8 @@ import { stocksRouter }        from './routes/stocks.js'
 import { todoistRouter }       from './routes/todoist.js'
 import { icalRouter }          from './routes/ical.js'
 import { feedbackRouter }      from './routes/feedback.js'
+import { tasksRouter }         from './routes/tasks.js'
+import { eventsRouter }        from './routes/events.js'
 
 import { startAllCrons } from './crons/index.js'
 import rateLimit from 'express-rate-limit'
@@ -110,6 +112,8 @@ app.use('/api', stocksRouter())
 app.use('/api', todoistRouter())
 app.use('/api', icalRouter())
 app.use('/api', feedbackRouter())
+app.use('/api', tasksRouter())
+app.use('/api', eventsRouter())
 
 // ── Agent scheduler ────────────────────────────────────────────────────────────
 

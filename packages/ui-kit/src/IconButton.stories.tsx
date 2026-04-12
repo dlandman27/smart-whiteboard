@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react'
-import { MousePointer2, Pen, Eraser, X, ChevronLeft, ChevronRight, RefreshCw, Plus } from 'lucide-react'
+import { Cursor, Pen, Eraser, X, CaretLeft, CaretRight, ArrowClockwise, Plus } from '@phosphor-icons/react'
 import { IconButton } from './IconButton'
 
 const meta: Meta<typeof IconButton> = {
@@ -51,7 +51,7 @@ export const ToolbarExample: Story = {
   render: () => {
     return (
       <div className="flex items-center gap-px bg-white border border-stone-200 shadow-lg rounded-2xl px-2 py-2 w-fit">
-        <IconButton icon={MousePointer2} variant="active"  title="Select — active" />
+        <IconButton icon={Cursor} variant="active"  title="Select — active" />
         <IconButton icon={Pen}           variant="default" title="Marker" />
         <IconButton icon={Eraser}        variant="default" title="Eraser" />
         <div className="w-px h-6 bg-stone-200 mx-1.5" />
@@ -64,9 +64,9 @@ export const ToolbarExample: Story = {
 export const NavExample: Story = {
   render: () => (
     <div className="flex items-center gap-px bg-white border border-stone-200 shadow-lg rounded-2xl px-2 py-2 w-fit">
-      <IconButton icon={ChevronLeft}  disabled title="Previous" />
+      <IconButton icon={CaretLeft}  disabled title="Previous" />
       <span className="px-2 text-xs text-stone-700 font-medium">Board 1</span>
-      <IconButton icon={ChevronRight} title="Next" />
+      <IconButton icon={CaretRight} title="Next" />
       <IconButton icon={Plus}         title="New board" />
     </div>
   ),
@@ -75,8 +75,8 @@ export const NavExample: Story = {
 export const FilledManually: Story = {
   render: () => (
     <div className="flex items-center gap-3 p-4">
-      <IconButton icon={RefreshCw} filled={false} title="Not filled" />
-      <IconButton icon={RefreshCw} filled={true}  title="Filled" />
+      <IconButton icon={ArrowClockwise} filled={false} title="Not filled" />
+      <IconButton icon={ArrowClockwise} filled={true}  title="Filled" />
     </div>
   ),
 }
