@@ -8,7 +8,6 @@ import { AgentManager } from './AgentManager'
 import { useThemeStore } from '../store/theme'
 import { DEFAULT_BACKGROUND } from '../constants/backgrounds'
 import { SPRITES, PX, PixelSprite } from './PetBar'
-import { AgentManager } from './AgentManager'
 
 // ── SectionLabel helper ───────────────────────────────────────────────────────
 
