@@ -22,7 +22,7 @@ interface ThemeStore {
 
 export const useThemeStore = create<ThemeStore>()(
   (set, get) => ({
-    activeThemeId:   'dracula',
+    activeThemeId:   'slate',
     customOverrides: {},
     customTheme:     null,
     background:      DEFAULT_BACKGROUND,
@@ -54,7 +54,7 @@ export const useThemeStore = create<ThemeStore>()(
     },
 
     setCustomTheme: (vars, background, baseThemeId) => {
-      const base = THEME_MAP[baseThemeId ?? 'minimal']?.vars ?? THEME_MAP['minimal'].vars
+      const base = THEME_MAP[baseThemeId ?? 'slate']?.vars ?? THEME_MAP['slate'].vars
       const fullVars = { ...base, ...vars } as ThemeVars
       set({
         activeThemeId: 'custom',

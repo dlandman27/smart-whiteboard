@@ -31,7 +31,7 @@ beforeEach(() => {
 
 describe('initial state', () => {
   it('starts with minimal theme', () => {
-    expect(store().activeThemeId).toBe('minimal')
+    expect(store().activeThemeId).toBe('slate')
     expect(store().customOverrides).toEqual({})
     expect(store().customTheme).toBeNull()
     expect(store().petsEnabled).toBe(false)
@@ -69,7 +69,7 @@ describe('init', () => {
     })
 
     await store().init('u1')
-    expect(store().activeThemeId).toBe('minimal')
+    expect(store().activeThemeId).toBe('slate')
   })
 })
 
@@ -113,7 +113,7 @@ describe('setCustomTheme', () => {
   })
 
   it('merges with a base theme', () => {
-    store().setCustomTheme({ widgetBg: '#ff0000' }, undefined, 'minimal')
+    store().setCustomTheme({ widgetBg: '#ff0000' }, undefined, 'slate')
     expect(store().customTheme).toBeDefined()
     expect(store().customTheme!.widgetBg).toBe('#ff0000')
   })

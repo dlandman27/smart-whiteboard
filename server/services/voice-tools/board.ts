@@ -2,7 +2,7 @@ import { canvas } from '../board-utils.js'
 import { broadcast } from '../../ws.js'
 import type { VoiceTool } from './_types.js'
 
-const VOICE_THEMES = ['minimal','slate','paper','amber','rose','sage','sunset','lemon','teal','lavender','dracula','midnight','ocean','forest','dusk','espresso','carbon','terminal','volcanic','midnight-rose','plum-cyan','golden','deep-teal','aurora']
+const VOICE_THEMES = ['paper','crimson','amber','lemon','sage','slate','lavender','violet','pink','midnight','volcanic','espresso','golden','forest','ocean','indigo','dracula','midnight-rose']
 
 export const boardTools: VoiceTool[] = [
   {

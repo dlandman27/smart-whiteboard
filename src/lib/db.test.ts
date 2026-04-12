@@ -159,14 +159,14 @@ describe('loadTheme', () => {
 describe('upsertTheme', () => {
   it('sends all theme fields', async () => {
     await upsertTheme('u1', {
-      activeThemeId: 'minimal',
+      activeThemeId: 'slate',
       customOverrides: {},
       customTheme: null,
       background: { label: 'Light', bg: '#fff' } as any,
       petsEnabled: false,
     })
     expect(themeChain.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      active_theme_id: 'minimal',
+      active_theme_id: 'slate',
       pets_enabled: false,
     }))
   })
