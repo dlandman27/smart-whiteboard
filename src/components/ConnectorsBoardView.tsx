@@ -26,26 +26,26 @@ function useHealthServices() {
 
 // ── Connector definitions ────────────────────────────────────────────────────
 
-type Category = 'all' | 'apps' | 'services'
+type Category = 'all' | 'tasks' | 'calendar' | 'media' | 'productivity' | 'ai'
 
 interface ConnectorDef {
   id: string
   name: string
   description: string
   icon: string
-  category: 'apps' | 'services'
+  category: 'tasks' | 'calendar' | 'media' | 'productivity' | 'ai'
 }
 
 const CONNECTORS: ConnectorDef[] = [
-  { id: 'gcal',       name: 'Google Calendar', description: 'View and manage your calendar events on the whiteboard.',    icon: 'CalendarBlank',    category: 'apps' },
-  { id: 'gtasks',     name: 'Google Tasks',    description: 'Sync your task lists and manage todos.',                     icon: 'CheckSquare',      category: 'apps' },
-  { id: 'spotify',    name: 'Spotify',         description: 'Control playback and see what\'s currently playing.',        icon: 'MusicNote',        category: 'apps' },
-  { id: 'todoist',    name: 'Todoist',         description: 'View and manage your Todoist tasks on the whiteboard.',      icon: 'CheckCircle',      category: 'apps' },
-  { id: 'notion',     name: 'Notion',          description: 'Read and write to your Notion databases.',                   icon: 'BookOpen',         category: 'services' },
-  { id: 'anthropic',  name: 'Walli AI',        description: 'AI assistant powered by Anthropic.',                         icon: 'Robot',            category: 'services' },
-  { id: 'elevenlabs', name: 'ElevenLabs',      description: 'Voice synthesis for Walli and daily briefings.',             icon: 'Microphone',       category: 'services' },
-  { id: 'youtube',    name: 'YouTube',         description: 'Search and embed YouTube videos in widgets.',                icon: 'YoutubeLogo',      category: 'services' },
-  { id: 'bing',       name: 'Bing Search',     description: 'Web search for Walli\'s research capabilities.',             icon: 'MagnifyingGlass',  category: 'services' },
+  { id: 'gtasks',     name: 'Google Tasks',    description: 'Sync your task lists and manage todos.',                     icon: 'CheckSquare',      category: 'tasks' },
+  { id: 'todoist',    name: 'Todoist',         description: 'View and manage your Todoist tasks on the whiteboard.',      icon: 'CheckCircle',      category: 'tasks' },
+  { id: 'gcal',       name: 'Google Calendar', description: 'View and manage your calendar events on the whiteboard.',    icon: 'CalendarBlank',    category: 'calendar' },
+  { id: 'spotify',    name: 'Spotify',         description: 'Control playback and see what\'s currently playing.',        icon: 'MusicNote',        category: 'media' },
+  { id: 'youtube',    name: 'YouTube',         description: 'Search and embed YouTube videos in widgets.',                icon: 'YoutubeLogo',      category: 'media' },
+  { id: 'notion',     name: 'Notion',          description: 'Read and write to your Notion databases.',                   icon: 'BookOpen',         category: 'productivity' },
+  { id: 'anthropic',  name: 'Walli AI',        description: 'AI assistant powered by Anthropic.',                         icon: 'Robot',            category: 'ai' },
+  { id: 'elevenlabs', name: 'ElevenLabs',      description: 'Voice synthesis for Walli and daily briefings.',             icon: 'Microphone',       category: 'ai' },
+  { id: 'bing',       name: 'Bing Search',     description: 'Web search for Walli\'s research capabilities.',             icon: 'MagnifyingGlass',  category: 'ai' },
 ]
 
 // ── Enabled pill (horizontal row) ────────────────────────────────────────────
@@ -575,8 +575,11 @@ export function ConnectorsBoardView() {
           {/* Category tabs */}
           <div style={{ display: 'flex', gap: 4, marginBottom: 18 }}>
             <CategoryTab label="All" active={category === 'all'} onClick={() => setCategory('all')} />
-            <CategoryTab label="Apps" active={category === 'apps'} onClick={() => setCategory('apps')} />
-            <CategoryTab label="Services" active={category === 'services'} onClick={() => setCategory('services')} />
+            <CategoryTab label="Tasks" active={category === 'tasks'} onClick={() => setCategory('tasks')} />
+            <CategoryTab label="Calendar" active={category === 'calendar'} onClick={() => setCategory('calendar')} />
+            <CategoryTab label="Media" active={category === 'media'} onClick={() => setCategory('media')} />
+            <CategoryTab label="Productivity" active={category === 'productivity'} onClick={() => setCategory('productivity')} />
+            <CategoryTab label="AI" active={category === 'ai'} onClick={() => setCategory('ai')} />
           </div>
 
           {/* Grid */}

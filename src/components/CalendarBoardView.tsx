@@ -1,31 +1,72 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   FlexRow, FlexCol, Box, Text, Icon, Center,
   IconButton, Button, SegmentedControl, Divider, ScrollArea,
   Panel, PanelHeader, Input,
 } from '@whiteboard/ui-kit'
-import {
-  useGCalEvents, useGCalStatus, useGCalCalendars,
-  useAllCalendarEvents, createGCalEvent, deleteGCalEvent,
-  startGCalAuth,
-  type GCalEvent, type GCalCalendar,
-} from '../hooks/useGCal'
-import { useWhiteboardStore } from '../store/whiteboard'
+import { useUnifiedEvents, useEventGroups } from '../hooks/useUnifiedEvents'
+import { createUnifiedEvent, deleteUnifiedEvent } from '../hooks/useEventMutations'
+import type { UnifiedEvent, SourceGroup } from '../types/unified'
 
-// ── Color map ─────────────────────────────────────────────────────────────────
+// ── Color helpers ─────────────────────────────────────────────────────────────
 
-const GCAL_COLORS: Record<string, string> = {
-  '1': '#7986cb', '2': '#33b679', '3': '#8e24aa', '4': '#e67c73',
-  '5': '#f6c026', '6': '#f5511d', '7': '#039be5', '8': '#3f51b5',
-  '9': '#0b8043', '10': '#d50000', '11': '#616161',
-}
 const DEFAULT_COLOR = '#4285f4'
 
-function eventColor(e: GCalEvent, calColors: Record<string, string> = {}): string {
-  if (e.colorId) return GCAL_COLORS[e.colorId] ?? DEFAULT_COLOR
-  if (e._calendarId && calColors[e._calendarId]) return calColors[e._calendarId]
-  return DEFAULT_COLOR
+// Render-compatible event shape that the Week/Day/Month grids expect
+interface RenderEvent {
+  id: string
+  summary: string
+  description?: string
+  location?: string
+  start: { dateTime?: string; date?: string }
+  end:   { dateTime?: string; date?: string }
+  allDay: boolean
+  colorId?: string
+  htmlLink?: string
+  _color: string
+  _calendarId: string
+  _source: { provider: string; id: string }
+  _readOnly: boolean
+  _groupName: string
+}
+
+function toRenderEvent(e: UnifiedEvent): RenderEvent {
+  const color = e.color || e.groupColor || DEFAULT_COLOR
+  return {
+    id: `${e.source.provider}:${e.source.id}`,
+    summary: e.title,
+    description: e.description,
+    location: e.location,
+    start: e.allDay ? { date: e.start } : { dateTime: e.start },
+    end: e.end ? (e.allDay ? { date: e.end } : { dateTime: e.end }) : { dateTime: e.start },
+    allDay: e.allDay,
+    _color: color,
+    _calendarId: `${e.source.provider}:${e.groupName}`,
+    _source: e.source,
+    _readOnly: e.readOnly,
+    _groupName: e.groupName,
+    // Pass through GCal extras if present
+    colorId: (e as any)._gcalColorId,
+    htmlLink: (e as any)._htmlLink,
+  }
+}
+
+function eventColor(e: RenderEvent): string {
+  return e._color
+}
+
+// Provider display labels
+const PROVIDER_LABELS: Record<string, string> = {
+  builtin: 'My Calendar',
+  gcal:    'Google Calendar',
+  ical:    'iCal Feeds',
+}
+
+const PROVIDER_ICONS: Record<string, string> = {
+  builtin: 'CalendarBlank',
+  gcal:    'GoogleLogo',
+  ical:    'Link',
 }
 
 const timeInputStyle: React.CSSProperties = {
@@ -140,7 +181,7 @@ function TimeGutter() {
 function EventBlock({
   event, color, onClick,
 }: {
-  event:   GCalEvent
+  event:   RenderEvent
   color:   string
   onClick: (e: React.MouseEvent) => void
 }) {
@@ -198,20 +239,19 @@ function NowLine() {
 // ── Week view ─────────────────────────────────────────────────────────────────
 
 function WeekGrid({
-  events, days, calColors, onSlotClick, onEventClick,
+  events, days, onSlotClick, onEventClick,
 }: {
-  events:       GCalEvent[]
+  events:       RenderEvent[]
   days:         Date[]
-  calColors:    Record<string, string>
   onSlotClick:  (day: Date, hour: number, mins: number) => void
-  onEventClick: (event: GCalEvent) => void
+  onEventClick: (event: RenderEvent) => void
 }) {
   const today = new Date()
 
-  function handleDayClick(e: React.MouseEvent<HTMLDivElement>, day: Date) {
+  function handleDayClick(e: React.MouseEvent, day: Date) {
     // Ignore clicks on event blocks
     if ((e.target as HTMLElement).closest('[data-event]')) return
-    const rect = e.currentTarget.getBoundingClientRect()
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
     const { hour, mins } = slotFromClick(e.clientY, rect)
     onSlotClick(day, hour, mins)
   }
@@ -279,7 +319,7 @@ function WeekGrid({
                   <EventBlock
                     key={ev.id}
                     event={ev}
-                    color={eventColor(ev, calColors)}
+                    color={eventColor(ev)}
                     onClick={e => { e.stopPropagation(); onEventClick(ev) }}
                   />
                 ))}
@@ -296,13 +336,12 @@ function WeekGrid({
 // ── Day view ──────────────────────────────────────────────────────────────────
 
 function DayGrid({
-  events, day, calColors, onSlotClick, onEventClick,
+  events, day, onSlotClick, onEventClick,
 }: {
-  events:       GCalEvent[]
+  events:       RenderEvent[]
   day:          Date
-  calColors:    Record<string, string>
   onSlotClick:  (day: Date, hour: number, mins: number) => void
-  onEventClick: (event: GCalEvent) => void
+  onEventClick: (event: RenderEvent) => void
 }) {
   const today   = new Date()
   const isToday = day.toDateString() === today.toDateString()
@@ -333,8 +372,8 @@ function DayGrid({
               onClick={() => onEventClick(ev)}
               style={{
                 fontSize: 12, padding: '2px 10px', borderRadius: 12, cursor: 'pointer',
-                background: `color-mix(in srgb, ${eventColor(ev, calColors)} 20%, var(--wt-surface))`,
-                border:     `1px solid color-mix(in srgb, ${eventColor(ev, calColors)} 30%, transparent)`,
+                background: `color-mix(in srgb, ${eventColor(ev)} 20%, var(--wt-surface))`,
+                border:     `1px solid color-mix(in srgb, ${eventColor(ev)} 30%, transparent)`,
               }}
             >
               <Text variant="label" size="medium">{ev.summary || '(No title)'}</Text>
@@ -361,7 +400,7 @@ function DayGrid({
               <EventBlock
                 key={ev.id}
                 event={ev}
-                color={eventColor(ev, calColors)}
+                color={eventColor(ev)}
                 onClick={e => { e.stopPropagation(); onEventClick(ev) }}
               />
             ))}
@@ -376,13 +415,12 @@ function DayGrid({
 // ── Month view ────────────────────────────────────────────────────────────────
 
 function MonthGrid({
-  events, date, calColors, onDayClick, onEventClick,
+  events, date, onDayClick, onEventClick,
 }: {
-  events:       GCalEvent[]
+  events:       RenderEvent[]
   date:         Date
-  calColors:    Record<string, string>
   onDayClick:   (day: Date) => void
-  onEventClick: (event: GCalEvent) => void
+  onEventClick: (event: RenderEvent) => void
 }) {
   const year        = date.getFullYear()
   const month       = date.getMonth()
@@ -452,8 +490,8 @@ function MonthGrid({
                       key={ev.id}
                       onClick={e => { e.stopPropagation(); onEventClick(ev) }}
                       style={{
-                        background:   `color-mix(in srgb, ${eventColor(ev, calColors)} 22%, transparent)`,
-                        borderLeft:   `2px solid ${eventColor(ev, calColors)}`,
+                        background:   `color-mix(in srgb, ${eventColor(ev)} 22%, transparent)`,
+                        borderLeft:   `2px solid ${eventColor(ev)}`,
                         borderRadius: 3,
                         padding:      '1px 4px',
                         overflow:     'hidden',
@@ -483,22 +521,31 @@ function MonthGrid({
 // ── Event detail popover ──────────────────────────────────────────────────────
 
 function EventDetail({
-  event, calColors, calName, onClose, onDelete,
+  event, onClose, onDelete,
 }: {
-  event:     GCalEvent
-  calColors: Record<string, string>
-  calName:   string
+  event:     RenderEvent
   onClose:   () => void
   onDelete:  () => void
 }) {
-  const color  = eventColor(event, calColors)
+  const color  = eventColor(event)
   const [deleting, setDeleting] = useState(false)
+  const canDelete = !event._readOnly
 
   async function handleDelete() {
-    if (!event._calendarId) return
+    if (!canDelete) return
     setDeleting(true)
     try {
-      await deleteGCalEvent(event._calendarId, event.id)
+      // Reconstruct the UnifiedEvent-like shape for deleteUnifiedEvent
+      await deleteUnifiedEvent({
+        key: event.id,
+        title: event.summary,
+        start: event.start.dateTime ?? event.start.date ?? '',
+        end: event.end?.dateTime ?? event.end?.date,
+        allDay: event.allDay,
+        groupName: event._groupName,
+        source: event._source as any,
+        readOnly: event._readOnly,
+      })
       onDelete()
     } catch {
       setDeleting(false)
@@ -548,10 +595,15 @@ function EventDetail({
             </FlexRow>
           )}
 
-          {calName && (
+          {event._groupName && (
             <FlexRow align="center" gap="sm">
               <Box style={{ width: 12, height: 12, borderRadius: '50%', background: color, flexShrink: 0 }} />
-              <Text variant="body" size="medium" color="muted">{calName}</Text>
+              <Text variant="body" size="medium" color="muted">
+                {event._groupName}
+                {event._source.provider !== 'builtin' && (
+                  <span style={{ opacity: 0.5 }}>{' '}{PROVIDER_LABELS[event._source.provider] ? `(${PROVIDER_LABELS[event._source.provider]})` : ''}</span>
+                )}
+              </Text>
             </FlexRow>
           )}
 
@@ -571,7 +623,7 @@ function EventDetail({
             </FlexRow>
           )}
 
-          {event.htmlLink && (
+          {event.htmlLink && event._source.provider === 'gcal' && (
             <Button
               variant="outline"
               fullWidth
@@ -581,7 +633,7 @@ function EventDetail({
             </Button>
           )}
 
-          {event._calendarId && (
+          {canDelete && (
             <Button
               variant="outline"
               fullWidth
@@ -602,24 +654,31 @@ function EventDetail({
 
 function CreateEventModal({
   initialDate, initialHour, initialMins,
-  calendars, defaultCalendarId,
+  groups, defaultGroupKey,
   onClose, onCreated,
 }: {
-  initialDate:       Date
-  initialHour:       number
-  initialMins:       number
-  calendars:         GCalCalendar[]
-  defaultCalendarId: string
-  onClose:           () => void
-  onCreated:         () => void
+  initialDate:    Date
+  initialHour:    number
+  initialMins:    number
+  groups:         SourceGroup[]
+  defaultGroupKey: string
+  onClose:        () => void
+  onCreated:      () => void
 }) {
   const endHour = initialHour + 1 >= END_HOUR ? END_HOUR - 1 : initialHour + 1
+
+  // Only show writable groups in the picker
+  const writableGroups = groups.filter(g => !g.readOnly)
 
   const [title,     setTitle]     = useState('')
   const [date,      setDate]      = useState(toDateStr(initialDate))
   const [startTime, setStartTime] = useState(padTime(initialHour, initialMins))
   const [endTime,   setEndTime]   = useState(padTime(endHour, initialMins))
-  const [calId,     setCalId]     = useState(defaultCalendarId)
+  const [groupKey,  setGroupKey]  = useState(
+    writableGroups.some(g => g.key === defaultGroupKey)
+      ? defaultGroupKey
+      : writableGroups[0]?.key ?? 'builtin:My Calendar'
+  )
   const [saving,    setSaving]    = useState(false)
   const [error,     setError]     = useState('')
 
@@ -634,11 +693,10 @@ function CreateEventModal({
     setSaving(true)
     setError('')
     try {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone
-      await createGCalEvent(calId, {
-        summary: title.trim(),
-        start: { dateTime: `${date}T${startTime}:00`, timeZone: tz },
-        end:   { dateTime: `${date}T${endTime}:00`,   timeZone: tz },
+      await createUnifiedEvent(groupKey, {
+        title: title.trim(),
+        start: `${date}T${startTime}:00`,
+        end:   `${date}T${endTime}:00`,
       })
       onCreated()
       onClose()
@@ -652,7 +710,7 @@ function CreateEventModal({
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save() }
   }
 
-  const showCalPicker = calendars.length > 1
+  const showCalPicker = writableGroups.length > 1
 
   return (
     <Box
@@ -689,22 +747,27 @@ function CreateEventModal({
           {showCalPicker && (
             <FlexCol gap="xs">
               <Text variant="label" size="small" color="muted">Calendar</Text>
-              {calendars.map(cal => {
-                const active = calId === cal.id
+              {writableGroups.map(g => {
+                const active = groupKey === g.key
                 return (
                   <FlexRow
-                    key={cal.id}
+                    key={g.key}
                     align="center"
                     gap="sm"
-                    onClick={() => setCalId(cal.id)}
+                    onClick={() => setGroupKey(g.key)}
                     style={{
                       padding: '7px 10px', borderRadius: 8, cursor: 'pointer',
                       background: active ? 'var(--wt-surface-raised, var(--wt-surface))' : 'transparent',
                       border: active ? '1px solid var(--wt-border)' : '1px solid transparent',
                     }}
                   >
-                    <Box style={{ width: 10, height: 10, borderRadius: '50%', background: cal.backgroundColor ?? DEFAULT_COLOR, flexShrink: 0 }} />
-                    <Text variant="body" size="medium" style={{ flex: 1 }} numberOfLines={1}>{cal.summary}</Text>
+                    <Box style={{ width: 10, height: 10, borderRadius: '50%', background: g.color, flexShrink: 0 }} />
+                    <Text variant="body" size="medium" style={{ flex: 1 }} numberOfLines={1}>{g.name}</Text>
+                    {g.provider !== 'builtin' && (
+                      <Text variant="caption" size="medium" color="muted" style={{ opacity: 0.5 }}>
+                        {PROVIDER_LABELS[g.provider]}
+                      </Text>
+                    )}
                     {active && <Icon icon="Check" size={14} style={{ color: 'var(--wt-accent)' }} />}
                   </FlexRow>
                 )
@@ -728,12 +791,12 @@ function CreateEventModal({
 // ── Right info panel ──────────────────────────────────────────────────────────
 
 function InfoPanel({
-  calendarId, calendars, visibleCalIds, onToggleCalendar,
+  groups, visibleGroupKeys, onToggleGroup, todayEvents,
 }: {
-  calendarId:       string
-  calendars:        GCalCalendar[]
-  visibleCalIds:    Set<string>
-  onToggleCalendar: (id: string) => void
+  groups:           SourceGroup[]
+  visibleGroupKeys: Set<string>
+  onToggleGroup:    (key: string) => void
+  todayEvents:      RenderEvent[]
 }) {
   const [now, setNow] = useState(new Date())
 
@@ -742,17 +805,28 @@ function InfoPanel({
     return () => clearInterval(id)
   }, [])
 
-  const today = new Date()
-  const { timeMin, timeMax } = dayRange(today)
-  const { data } = useGCalEvents(timeMin, timeMax, calendarId)
-
-  const upcoming: GCalEvent[] = (data?.items ?? [])
+  const upcoming = todayEvents
     .filter(e => e.start.dateTime && new Date(e.start.dateTime) > now)
     .sort((a, b) => new Date(a.start.dateTime!).getTime() - new Date(b.start.dateTime!).getTime())
 
   const [timeMain, timePeriod] = now
     .toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
     .split(' ')
+
+  // Group the source groups by provider
+  const providerSections = useMemo(() => {
+    const map = new Map<string, SourceGroup[]>()
+    for (const g of groups) {
+      const list = map.get(g.provider) ?? []
+      list.push(g)
+      map.set(g.provider, list)
+    }
+    // Ensure "builtin" comes first, then "gcal", then "ical"
+    const order = ['builtin', 'gcal', 'ical']
+    return order
+      .filter(p => map.has(p))
+      .map(p => ({ provider: p, label: PROVIDER_LABELS[p] ?? p, groups: map.get(p)! }))
+  }, [groups])
 
   return (
     <FlexCol
@@ -777,27 +851,30 @@ function InfoPanel({
 
       <Divider />
 
-      {/* Calendars */}
-      {calendars.length > 0 && (
-        <>
+      {/* Calendar sources by provider */}
+      {providerSections.map(section => (
+        <div key={section.provider}>
           <FlexCol gap="xs" className="px-4 py-3">
-            <Text variant="label" size="small" color="muted" textTransform="uppercase" style={{ opacity: 0.5, letterSpacing: '0.1em', marginBottom: 4 }}>
-              Calendars
-            </Text>
-            {calendars.map(cal => {
-              const on = visibleCalIds.has(cal.id)
+            <FlexRow align="center" gap="xs" style={{ marginBottom: 4 }}>
+              <Icon icon={PROVIDER_ICONS[section.provider] ?? 'CalendarBlank'} size={12} style={{ color: 'var(--wt-text-muted)', opacity: 0.5 }} />
+              <Text variant="label" size="small" color="muted" textTransform="uppercase" style={{ opacity: 0.5, letterSpacing: '0.1em' }}>
+                {section.label}
+              </Text>
+            </FlexRow>
+            {section.groups.map(g => {
+              const on = visibleGroupKeys.has(g.key)
               return (
                 <FlexRow
-                  key={cal.id}
+                  key={g.key}
                   align="center"
                   gap="sm"
-                  onClick={() => onToggleCalendar(cal.id)}
+                  onClick={() => onToggleGroup(g.key)}
                   style={{ cursor: 'pointer', padding: '3px 0', userSelect: 'none' }}
                 >
                   <Box style={{
                     width: 12, height: 12, borderRadius: '50%', flexShrink: 0,
-                    background:  on  ? (cal.backgroundColor ?? DEFAULT_COLOR) : 'transparent',
-                    border:      `2px solid ${cal.backgroundColor ?? DEFAULT_COLOR}`,
+                    background: on ? g.color : 'transparent',
+                    border: `2px solid ${g.color}`,
                   }} />
                   <Text
                     variant="body"
@@ -805,15 +882,18 @@ function InfoPanel({
                     numberOfLines={1}
                     style={{ flex: 1, opacity: on ? 1 : 0.4 }}
                   >
-                    {cal.summary}
+                    {g.name}
                   </Text>
+                  {g.readOnly && (
+                    <Icon icon="EyeSlash" size={11} style={{ color: 'var(--wt-text-muted)', opacity: 0.3 }} />
+                  )}
                 </FlexRow>
               )
             })}
           </FlexCol>
           <Divider />
-        </>
-      )}
+        </div>
+      ))}
 
       {/* Upcoming events */}
       <FlexCol gap="sm" className="px-4 py-3">
@@ -834,8 +914,8 @@ function InfoPanel({
                   {ev.summary || '(No title)'}
                 </Text>
                 <Text variant="caption" size="large" color="muted" style={{ opacity: 0.65, marginTop: 1 }}>
-                  {fmt(ev.start.dateTime!)}
-                  {ev.end.dateTime && ` – ${fmt(ev.end.dateTime)}`}
+                  {ev.start.dateTime ? fmt(ev.start.dateTime) : 'All day'}
+                  {ev.end?.dateTime && ` – ${fmt(ev.end.dateTime)}`}
                 </Text>
               </FlexCol>
             </FlexRow>
@@ -843,56 +923,6 @@ function InfoPanel({
         )}
       </FlexCol>
     </FlexCol>
-  )
-}
-
-// ── Not-connected empty state ─────────────────────────────────────────────────
-
-function ConnectPrompt() {
-  const qc = useQueryClient()
-  const [loading, setLoading] = useState(false)
-
-  function connect() {
-    setLoading(true)
-    startGCalAuth()
-      .then(url => {
-        const popup = window.open(url, 'gcal-auth', 'width=500,height=620,left=200,top=100')
-        const onMessage = (e: MessageEvent) => {
-          if (e.data?.type === 'gcal-connected') {
-            qc.invalidateQueries({ queryKey: ['gcal-status'] })
-            qc.invalidateQueries({ queryKey: ['gcal-events'] })
-            window.removeEventListener('message', onMessage)
-            popup?.close()
-            setLoading(false)
-          }
-        }
-        window.addEventListener('message', onMessage)
-      })
-      .catch(() => setLoading(false))
-  }
-
-  return (
-    <Center className="absolute inset-0">
-      <FlexCol align="center" gap="md" style={{ maxWidth: 320, textAlign: 'center', padding: '0 24px' }}>
-        <Box style={{
-          width: 64, height: 64, borderRadius: 16,
-          background: 'color-mix(in srgb, var(--wt-accent) 12%, var(--wt-surface))',
-          border: '1px solid color-mix(in srgb, var(--wt-accent) 25%, transparent)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon icon="CalendarBlank" size={28} style={{ color: 'var(--wt-accent)' }} />
-        </Box>
-        <FlexCol align="center" gap="xs">
-          <Text variant="heading" size="small" align="center">Connect Google Calendar</Text>
-          <Text variant="body" size="medium" color="muted" align="center">
-            Sign in with Google to see your events on this board.
-          </Text>
-        </FlexCol>
-        <Button variant="accent" size="md" onClick={connect} disabled={loading}>
-          {loading ? 'Opening…' : 'Connect Google Calendar'}
-        </Button>
-      </FlexCol>
-    </Center>
   )
 }
 
@@ -909,44 +939,50 @@ const VIEW_OPTIONS = [
 // ── Main export ───────────────────────────────────────────────────────────────
 
 export function CalendarBoardView() {
-  const { boards, activeBoardId } = useWhiteboardStore()
-  const activeBoard = boards.find(b => b.id === activeBoardId)
-  const calendarId  = (activeBoard as any)?.calendarId ?? 'primary'
-
   const qc = useQueryClient()
-  const { data: gcalStatus, isLoading: statusLoading } = useGCalStatus()
-  const { data: calData }      = useGCalCalendars()
-  const connected              = !!gcalStatus?.connected
-  const calendars: GCalCalendar[] = calData?.items ?? []
 
-  // Which calendars are currently shown (all by default once loaded)
-  const [visibleCalIds, setVisibleCalIds] = useState<Set<string>>(new Set([calendarId]))
+  // Fetch all calendar groups from all providers
+  const { data: groups = [], isLoading: groupsLoading } = useEventGroups()
+
+  // Which calendar groups are currently visible (all by default once loaded)
+  const [visibleGroupKeys, setVisibleGroupKeys] = useState<Set<string>>(new Set())
   useEffect(() => {
-    if (calendars.length > 0) setVisibleCalIds(new Set(calendars.map(c => c.id)))
-  }, [calendars.map(c => c.id).join(',')])  // eslint-disable-line
-
-  // Map calendarId → backgroundColor for event coloring
-  const calColors = Object.fromEntries(
-    calendars.map(c => [c.id, c.backgroundColor ?? DEFAULT_COLOR])
-  )
+    if (groups.length > 0) setVisibleGroupKeys(new Set(groups.map(g => g.key)))
+  }, [groups.map(g => g.key).join(',')])  // eslint-disable-line
 
   const [view, setView]       = useState<CalView>('week')
   const [current, setCurrent] = useState(new Date())
 
   // Modal state
   const [createModal, setCreateModal] = useState<{ date: Date; hour: number; mins: number } | null>(null)
-  const [detailEvent, setDetailEvent] = useState<GCalEvent | null>(null)
+  const [detailEvent, setDetailEvent] = useState<RenderEvent | null>(null)
 
   const range =
     view === 'day'   ? dayRange(current)
     : view === 'week'  ? weekRange(current)
     : monthRange(current)
 
-  const visibleIds = Array.from(visibleCalIds)
-  const { data, isLoading, isFetching, refetch } = useAllCalendarEvents(
-    range.timeMin, range.timeMax, visibleIds,
+  const visibleKeys = Array.from(visibleGroupKeys)
+  const { data: unifiedEvents, isLoading, isFetching, refetch } = useUnifiedEvents(
+    range.timeMin, range.timeMax, visibleKeys,
   )
-  const events: GCalEvent[] = data ?? []
+
+  // Map unified events to render events
+  const events: RenderEvent[] = useMemo(
+    () => (unifiedEvents ?? []).map(toRenderEvent),
+    [unifiedEvents],
+  )
+
+  // Today's events for the sidebar "Upcoming" section
+  const todayRange = dayRange(new Date())
+  const { data: todayUnifiedEvents } = useUnifiedEvents(
+    todayRange.timeMin, todayRange.timeMax, visibleKeys,
+  )
+  const todayEvents: RenderEvent[] = useMemo(
+    () => (todayUnifiedEvents ?? []).map(toRenderEvent),
+    [todayUnifiedEvents],
+  )
+
   const weekDays = view === 'week' ? getWeekDays(current) : []
 
   function navigate(dir: 1 | -1) {
@@ -977,38 +1013,31 @@ export function CalendarBoardView() {
   }
 
   function onDayClick(day: Date) {
-    // Month view: clicking a day opens a create modal for 9am
     openCreate(day, 9, 0)
   }
 
   function onCreated() {
-    qc.invalidateQueries({ queryKey: ['gcal-events-all'] })
-    qc.invalidateQueries({ queryKey: ['gcal-events'] })
+    qc.invalidateQueries({ queryKey: ['unified-events'] })
   }
 
   function onDeleted() {
     setDetailEvent(null)
-    qc.invalidateQueries({ queryKey: ['gcal-events-all'] })
-    qc.invalidateQueries({ queryKey: ['gcal-events'] })
+    qc.invalidateQueries({ queryKey: ['unified-events'] })
   }
 
-  function toggleCalendar(id: string) {
-    setVisibleCalIds(prev => {
+  function toggleGroup(key: string) {
+    setVisibleGroupKeys(prev => {
       const next = new Set(prev)
-      if (next.has(id)) { if (next.size > 1) next.delete(id) }
-      else next.add(id)
+      if (next.has(key)) { if (next.size > 1) next.delete(key) }
+      else next.add(key)
       return next
     })
   }
 
-  const defaultCalId = calendars.find(c => c.primary)?.id ?? calendarId
+  // Default group for creating events (first writable group)
+  const defaultGroupKey = groups.find(g => !g.readOnly)?.key ?? 'builtin:My Calendar'
 
-  // Name lookup for event detail
-  function calNameFor(ev: GCalEvent) {
-    return calendars.find(c => c.id === ev._calendarId)?.summary ?? ''
-  }
-
-  if (statusLoading) return (
+  if (groupsLoading) return (
     <Center className="absolute inset-0">
       <div style={{
         width: 20, height: 20, borderRadius: '50%',
@@ -1018,7 +1047,6 @@ export function CalendarBoardView() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </Center>
   )
-  if (!connected) return <ConnectPrompt />
 
   return (
     <FlexCol className="absolute inset-0" overflow="hidden" style={{ background: 'var(--wt-bg)' }}>
@@ -1070,7 +1098,6 @@ export function CalendarBoardView() {
             <WeekGrid
               events={events}
               days={weekDays}
-              calColors={calColors}
               onSlotClick={onSlotClick}
               onEventClick={setDetailEvent}
             />
@@ -1078,7 +1105,6 @@ export function CalendarBoardView() {
             <DayGrid
               events={events}
               day={current}
-              calColors={calColors}
               onSlotClick={onSlotClick}
               onEventClick={setDetailEvent}
             />
@@ -1086,7 +1112,6 @@ export function CalendarBoardView() {
             <MonthGrid
               events={events}
               date={current}
-              calColors={calColors}
               onDayClick={onDayClick}
               onEventClick={setDetailEvent}
             />
@@ -1094,10 +1119,10 @@ export function CalendarBoardView() {
         </FlexCol>
 
         <InfoPanel
-          calendarId={calendarId}
-          calendars={calendars}
-          visibleCalIds={visibleCalIds}
-          onToggleCalendar={toggleCalendar}
+          groups={groups}
+          visibleGroupKeys={visibleGroupKeys}
+          onToggleGroup={toggleGroup}
+          todayEvents={todayEvents}
         />
       </FlexRow>
 
@@ -1107,8 +1132,8 @@ export function CalendarBoardView() {
           initialDate={createModal.date}
           initialHour={createModal.hour}
           initialMins={createModal.mins}
-          calendars={calendars}
-          defaultCalendarId={defaultCalId}
+          groups={groups}
+          defaultGroupKey={defaultGroupKey}
           onClose={() => setCreateModal(null)}
           onCreated={onCreated}
         />
@@ -1117,8 +1142,6 @@ export function CalendarBoardView() {
       {detailEvent && (
         <EventDetail
           event={detailEvent}
-          calColors={calColors}
-          calName={calNameFor(detailEvent)}
           onClose={() => setDetailEvent(null)}
           onDelete={onDeleted}
         />
