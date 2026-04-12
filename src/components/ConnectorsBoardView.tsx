@@ -252,6 +252,70 @@ function SpotifyCard() {
   )
 }
 
+// ── Notion card ──────────────────────────────────────────────────────────────
+
+function NotionCard({ configured }: { configured: boolean }) {
+  const [expanded, setExpanded] = useState(false)
+  const [apiKey, setApiKey] = useState('')
+  const [saving, setSaving] = useState(false)
+  const qc = useQueryClient()
+
+  async function save() {
+    if (!apiKey.trim()) return
+    setSaving(true)
+    try {
+      await apiFetch('/api/credentials/notion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: apiKey.trim() }),
+      })
+      setApiKey('')
+      setExpanded(false)
+      qc.invalidateQueries({ queryKey: ['health'] })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <AppCard
+      icon="BookOpen" name="Notion"
+      description="Read and write to your Notion databases."
+      connected={configured}
+      statusLabel={configured ? 'Active' : 'Not configured'}
+      actionLabel={configured ? 'Reconfigure' : expanded ? undefined : 'Set up'}
+      onAction={() => setExpanded(true)}
+    >
+      {expanded && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--wt-text-muted)', lineHeight: 1.5 }}>
+            Get your API key from{' '}
+            <a href="https://www.notion.so/my-integrations" target="_blank" rel="noopener noreferrer"
+              style={{ color: 'var(--wt-accent)', textDecoration: 'underline' }}>
+              notion.so/my-integrations
+            </a>
+          </div>
+          <Input
+            label="API Key"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            type="password"
+            placeholder="secret_..."
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="accent" size="sm" disabled={!apiKey.trim() || saving} onClick={save} fullWidth>
+              {saving ? 'Saving...' : 'Save'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => { setExpanded(false); setApiKey('') }}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </AppCard>
+  )
+}
+
 // ── Service card (static) ────────────────────────────────────────────────────
 
 function ServiceCard({ icon, name, description, configured }: {
@@ -407,6 +471,7 @@ export function ConnectorsBoardView() {
                 if (c.id === 'gcal')    return <GCalCard key={c.id} googleOauth={s.googleOauth} />
                 if (c.id === 'gtasks')  return <GTasksCard key={c.id} googleOauth={s.googleOauth} />
                 if (c.id === 'spotify') return <SpotifyCard key={c.id} />
+                if (c.id === 'notion')  return <NotionCard key={c.id} configured={enabledMap[c.id]} />
                 return (
                   <ServiceCard
                     key={c.id}

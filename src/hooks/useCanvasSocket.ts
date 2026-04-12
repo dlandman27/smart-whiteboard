@@ -10,7 +10,10 @@ import { useWalliAgentsStore } from '../store/walliAgents'
 import { queryClient } from '../App'
 import { supabase } from '../lib/supabase'
 
-const WS_BASE = `ws://${window.location.hostname}:3001`
+// In production, use the same host with wss://. In dev, connect to localhost:3001.
+const WS_BASE = window.location.hostname === 'localhost'
+  ? 'ws://localhost:3001'
+  : `wss://${window.location.host}`
 
 // Module-level dedup set — survives component remounts (Strict Mode, reconnects, multiple tabs via shared sessionStorage)
 const handledSpeakIds = new Set<string>()

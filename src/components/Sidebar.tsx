@@ -71,14 +71,8 @@ export function Sidebar() {
 
       {/* Top nav — Today + Calendar */}
       <div className="px-2 pt-2 pb-1 flex flex-col gap-0.5">
-        <NavBtn
-          icon="Sun"
-          label="Today"
-          collapsed={collapsed}
-          active={isTodayActive}
-          onClick={() => setActiveBoard(todayId)}
-          disabled
-        />
+        {/* Today board — hidden until built */}
+        {/* <NavBtn icon="Sun" label="Today" collapsed={collapsed} active={isTodayActive} onClick={() => setActiveBoard(todayId)} /> */}
         <NavBtn
           icon="CalendarBlank"
           label="Calendar"

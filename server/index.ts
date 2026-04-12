@@ -9,7 +9,6 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createScheduler, readUserAgents, buildDynamicAgent } from './agents/index.js'
 
 import { initWebSocket, broadcast } from './ws.js'
-import { loadTokens } from './services/tokens.js'
 import { loggedNotify } from './services/notify.js'
 import { getGCalClient } from './services/gcal.js'
 import { getBoards, getActiveBoardId } from './ws.js'
@@ -139,12 +138,8 @@ startAllCrons(notion)
 const PORT = Number(process.env.PORT) || 3001
 httpServer.listen(PORT, () => {
   log(`Smart Whiteboard server running on http://localhost:${PORT}`)
-  if (!process.env.NOTION_API_KEY) warn('NOTION_API_KEY not set')
-  else                             log('Notion API key loaded')
-  const gcalTokens = loadTokens()
-  if (gcalTokens?.refresh_token || gcalTokens?.access_token) log('Google Calendar authenticated')
-  else log('Google Calendar: connect via Settings panel')
-  if (gcalTokens?.spotify_refresh_token || gcalTokens?.spotify_access_token) log('Spotify authenticated')
-  else log('Spotify: connect via the widget settings panel')
+  log(`Supabase: ${process.env.SUPABASE_URL ? 'connected' : 'NOT configured'}`)
+  if (process.env.NOTION_API_KEY) log('Notion API key loaded (global fallback)')
+  if (process.env.GOOGLE_CLIENT_ID) log('Google OAuth configured')
   agentScheduler.start()
 })
