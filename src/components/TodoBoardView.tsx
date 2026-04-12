@@ -7,7 +7,7 @@ import {
 import { useTaskGroups, useUnifiedTasks } from '../hooks/useUnifiedTasks'
 import { toggleUnifiedTask, deleteUnifiedTask, createUnifiedTask } from '../hooks/useTaskMutations'
 import type { UnifiedTask, SourceGroup } from '../types/unified'
-import { useWhiteboardStore, DEFAULT_CONNECTORS_ID } from '../store/whiteboard'
+import { navigateHash } from '../hooks/useHashRouter'
 import { Logo } from './Logo'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -309,7 +309,6 @@ function TaskGroupSection({
 
 export function TodoBoardView() {
   const qc = useQueryClient()
-  const setActiveBoard = useWhiteboardStore(s => s.setActiveBoard)
 
   const { data: groups = [] } = useTaskGroups()
 
@@ -502,7 +501,7 @@ export function TodoBoardView() {
 
           {/* Connect more link */}
           <button
-            onClick={() => setActiveBoard(DEFAULT_CONNECTORS_ID)}
+            onClick={() => navigateHash('connectors', 'tasks')}
             style={{
               display:      'flex',
               alignItems:   'center',

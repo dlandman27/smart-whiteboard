@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { useWhiteboardStore } from '../store/whiteboard'
 
 /**
@@ -6,6 +6,7 @@ import { useWhiteboardStore } from '../store/whiteboard'
  *
  * System boards get friendly slugs:  #/calendar  #/settings  #/todo  etc.
  * User boards use their UUID:        #/board/<id>
+ * Sub-paths are supported:           #/connectors/tasks  #/connectors/calendar
  *
  * - On board change → update hash (replaceState, no history noise)
  * - On popstate (back/forward) → navigate to the board in the hash
@@ -25,6 +26,34 @@ const SLUG_TO_TYPE = Object.fromEntries(
   Object.entries(BOARD_TYPE_SLUGS).map(([type, slug]) => [slug, type])
 )
 
+// ── Hash fragment (sub-path) store ──────────────────────────────────────────
+// Stores the sub-path portion of the hash, e.g. "tasks" from #/connectors/tasks.
+// Consumed by board views to set initial state (e.g. category filter).
+
+let _hashFragment: string | null = null
+const _listeners = new Set<() => void>()
+
+function setHashFragment(fragment: string | null) {
+  if (_hashFragment === fragment) return
+  _hashFragment = fragment
+  _listeners.forEach((l) => l())
+}
+
+/** Read the current hash sub-path (e.g. "tasks" from #/connectors/tasks). Consumed once on read. */
+export function useHashFragment(): string | null {
+  const fragment = useSyncExternalStore(
+    (cb) => { _listeners.add(cb); return () => _listeners.delete(cb) },
+    () => _hashFragment,
+  )
+  // Consume on first read so it doesn't re-trigger on subsequent renders
+  useEffect(() => {
+    if (fragment != null) setHashFragment(null)
+  }, [fragment])
+  return fragment
+}
+
+// ── Hash parsing ────────────────────────────────────────────────────────────
+
 function boardIdToHash(boards: { id: string; boardType?: string }[], id: string): string {
   const board = boards.find((b) => b.id === id)
   if (!board) return ''
@@ -34,17 +63,32 @@ function boardIdToHash(boards: { id: string; boardType?: string }[], id: string)
   return `#/board/${id}`
 }
 
-function hashToBoardId(boards: { id: string; boardType?: string }[]): string | null {
-  const hash = window.location.hash
-  if (!hash || hash === '#' || hash === '#/') return null
+interface ParsedHash {
+  boardId: string | null
+  fragment: string | null
+}
 
-  // #/calendar, #/settings, etc.
+function parseHash(boards: { id: string; boardType?: string }[]): ParsedHash {
+  const hash = window.location.hash
+  if (!hash || hash === '#' || hash === '#/') return { boardId: null, fragment: null }
+
+  // #/connectors/tasks, #/settings/theme, etc. — slug with sub-path
+  const subMatch = hash.match(/^#\/(\w+)\/(.+)$/)
+  if (subMatch) {
+    const boardType = SLUG_TO_TYPE[subMatch[1]]
+    if (boardType) {
+      const board = boards.find((b) => b.boardType === boardType)
+      return { boardId: board?.id ?? null, fragment: subMatch[2] }
+    }
+  }
+
+  // #/calendar, #/settings, etc. — plain slug
   const slugMatch = hash.match(/^#\/(\w+)$/)
   if (slugMatch) {
     const boardType = SLUG_TO_TYPE[slugMatch[1]]
     if (boardType) {
       const board = boards.find((b) => b.boardType === boardType)
-      return board?.id ?? null
+      return { boardId: board?.id ?? null, fragment: null }
     }
   }
 
@@ -53,10 +97,18 @@ function hashToBoardId(boards: { id: string; boardType?: string }[]): string | n
   if (boardMatch) {
     const id = boardMatch[1]
     const board = boards.find((b) => b.id === id)
-    return board?.id ?? null
+    return { boardId: board?.id ?? null, fragment: null }
   }
 
-  return null
+  return { boardId: null, fragment: null }
+}
+
+/** Navigate to a board with an optional sub-path fragment. */
+export function navigateHash(slug: string, fragment?: string) {
+  const hash = fragment ? `#/${slug}/${fragment}` : `#/${slug}`
+  history.pushState(null, '', hash)
+  // Trigger popstate so the router picks it up
+  window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
 export function useHashRouter() {
@@ -66,10 +118,11 @@ export function useHashRouter() {
     // Sync hash → store on popstate (browser back/forward)
     function onPopState() {
       const { boards, setActiveBoardManual, activeBoardId } = useWhiteboardStore.getState()
-      const targetId = hashToBoardId(boards)
-      if (targetId && targetId !== activeBoardId) {
+      const { boardId, fragment } = parseHash(boards)
+      if (boardId && boardId !== activeBoardId) {
         suppressRef.current = true
-        setActiveBoardManual(targetId)
+        setHashFragment(fragment)
+        setActiveBoardManual(boardId)
       }
     }
 
@@ -100,10 +153,11 @@ export function useHashRouter() {
     // otherwise set the hash from the current board.
     function applyHash() {
       const { boards, activeBoardId, setActiveBoardManual } = useWhiteboardStore.getState()
-      const targetId = hashToBoardId(boards)
-      if (targetId && targetId !== activeBoardId) {
+      const { boardId, fragment } = parseHash(boards)
+      if (boardId && boardId !== activeBoardId) {
         suppressRef.current = true
-        setActiveBoardManual(targetId)
+        setHashFragment(fragment)
+        setActiveBoardManual(boardId)
       } else if (boards.length > 0) {
         const hash = boardIdToHash(boards, activeBoardId)
         if (hash && window.location.hash !== hash) {

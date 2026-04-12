@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Icon, ScrollArea, Text, Button, Input } from '@whiteboard/ui-kit'
+import { useHashFragment } from '../hooks/useHashRouter'
 import { useGCalStatus, startGCalAuth, disconnectGCal } from '../hooks/useGCal'
 import { useTasksStatus } from '../hooks/useTasks'
 import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
@@ -479,8 +480,19 @@ export function ConnectorsBoardView() {
   const spotifyStatus = useSpotifyStatus()
   const todoistStatus = useTodoistStatus()
 
+  const hashFragment = useHashFragment()
   const [search, setSearch] = useState('')
-  const [category, setCategory] = useState<Category>('all')
+  const [category, setCategory] = useState<Category>(() => {
+    const valid: Category[] = ['tasks', 'calendar', 'media', 'productivity', 'ai']
+    return valid.includes(hashFragment as Category) ? (hashFragment as Category) : 'all'
+  })
+
+  // Update category when navigating via deep link
+  useEffect(() => {
+    if (!hashFragment) return
+    const valid: Category[] = ['tasks', 'calendar', 'media', 'productivity', 'ai']
+    if (valid.includes(hashFragment as Category)) setCategory(hashFragment as Category)
+  }, [hashFragment])
 
   // Build enabled list
   const enabledMap: Record<string, boolean> = {
