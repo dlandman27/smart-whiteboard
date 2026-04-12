@@ -31,6 +31,13 @@ afterEach(() => {
   localStorage.clear()
 })
 
+// Stub ResizeObserver for components that measure widget size
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+} as any
+
 // Stub matchMedia for components that read theme/responsive state
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
