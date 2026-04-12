@@ -73,6 +73,11 @@ export const taskMonitorAgent: Agent = {
     if (text) {
       ctx.speak(text)
       const names = overdue.map((t) => `• ${t.name}`).join('\n')
+      ctx.broadcast({
+        type:  'agent_notification',
+        title: `${overdue.length} overdue task${overdue.length === 1 ? '' : 's'}`,
+        body:  overdue.map((t) => t.name).join(', '),
+      })
       await ctx.notify('Overdue Tasks', names, { priority: 'high', tags: ['warning'] })
     }
 

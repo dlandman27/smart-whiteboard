@@ -4,9 +4,11 @@ import { supabase } from '../lib/supabase'
 import { ThemePicker } from './ThemePicker'
 import { BackgroundPicker } from './BackgroundPicker'
 import { SchedulePanel } from './SchedulePanel'
+import { AgentManager } from './AgentManager'
 import { useThemeStore } from '../store/theme'
 import { DEFAULT_BACKGROUND } from '../constants/backgrounds'
 import { SPRITES, PX, PixelSprite } from './PetBar'
+import { AgentManager } from './AgentManager'
 
 // ── SectionLabel helper ───────────────────────────────────────────────────────
 
@@ -247,6 +249,8 @@ function GeneralSection() {
 function AgentsSection() {
   return (
     <FlexCol style={{ gap: 32 }}>
+      <AgentManager />
+      <Box style={{ height: 1, background: 'var(--wt-border)' }} />
       <PetsSection />
     </FlexCol>
   )
@@ -395,7 +399,11 @@ export function SettingsBoardView() {
           <div style={{ maxWidth: 720, padding: '32px 40px' }}>
             {activeSection === 'appearance' && <AppearanceSection />}
             {activeSection === 'general'    && <GeneralSection />}
+<<<<<<< HEAD
             {activeSection === 'agents'     && <AgentsSection />}
+=======
+            {activeSection === 'agents'     && <AgentManager />}
+>>>>>>> 3dedfda (feat: agent management UI + proactive toast notifications)
             {activeSection === 'account'    && <AccountSection />}
           </div>
         </div>

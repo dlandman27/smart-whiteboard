@@ -51,6 +51,11 @@ export const meetingCountdownAgent: Agent = {
         : `${title} starts in ${minsAway} minutes.`
 
       ctx.speak(text)
+      ctx.broadcast({
+        type:  'agent_notification',
+        title: 'Meeting soon',
+        body:  text,
+      })
       await ctx.notify('Meeting soon', text, { priority: 'high', tags: ['calendar', 'clock'] })
     }
   },

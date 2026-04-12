@@ -51,6 +51,11 @@ export const calendarAgent: Agent = {
         : `in ${minutesUntil} minute${minutesUntil === 1 ? '' : 's'}`
 
       ctx.speak(`Heads up — ${title} is ${timeStr}.`)
+      ctx.broadcast({
+        type:  'agent_notification',
+        title: `Meeting ${timeStr}`,
+        body:  title,
+      })
       await ctx.notify(`📅 ${title}`, `Starting ${timeStr}`, { priority: 'high', tags: ['calendar'] })
     }
 

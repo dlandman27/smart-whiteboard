@@ -138,6 +138,12 @@ export function useCanvasSocket() {
             title: `⏰ ${msg.label}`,
             body:  'Timer done',
           })
+        } else if (msg.type === 'agent_notification') {
+          useNotificationStore.getState().addNotification({
+            title: msg.title ?? 'Agent Alert',
+            body:  msg.body,
+            type:  msg.notifType ?? 'info',
+          })
         } else if (msg.type === 'pet_wake') {
           usePetsStore.getState().setPet(msg.agentId, 'active')
         } else if (msg.type === 'pet_message') {
