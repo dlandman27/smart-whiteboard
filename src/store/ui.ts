@@ -14,6 +14,9 @@ interface UIStore {
   clearWidgetCommand:  () => void
   fullscreenWidgetId:  string | null
   setFullscreenWidget: (id: string | null) => void
+  displayMode:         boolean
+  setDisplayMode:      (on: boolean) => void
+  toggleDisplayMode:   () => void
 }
 
 export const useUIStore = create<UIStore>()((set) => ({
@@ -31,4 +34,7 @@ export const useUIStore = create<UIStore>()((set) => ({
   clearWidgetCommand:  () => set({ widgetCommand: null }),
   fullscreenWidgetId:  null,
   setFullscreenWidget: (id) => set({ fullscreenWidgetId: id }),
+  displayMode:         false,
+  setDisplayMode:      (on) => set({ displayMode: on }),
+  toggleDisplayMode:   () => set((s) => ({ displayMode: !s.displayMode })),
 }))

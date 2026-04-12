@@ -1,63 +1,86 @@
 # Routes
 
-- `GET` `/agents` [db]
+## CRUD Resources
+
+- **`/agents`** GET | POST | GET/:id | PATCH/:id | DELETE/:id → Agent
+- **`/canvas/board`** POST | PATCH/:id | DELETE/:id → Board
+- **`/canvas/widget`** POST | PATCH/:id | DELETE/:id → Widget
+- **`/credentials`** POST | GET/:id | DELETE/:id → Credential
+- **`/databases`** GET | GET/:id | DELETE/:id → Database
+
+## Other Routes
+
+- `GET` `*` [auth, ai]
+- `GET` `/test` params() [auth] ✓
+- `GET` `/health` params() [auth] ✓
+- `GET` `/gcal/callback` params() [auth] ✓
+- `GET` `/spotify/callback` params() [auth] ✓
+- `GET` `/api/test` params() [auth] ✓
+- `GET` `/api/health` params() [auth] ✓
+- `GET` `/api/gcal/callback` params() [auth] ✓
+- `GET` `/api/spotify/callback` params() [auth] ✓
+- `GET` `/boom` params() [auth] ✓
+- `GET` `/sync-boom` params() [auth] ✓
+- `GET` `/ok` params() [auth] ✓
 - `POST` `/agents/:id/run` params(id) [db]
-- `PATCH` `/agents/:id` params(id) [db]
-- `POST` `/agents` [db]
-- `DELETE` `/agents/:id` params(id) [db]
-- `GET` `/canvas/boards` [db]
-- `POST` `/canvas/board` [db]
-- `PATCH` `/canvas/board/:id` params(id) [db]
-- `DELETE` `/canvas/board/:id` params(id) [db]
+- `GET` `/canvas/boards` params() [db]
 - `POST` `/canvas/board/:id/activate` params(id) [db]
-- `GET` `/briefing` [auth]
-- `POST` `/briefing/settings` [auth]
-- `GET` `/briefing/settings` [auth]
-- `GET` `/canvas/widgets` [auth, db, ai]
-- `POST` `/canvas/widget` [auth, db, ai]
-- `PATCH` `/canvas/widget/:id` params(id) [auth, db, ai]
-- `DELETE` `/canvas/widget/:id` params(id) [auth, db, ai]
-- `POST` `/canvas/clear-widgets` [auth, db, ai]
-- `POST` `/canvas/layout` [auth, db, ai]
-- `POST` `/canvas/focus-widget` [auth, db, ai]
-- `POST` `/canvas/theme` [auth, db, ai]
-- `POST` `/canvas/custom-theme` [auth, db, ai]
-- `POST` `/theme/generate` [auth, db, ai]
-- `GET` `/gcal/status` [auth]
-- `POST` `/gcal/start-auth` [auth]
-- `GET` `/gcal/callback` [auth]
-- `GET` `/gcal/calendars` [auth]
-- `GET` `/gcal/events` [auth]
-- `GET` `/quote` [auth]
-- `GET` `/notifications`
-- `GET` `/timers`
-- `GET` `/reminders`
-- `GET` `/health` [auth, db]
-- `GET` `/databases` [auth, db]
-- `GET` `/databases/:id` params(id) [auth, db]
-- `POST` `/databases/:id/query` params(id) [auth, db]
-- `POST` `/databases/:id/pages` params(id) [auth, db]
-- `POST` `/databases/:id/smart-entry` params(id) [auth, db]
-- `PATCH` `/pages/:id` params(id) [auth, db]
-- `DELETE` `/pages/:id` params(id) [auth, db]
-- `DELETE` `/databases/:id` params(id) [auth, db]
-- `GET` `/notion/workspace-page` [auth, db]
-- `POST` `/notion/workspace-page` [auth, db]
-- `POST` `/notion/databases` [auth, db]
-- `GET` `/pages/:id/blocks` params(id) [auth, db]
-- `PATCH` `/blocks/:id` params(id) [auth, db]
-- `POST` `/doc` [auth, db]
+- `GET` `/briefing` params() [auth]
+- `POST` `/briefing/settings` params() [auth]
+- `GET` `/briefing/settings` params() [auth]
+- `GET` `/canvas/widgets` params() [auth, db, ai]
+- `POST` `/canvas/clear-widgets` params() [auth, db, ai]
+- `POST` `/canvas/layout` params() [auth, db, ai]
+- `POST` `/canvas/focus-widget` params() [auth, db, ai]
+- `POST` `/canvas/theme` params() [auth, db, ai]
+- `POST` `/canvas/custom-theme` params() [auth, db, ai]
+- `POST` `/theme/generate` params() [auth, db, ai]
+- `GET` `/gcal/status` params() [auth, db]
+- `POST` `/gcal/connect` params() [auth, db]
+- `POST` `/gcal/disconnect` params() [auth, db]
+- `GET` `/gcal/calendars` params() [auth, db]
+- `GET` `/gcal/events` params() [auth, db]
+- `POST` `/gcal/events` params() [auth, db]
+- `DELETE` `/gcal/events/:calendarId/:eventId` params(calendarId, eventId) [auth, db]
+- `GET` `/gtasks/status` params() [auth, db]
+- `GET` `/gtasks/lists` params() [auth, db]
+- `GET` `/gtasks/tasks` params() [auth, db]
+- `POST` `/gtasks/tasks` params() [auth, db]
+- `PATCH` `/gtasks/tasks/:taskListId/:taskId` params(taskListId, taskId) [auth, db]
+- `DELETE` `/gtasks/tasks/:taskListId/:taskId` params(taskListId, taskId) [auth, db]
+- `GET` `/quote` params() [auth]
+- `GET` `/notifications` params()
+- `GET` `/timers` params()
+- `GET` `/reminders` params()
+- `POST` `/databases/:id/query` params(id) [auth, db, ai]
+- `POST` `/databases/:id/pages` params(id) [auth, db, ai]
+- `POST` `/databases/:id/smart-entry` params(id) [auth, db, ai]
+- `PATCH` `/pages/:id` params(id) [auth, db, ai]
+- `DELETE` `/pages/:id` params(id) [auth, db, ai]
+- `GET` `/notion/workspace-page` params() [auth, db, ai]
+- `POST` `/notion/workspace-page` params() [auth, db, ai]
+- `POST` `/notion/databases` params() [auth, db, ai]
+- `GET` `/pages/:id/blocks` params(id) [auth, db, ai]
+- `PATCH` `/blocks/:id` params(id) [auth, db, ai]
+- `POST` `/doc` params() [auth, db, ai]
 - `GET` `/standings/:league` params(league)
 - `GET` `/sports/:league` params(league)
-- `GET` `/spotify/status` [auth]
-- `POST` `/spotify/start-auth` [auth]
-- `GET` `/spotify/callback` [auth]
-- `GET` `/spotify/now-playing` [auth]
-- `POST` `/spotify/play` [auth]
-- `POST` `/spotify/pause` [auth]
-- `POST` `/spotify/next` [auth]
-- `POST` `/spotify/previous` [auth]
-- `POST` `/spotify/volume` [auth]
-- `POST` `/voice` [auth, ai]
-- `POST` `/tts` [auth, ai]
-- `GET` `/youtube/search`
+- `GET` `/spotify/status` params() [auth, db]
+- `POST` `/spotify/start-auth` params() [auth, db]
+- `GET` `/spotify/now-playing` params() [auth, db]
+- `POST` `/spotify/play` params() [auth, db]
+- `POST` `/spotify/pause` params() [auth, db]
+- `POST` `/spotify/next` params() [auth, db]
+- `POST` `/spotify/previous` params() [auth, db]
+- `POST` `/spotify/volume` params() [auth, db]
+- `POST` `/voice` params() [auth, ai]
+- `POST` `/tts` params() [auth, ai]
+- `POST` `/walli/widget` params()
+- `POST` `/walli/layout` params()
+- `GET` `/walli/widgets` params()
+- `GET` `/youtube/search` params()
+
+## WebSocket Events
+
+- `WS` `message` — `server/ws.ts`
+- `WS` `close` — `server/ws.ts`

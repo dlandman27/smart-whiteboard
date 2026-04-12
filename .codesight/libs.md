@@ -1,16 +1,26 @@
 # Libraries
 
-- `mcp\server.ts`
+- `mcp/server.ts`
   - function XxxWidget: ({...}) => void
   - function XxxSettings: ({...}) => void
   - interface XxxSettings
   - const XXX_DEFAULTS: XxxSettings
-- `plugins\spotify\hooks.ts`
+- `packages/ui-kit/src/useWidgetSize.ts` — function useWidgetSize: (ref) => WidgetSize, interface WidgetSize
+- `packages/ui-kit/src/utils/cn.ts` — function cn: (...classes) => void
+- `packages/ui-kit/src/widgetTokens.ts`
+  - function getBreakpoint: (containerWidth) => WidgetBreakpoint
+  - interface WidgetConstraints
+  - interface WidgetShape
+  - type WidgetBreakpoint
+  - const widgetBreakpoints
+  - const widgetSizing
+  - _...1 more_
+- `plugins/spotify/hooks.ts`
   - function useSpotifyStatus: () => void
   - function useSpotifyNowPlaying: (enabled) => void
   - function startSpotifyAuth: (clientId, clientSecret, redirectUri) => Promise<string>
   - interface NowPlayingTrack
-- `server\agents\dynamic-runner.ts`
+- `server/agents/dynamic-runner.ts`
   - function readUserAgents: () => UserAgentDef[]
   - function addUserAgent: (def, 'createdAt'>) => UserAgentDef
   - function removeUserAgent: (id) => void
@@ -18,61 +28,62 @@
   - function buildDynamicAgent: (def) => Agent
   - function loadDynamicAgents: () => Agent[]
   - _...1 more_
-- `server\agents\index.ts` — function createScheduler: (ctx) => AgentScheduler
-- `server\agents\scheduler.ts` — class AgentScheduler
-- `server\crons\briefing.ts` — function startBriefingCron: (notion) => void
-- `server\crons\index.ts` — function startAllCrons: (notion) => void
-- `server\crons\reminders.ts` — function startReminderCron: () => void
-- `server\crons\timers.ts` — function startTimerCron: () => void
-- `server\lib\logger.ts`
+- `server/agents/index.ts` — function createScheduler: (ctx) => AgentScheduler
+- `server/agents/scheduler.ts` — class AgentScheduler
+- `server/crons/briefing.ts` — function startBriefingCron: (notion) => void
+- `server/crons/index.ts` — function startAllCrons: (notion) => void
+- `server/crons/reminders.ts` — function startReminderCron: () => void
+- `server/crons/timers.ts` — function startTimerCron: () => void
+- `server/lib/crypto.ts` — function encrypt: (plaintext) => string, function decrypt: (encoded) => string
+- `server/lib/logger.ts`
   - function log
   - function warn
   - function error
-- `server\lib\notify.ts` — function notify: (title, body, opts) => Promise<void>
-- `server\middleware\error.ts`
+- `server/lib/notify.ts` — function notify: (title, body, opts) => Promise<void>
+- `server/middleware/auth.ts` — function requireAuth: (req, res, next) => void
+- `server/middleware/error.ts`
   - function asyncRoute: (fn, res, next) => void
   - function errorMiddleware: (err, _req, res, _next) => void
   - class AppError
-- `server\routes\agents.ts` — function agentsRouter: (agentScheduler) => Router
-- `server\routes\boards.ts` — function boardsRouter: () => Router
-- `server\routes\briefing.ts` — function briefingRouter: (notion) => Router
-- `server\routes\canvas.ts` — function canvasRouter: () => Router
-- `server\routes\gcal.ts` — function gcalRouter: () => Router
-- `server\routes\misc.ts` — function miscRouter: () => Router
-- `server\routes\notifications.ts` — function notificationsRouter: () => Router
-- `server\routes\notion.ts` — function notionRouter: (notion) => Router
-- `server\routes\sports.ts` — function sportsRouter: () => Router
-- `server\routes\spotify.ts` — function spotifyRouter: () => Router
-- `server\routes\voice.ts` — function voiceRouter: (notion) => Router
-- `server\routes\youtube.ts` — function youtubeRouter: () => Router
-- `server\services\board-utils.ts`
+- `server/services/board-utils.ts`
   - function autoSaveDatabases: () => void
   - function getBoardSnapshot: () => string
   - function ordinal: (n) => string
   - function leagueLabel: (key) => string
   - const canvas
-- `server\services\briefing.ts` — function compileBriefing: (notion) => Promise<string>
-- `server\services\gcal.ts` — function setPendingGCalAuth: (auth) => void, function getGCalClient: () => void
-- `server\services\memory.ts`
+- `server/services/briefing.ts` — function compileBriefing: (notion) => Promise<string>
+- `server/services/credentials.ts`
+  - function loadOAuthTokens: (userId, service) => Promise<OAuthTokens | null>
+  - function saveOAuthTokens: (userId, service, tokens) => Promise<void>
+  - function deleteOAuthTokens: (userId, service) => Promise<void>
+  - function loadCredential: (userId, service) => Promise<Credential | null>
+  - function saveCredential: (userId, service, cred) => Promise<void>
+  - function deleteCredential: (userId, service) => Promise<void>
+  - _...2 more_
+- `server/services/gcal.ts` — function getGCalOAuth2Client: () => void, function getGCalClient: (userId) => void
+- `server/services/memory.ts`
   - function loadMemory: () => WalliMemory
   - function saveMemory: (mem) => void
   - function memoryToPrompt: (mem) => string
   - interface WalliMemory
-- `server\services\notify.ts` — function loggedNotify: (title, body, opts) => void, const notifLog: NotifEntry[]
-- `server\services\reminders.ts`
+- `server/services/notify.ts` — function loggedNotify: (title, body, opts) => void, const notifLog: NotifEntry[]
+- `server/services/reminders.ts`
   - function loadReminders: () => Reminder[]
   - function saveReminders: (reminders) => void
   - interface Reminder
-- `server\services\schema-cache.ts` — function getCachedSchema: (notion, databaseId) => void, function invalidateSchema: (databaseId) => void
-- `server\services\spotify.ts`
-  - function setPendingSpotifyAuth: (auth) => void
-  - function getSpotifyAccessToken: () => Promise<string | null>
-  - function spotifyControl: (method, endpoint, body?) => Promise<
+- `server/services/schema-cache.ts` — function getCachedSchema: (notion, databaseId) => void, function invalidateSchema: (databaseId) => void
+- `server/services/spotify.ts`
+  - function getSpotifyAccessToken: (userId) => Promise<string | null>
+  - function spotifyControl: (userId, method, endpoint, body?) => Promise<
   - const SPOTIFY_SCOPES
-- `server\services\tokens.ts` — function loadTokens: () => Record<string, string> | null, function saveTokens: (tokens, string>) => void
-- `server\services\tts-normalize.ts` — function normalizeTtsText: (raw) => string
-- `server\services\voice-tools\registry.ts` — function executeVoiceTool: (name, input, any>, notion) => Promise<string>, const VOICE_TOOLS: Anthropic.Tool[]
-- `server\ws.ts`
+  - const pendingSpotifyAuths
+- `server/services/tokens.ts`
+  - function loadTokens: () => Record<string, string> | null
+  - function saveTokens: (tokens, string>) => void
+  - function deleteTokens: (keys) => void
+- `server/services/tts-normalize.ts` — function normalizeTtsText: (raw) => string
+- `server/services/voice-tools/registry.ts` — function executeVoiceTool: (name, input, any>, notion) => Promise<string>, const VOICE_TOOLS: Anthropic.Tool[]
+- `server/ws.ts`
   - function getBoards: () => void
   - function getActiveBoardId: () => void
   - function getWidgets: () => void
@@ -80,35 +91,25 @@
   - function broadcast: (msg) => void
   - function initWebSocket: (httpServer) => void
   - _...1 more_
-- `src\components\pets\sprites.ts`
-  - function getSpriteType: (agentId, icon, spriteType?) => keyof typeof SPRITES
-  - type Frame
-  - type Sprite
-  - const PX
-  - const SPRITES: Record<string, Sprite>
-- `src\components\widgets\notion-view\utils.ts`
-  - function getProp: (page, propName) => any
-  - function formatDate: (dateStr, style) => string
-  - function formatValue: (v) => string
-- `src\hooks\useCanvasSocket.ts` — function useCanvasSocket: () => void
-- `src\hooks\useGCal.ts`
+- `src/hooks/useCanvasSocket.ts` — function useCanvasSocket: () => void
+- `src/hooks/useGCal.ts`
   - function useGCalStatus: () => void
-  - function startGCalAuth: (clientId, clientSecret, redirectUri) => Promise<string>
+  - function startGCalAuth: () => Promise<string>
+  - function disconnectGCal: () => Promise<void>
   - function useGCalCalendars: () => void
   - function useGCalEvents: (timeMin, timeMax, calendarId) => void
-  - interface GCalStatus
-  - interface GCalEvent
-  - _...1 more_
-- `src\hooks\useKioskRefresh.ts` — function useKioskRefresh: () => void
-- `src\hooks\useLayout.ts`
+  - function useAllCalendarEvents: (timeMin, timeMax, calendarIds) => void
+  - _...5 more_
+- `src/hooks/useKioskRefresh.ts` — function useKioskRefresh: () => void
+- `src/hooks/useLayout.ts`
   - function computeSlotRect: (slot, canvasW, canvasH, slotGap, slotPad) => SlotRect
   - function useLayout: () => void
   - interface SlotRect
   - const DEFAULT_SLOT_GAP
   - const DEFAULT_SLOT_PAD
   - const TOOLBAR_RESERVED
-- `src\hooks\useNetworkStatus.ts` — function useNetworkStatus: () => void
-- `src\hooks\useNotion.ts`
+- `src/hooks/useNetworkStatus.ts` — function useNetworkStatus: () => void
+- `src/hooks/useNotion.ts`
   - function useNotionHealth: () => void
   - function useNotionDatabases: () => void
   - function useNotionPages: (databaseId) => void
@@ -116,34 +117,52 @@
   - function useWeightLog: (databaseId) => void
   - function useUpdatePage: (databaseId) => void
   - _...4 more_
-- `src\hooks\useSports.ts`
+- `src/hooks/useSports.ts`
+  - function useScores: (league) => void
+  - function useStandings: (league) => void
   - function useNFLScores: () => void
   - function useNBAScores: () => void
   - interface GameTeam
   - interface Game
-- `src\hooks\useSpotify.ts`
+  - _...4 more_
+- `src/hooks/useSpotify.ts`
   - function useSpotifyStatus: () => void
   - function useInvalidateSpotifyStatus: () => void
   - function startSpotifyAuth: (clientId, clientSecret, redirectUri) => Promise<string>
-- `src\hooks\useVoice.ts`
+- `src/hooks/useTasks.ts`
+  - function useTasksStatus: () => void
+  - function useTaskLists: () => void
+  - function useTasksForList: (taskListId, showCompleted) => void
+  - function useAllTasks: (taskListIds, showCompleted) => void
+  - function createTask: (taskListId, task) => Promise<GTask>
+  - function updateTask: (taskListId, taskId, updates, 'title' | 'notes' | 'due' | 'status'>>) => Promise<GTask>
+  - _...5 more_
+- `src/hooks/useVoice.ts`
   - function useVoice: () => VoiceStatus
   - interface VoiceStatus
   - type VoiceState
-- `src\hooks\useWeather.ts`
+- `src/hooks/useWeather.ts`
   - function useWeather: (cfg) => void
   - interface WeatherData
   - interface WeatherConfig
-- `src\layouts\presets.ts`
+- `src/layouts/presets.ts`
   - function getLayoutPreset: (id) => Layout
   - const DEFAULT_LAYOUT_ID
   - const LAYOUT_PRESETS: Layout[]
-- `src\lib\db.ts`
+- `src/lib/apiFetch.ts` — function apiFetch: (path, options?) => Promise<T>
+- `src/lib/db.ts`
   - function loadBoards: (userId) => Promise<Board[]>
   - function upsertBoard: (board, userId, ord) => Promise<void>
   - function deleteBoard: (boardId) => Promise<void>
   - function upsertWidget: (widget, boardId, userId) => Promise<void>
   - function deleteWidget: (widgetId) => Promise<void>
-- `src\lib\sounds.ts`
+  - function loadTheme: (userId) => Promise<ThemeRow | null>
+  - _...4 more_
+- `src/lib/realtimeSync.ts`
+  - function touchId: (id) => void
+  - function startRealtimeSync: (userId) => void
+  - function stopRealtimeSync: () => void
+- `src/lib/sounds.ts`
   - function soundPanelOpen: () => void
   - function soundSwipe: () => void
   - function soundAlert: () => void
@@ -151,8 +170,18 @@
   - function soundWidgetRemoved: () => void
   - function soundWidgetDrop: () => void
   - _...6 more_
-- `src\plugins\loader.ts` — function loadPluginDefs: () => StaticWidgetDef[]
-- `src\themes\presets.ts`
+- `src/lib/syncBoards.ts` — function startBoardSync: (userId) => void, function stopBoardSync: () => void
+- `src/lib/syncTheme.ts` — function startThemeSync: (userId) => void, function stopThemeSync: () => void
+- `src/plugins/loader.ts` — function loadPluginDefs: () => StaticWidgetDef[]
+- `src/store/whiteboard.ts`
+  - function ensureSystemBoards: (boards) => Board[]
+  - interface Board
+  - type WidgetStyle
+  - const DEFAULT_SETTINGS_ID
+  - const DEFAULT_CONNECTORS_ID
+  - const DEFAULT_TODAY_ID
+  - _...2 more_
+- `src/themes/presets.ts`
   - function applyThemeVars: (vars) => void
   - interface ThemeVars
   - interface Theme
@@ -160,4 +189,12 @@
   - const THEMES: Theme[]
   - const THEME_MAP
   - _...1 more_
-- `src\ui\web\utils\cn.ts` — function cn: (...classes) => void
+- `src/themes/scale.ts`
+  - function generateScale: (hue, saturation) => ShadeScale
+  - function complementary: (hue) => number
+  - function analogous: (hue) => [number, number]
+  - function buildThemeVars: (input) => ThemeVars
+  - interface ScaleThemeInput
+  - type ShadeStep
+  - _...1 more_
+- `vite-plugins/ui-kit-enforce.ts` — function uiKitEnforce: () => Plugin

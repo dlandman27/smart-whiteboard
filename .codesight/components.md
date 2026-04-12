@@ -1,77 +1,145 @@
 # Components
 
-- **SpotifyWidget** — props: widgetId — `plugins\spotify\SpotifyWidget.tsx`
-- **App** — `src\App.tsx`
-- **AuthGuard** — `src\components\AuthGuard.tsx`
-- **BackgroundPicker** — `src\components\BackgroundPicker.tsx`
-- **BoardMenu** — props: onClose, onSlide — `src\components\BoardMenu.tsx`
-- **BoardNav** — props: onSlide — `src\components\BoardNav.tsx`
-- **BoardThumbnail** — props: board, width, height — `src\components\BoardThumbnail.tsx`
-- **BottomToolbar** — props: onToolChange, onWidgetSelected — `src\components\BottomToolbar.tsx`
-- **ConfigPanel** — props: onClose — `src\components\ConfigPanel.tsx`
-- **DatabasePicker** — props: onClose, onWidgetSelected — `src\components\DatabasePicker.tsx`
-- **DrawingCanvas** — props: boardId, tool, color, strokeWidth, eraserSize — `src\components\DrawingCanvas.tsx`
-- **KioskGuard** — `src\components\KioskGuard.tsx`
-- **LayoutPicker** — props: onClose — `src\components\layout\LayoutPicker.tsx`
-- **LayoutSlot** — props: id, x, y, width, height, mode, isHovered, onClick — `src\components\layout\LayoutSlot.tsx`
-- **LayoutSlots** — props: pendingWidget, draggingWidgetId, hoveredSlotId, onSlotClick — `src\components\layout\LayoutSlots.tsx`
-- **LayoutThumbnail** — props: layout, width, height, active — `src\components\layout\LayoutThumbnail.tsx`
-- **LoginScreen** — `src\components\LoginScreen.tsx`
-- **Logo** — props: size — `src\components\Logo.tsx`
-- **LogoSettings** — props: showSettings, onCloseSettings — `src\components\LogoSettings.tsx`
-- **NetworkStatusBanner** — `src\components\NetworkStatusBanner.tsx`
-- **NotificationCenter** — props: onClose — `src\components\NotificationCenter.tsx`
-- **NotificationToast** — `src\components\NotificationToast.tsx`
-- **PetBar** — `src\components\PetBar.tsx`
-- **PixelSprite** — props: sprite, frameIdx, flip — `src\components\pets\PixelSprite.tsx`
-- **WalkingPet** — props: agent, mood, message, onMessageDone, onInspect, inspecting — `src\components\pets\WalkingPet.tsx`
-- **Pill** — `src\components\Pill.tsx`
-- **SettingsPanel** — props: onClose — `src\components\SettingsPanel.tsx`
-- **ThemePicker** — `src\components\ThemePicker.tsx`
-- **UndoToast** — `src\components\UndoToast.tsx`
-- **VoiceListener** — `src\components\VoiceListener.tsx`
-- **WalliChatButton** — `src\components\WalliChat.tsx`
-- **Whiteboard** — `src\components\Whiteboard.tsx`
-- **WhiteboardBackground** — props: background — `src\components\WhiteboardBackground.tsx`
-- **Widget** — props: id, x, y, width, height, settingsContent, preferences, refSize — `src\components\Widget.tsx`
-- **WidgetCanvas** — props: activeTool, pendingWidget, onClearPending — `src\components\WidgetCanvas.tsx`
-- **CalendarWidget** — props: widgetId — `src\components\widgets\CalendarWidget.tsx`
-- **ClockSettings** — props: widgetId — `src\components\widgets\ClockSettings.tsx`
-- **ClockWidget** — props: widgetId — `src\components\widgets\ClockWidget.tsx`
-- **CountdownSettings** — props: widgetId — `src\components\widgets\CountdownSettings.tsx`
-- **CountdownWidget** — props: widgetId — `src\components\widgets\CountdownWidget.tsx`
-- **DatabaseWidget** — props: widgetId — `src\components\widgets\DatabaseWidget.tsx`
-- **HtmlWidget** — props: widgetId — `src\components\widgets\HtmlWidget.tsx`
-- **NoteWidget** — props: widgetId — `src\components\widgets\NoteWidget.tsx`
-- **NotionViewWidget** — props: widgetId — `src\components\widgets\notion-view\index.tsx`
-- **NotionViewSettingsPanel** — props: widgetId — `src\components\widgets\notion-view\NotionViewSettings.tsx`
-- **PomodoroWidget** — props: widgetId — `src\components\widgets\PomodoroWidget.tsx`
-- **QuoteSettings** — props: widgetId — `src\components\widgets\QuoteSettings.tsx`
-- **QuoteWidget** — props: widgetId — `src\components\widgets\QuoteWidget.tsx`
-- **BUILTIN_WIDGETS** — `src\components\widgets\registry.tsx`
-- **RoutinesWidget** — props: widgetId — `src\components\widgets\RoutinesWidget.tsx`
-- **SportsSettings** — props: widgetId, league — `src\components\widgets\SportsSettings.tsx`
-- **NFLWidget** — props: widgetId — `src\components\widgets\SportsWidget.tsx`
-- **SpotifyWidget** — props: widgetId — `src\components\widgets\SpotifyWidget.tsx`
-- **TimersWidget** — props: widgetId — `src\components\widgets\TimersWidget.tsx`
-- **UrlWidget** — props: widgetId — `src\components\widgets\UrlWidget.tsx`
-- **WeatherSettings** — props: widgetId — `src\components\widgets\WeatherSettings.tsx`
-- **WeatherWidget** — props: widgetId — `src\components\widgets\WeatherWidget.tsx`
-- **WorldcupWidget** — props: widgetId — `src\components\widgets\WorldcupWidget.tsx`
-- **YouTubeWidget** — props: widgetId — `src\components\widgets\YouTubeWidget.tsx`
-- **Box** — props: flex1, fullHeight, fullWidth, noSelect, overflow, as, className, style, onClick — `src\ui\layouts\Box.tsx`
-- **Center** — props: dir — `src\ui\layouts\Center.tsx`
-- **Flex** — props: dir, align, justify, gap, wrap, flex1, fullHeight, fullWidth, noSelect, overflow — `src\ui\layouts\Flex.tsx`
-- **Grid** — props: cols, gap, flex1, fullHeight, as, className, style — `src\ui\layouts\Grid.tsx`
-- **ScrollArea** — props: axis, flex1, className, style — `src\ui\layouts\ScrollArea.tsx`
-- **Chip** — props: variant, iconLeft, disabled, onClick, className — `src\ui\web\Chip.tsx`
-- **Divider** — props: orientation, className — `src\ui\web\Divider.tsx`
-- **Icon** — props: icon, size, weight, className, style — `src\ui\web\Icon.tsx`
-- **IconButton** — props: icon, variant, size, weight, filled, title, disabled, className, onClick, onMouseDown — `src\ui\web\IconButton.tsx`
-- **MenuItem** — props: icon, iconBg, iconStyle, name, source, label, selected, disabled, onClick, onMouseEnter — `src\ui\web\MenuItem.tsx`
-- **Panel** — props: onClose, width, maxHeight, className, style — `src\ui\web\Panel.tsx`
-- **PanelHeader** — props: title, onClose, onBack, actions, className — `src\ui\web\PanelHeader.tsx`
-- **SegmentedControl** — `src\ui\web\SegmentedControl.tsx`
-- **SettingsSection** — props: label, className — `src\ui\web\SettingsSection.tsx`
-- **Spacer** — props: size, px, horizontal — `src\ui\web\Spacer.tsx`
-- **Text** — props: variant, size, color, align, textTransform, numberOfLines, italic, as, className, style — `src\ui\web\Text.tsx`
+- **Chip** — props: variant, iconLeft, disabled, onClick, className — `packages/ui-kit/src/Chip.tsx`
+- **Container** — props: className — `packages/ui-kit/src/Container.tsx`
+- **Divider** — props: orientation, className — `packages/ui-kit/src/Divider.tsx`
+- **Icon** — props: icon, size, weight, className, style — `packages/ui-kit/src/Icon.tsx`
+- **IconButton** — props: icon, variant, size, weight, filled, title, disabled, className, onClick, onMouseDown — `packages/ui-kit/src/IconButton.tsx`
+- **MenuItem** — props: icon, iconBg, iconStyle, name, source, label, selected, disabled, onClick, onMouseEnter — `packages/ui-kit/src/MenuItem.tsx`
+- **Panel** — props: onClose, width, maxHeight, className, style — `packages/ui-kit/src/Panel.tsx`
+- **PanelHeader** — props: title, onClose, onBack, actions, className — `packages/ui-kit/src/PanelHeader.tsx`
+- **SegmentedControl** — props: value, options, onChange, className — `packages/ui-kit/src/SegmentedControl.tsx`
+- **SettingsSection** — props: label, className — `packages/ui-kit/src/SettingsSection.tsx`
+- **Spacer** — props: size, px, horizontal — `packages/ui-kit/src/Spacer.tsx`
+- **Stat** — props: label, value, unit, size, className, style — `packages/ui-kit/src/Stat.tsx`
+- **Text** — props: variant, size, color, align, textTransform, numberOfLines, italic, as, className, style — `packages/ui-kit/src/Text.tsx`
+- **WidgetSizeContext** — `packages/ui-kit/src/WidgetSizeContext.tsx`
+- **Box** — props: flex1, fullHeight, fullWidth, noSelect, overflow, Tag, className, style, onClick — `packages/ui-kit/src/layouts/Box.tsx`
+- **Center** — props: dir — `packages/ui-kit/src/layouts/Center.tsx`
+- **Flex** — props: dir, align, justify, gap, wrap, flex1, fullHeight, fullWidth, noSelect, overflow — `packages/ui-kit/src/layouts/Flex.tsx`
+- **FlexRow** — props: fullWidth — `packages/ui-kit/src/layouts/Flex.tsx`
+- **FlexCol** — props: fullWidth, align — `packages/ui-kit/src/layouts/Flex.tsx`
+- **Grid** — props: cols, gap, flex1, fullHeight, Tag, className, style — `packages/ui-kit/src/layouts/Grid.tsx`
+- **ScrollArea** — props: axis, flex1, className, style — `packages/ui-kit/src/layouts/ScrollArea.tsx`
+- **SpotifyWidget** — props: _widgetId — `plugins/spotify/SpotifyWidget.tsx`
+- **App** — `src/App.tsx`
+- **AuthGuard** — `src/components/AuthGuard.tsx`
+- **BackgroundPicker** — props: background, onSelect — `src/components/BackgroundPicker.tsx`
+- **BoardContextMenu** — props: x, y, canvasW, canvasH, onClose, onAddWidget, onChangeLayout, onBoardSettings, widgetCtx — `src/components/BoardContextMenu.tsx`
+- **BoardMenu** — props: onClose, onSlide — `src/components/BoardMenu.tsx`
+- **BoardNav** — props: onSlide — `src/components/BoardNav.tsx`
+- **BoardSettingsPanel** — props: onClose — `src/components/BoardSettingsPanel.tsx`
+- **BoardThumbnail** — props: board, width, height — `src/components/BoardThumbnail.tsx`
+- **BottomToolbar** — props: onToolChange, onWidgetSelected, externalPickerOpen, onExternalPickerClose — `src/components/BottomToolbar.tsx`
+- **CalendarBoardView** — `src/components/CalendarBoardView.tsx`
+- **ConfigPanel** — props: onClose — `src/components/ConfigPanel.tsx`
+- **ConnectorsBoardView** — `src/components/ConnectorsBoardView.tsx`
+- **DatabasePicker** — props: onClose, onWidgetSelected — `src/components/DatabasePicker.tsx`
+- **DrawingCanvas** — props: boardId, tool, color, strokeWidth, eraserSize — `src/components/DrawingCanvas.tsx`
+- **KioskGuard** — `src/components/KioskGuard.tsx`
+- **LayoutPicker** — props: onClose — `src/components/LayoutPicker.tsx`
+- **LoginScreen** — `src/components/LoginScreen.tsx`
+- **Logo** — props: size — `src/components/Logo.tsx`
+- **LogoSettings** — props: showSettings, onCloseSettings — `src/components/LogoSettings.tsx`
+- **NetworkStatusBanner** — `src/components/NetworkStatusBanner.tsx`
+- **NotificationCenter** — props: onClose — `src/components/NotificationCenter.tsx`
+- **NotificationCenterButton** — props: active, onClick — `src/components/NotificationCenter.tsx`
+- **NotificationToast** — `src/components/NotificationToast.tsx`
+- **PetBar** — `src/components/PetBar.tsx`
+- **Pill** — props: className — `src/components/Pill.tsx`
+- **SettingsBoardView** — `src/components/SettingsBoardView.tsx`
+- **SettingsPanel** — props: onClose, defaultTab — `src/components/SettingsPanel.tsx`
+- **ThemePicker** — `src/components/ThemePicker.tsx`
+- **TodayBoardView** — `src/components/TodayBoardView.tsx`
+- **TodoBoardView** — `src/components/TodoBoardView.tsx`
+- **UndoToast** — `src/components/UndoToast.tsx`
+- **VoiceListener** — `src/components/VoiceListener.tsx`
+- **WalliChatButton** — `src/components/WalliChat.tsx`
+- **Whiteboard** — `src/components/Whiteboard.tsx`
+- **WhiteboardBackground** — props: background — `src/components/WhiteboardBackground.tsx`
+- **Widget** — props: id, x, y, width, height, settingsContent, preferences, refSize, slotAssigned, onDoubleTap — `src/components/Widget.tsx`
+- **WidgetCanvas** — props: activeTool, pendingWidget, onClearPending, onDoubleTap, onWidgetDoubleTap — `src/components/WidgetCanvas.tsx`
+- **LayoutPicker** — props: onClose — `src/components/layout/LayoutPicker.tsx`
+- **LayoutSlot** — props: x, y, width, height, mode, isHovered, onClick — `src/components/layout/LayoutSlot.tsx`
+- **LayoutSlots** — props: pendingWidget, draggingWidgetId, hoveredSlotId, onSlotClick — `src/components/layout/LayoutSlots.tsx`
+- **LayoutThumbnail** — props: layout, width, height, active — `src/components/layout/LayoutThumbnail.tsx`
+- **PixelSprite** — props: sprite, frameIdx, flip — `src/components/pets/PixelSprite.tsx`
+- **WalkingPet** — props: agent, mood, message, onMessageDone, onInspect, inspecting — `src/components/pets/WalkingPet.tsx`
+- **CalendarWidget** — props: widgetId — `src/components/widgets/CalendarWidget.tsx`
+- **VariantClockSettings** — props: widgetId — `src/components/widgets/ClockSettings.tsx`
+- **ClockSettings** — props: widgetId — `src/components/widgets/ClockSettings.tsx`
+- **AnalogClockWidget** — props: widgetId — `src/components/widgets/ClockWidget.tsx`
+- **DigitalClockWidget** — props: widgetId — `src/components/widgets/ClockWidget.tsx`
+- **ClockWidget** — props: widgetId — `src/components/widgets/ClockWidget.tsx`
+- **CountdownSettings** — props: widgetId — `src/components/widgets/CountdownSettings.tsx`
+- **CountdownWidget** — props: widgetId — `src/components/widgets/CountdownWidget.tsx`
+- **DatabaseWidget** — props: widgetId — `src/components/widgets/DatabaseWidget.tsx`
+- **HtmlWidget** — props: widgetId — `src/components/widgets/HtmlWidget.tsx`
+- **NoteWidget** — props: widgetId — `src/components/widgets/NoteWidget.tsx`
+- **PomodoroWidget** — props: widgetId — `src/components/widgets/PomodoroWidget.tsx`
+- **PomodoroSettings** — props: widgetId — `src/components/widgets/PomodoroWidget.tsx`
+- **QuoteSettings** — props: widgetId — `src/components/widgets/QuoteSettings.tsx`
+- **QuoteWidget** — props: widgetId — `src/components/widgets/QuoteWidget.tsx`
+- **RoutinesWidget** — props: widgetId — `src/components/widgets/RoutinesWidget.tsx`
+- **RoutinesSettings** — props: widgetId — `src/components/widgets/RoutinesWidget.tsx`
+- **SplitSettings** — props: widgetId — `src/components/widgets/SplitSettings.tsx`
+- **SplitWidget** — props: widgetId — `src/components/widgets/SplitWidget.tsx`
+- **NFLSettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **NBASettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **NHLSettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **MLBSettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **EPLSettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **LaLigaSettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **UCLSettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **BundesligaSettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **SerieASettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **Ligue1Settings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **MLSSettings** — props: widgetId — `src/components/widgets/SportsSettings.tsx`
+- **NFLWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **NBAWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **NHLWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **MLBWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **NFLScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **NBAScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **NHLScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **MLBScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **NFLStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **NBAStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **NHLStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **MLBStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **EPLWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **EPLScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **EPLStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **LaLigaWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **LaLigaScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **LaLigaStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **UCLWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **UCLScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **UCLStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **BundesligaWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **BundesligaScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **BundesligaStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **SerieAWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **SerieAScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **SerieAStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **Ligue1Widget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **Ligue1ScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **Ligue1StandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **MLSWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **MLSScoresWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **MLSStandingsWidget** — props: widgetId — `src/components/widgets/SportsWidget.tsx`
+- **SpotifyWidget** — props: widgetId — `src/components/widgets/SpotifyWidget.tsx`
+- **SpotifySettings** — props: widgetId — `src/components/widgets/SpotifyWidget.tsx`
+- **TimersWidget** — props: widgetId — `src/components/widgets/TimersWidget.tsx`
+- **UrlWidget** — props: widgetId — `src/components/widgets/UrlWidget.tsx`
+- **UrlSettings** — props: widgetId — `src/components/widgets/UrlWidget.tsx`
+- **WalliAgentWidget** — props: widgetId — `src/components/widgets/WalliAgentWidget.tsx`
+- **WalliAgentSettings** — props: widgetId — `src/components/widgets/WalliAgentWidget.tsx`
+- **WeatherSettings** — props: widgetId — `src/components/widgets/WeatherSettings.tsx`
+- **WeatherWidget** — props: widgetId — `src/components/widgets/WeatherWidget.tsx`
+- **WorldcupWidget** — props: widgetId — `src/components/widgets/WorldcupWidget.tsx`
+- **YouTubeWidget** — props: widgetId — `src/components/widgets/YouTubeWidget.tsx`
+- **YouTubeSettings** — props: widgetId — `src/components/widgets/YouTubeWidget.tsx`
+- **NotionViewSettingsPanel** — props: widgetId — `src/components/widgets/notion-view/NotionViewSettings.tsx`
+- **NotionViewWidget** — props: widgetId — `src/components/widgets/notion-view/index.tsx`
+- **BUILTIN_WIDGET_TYPES** — `src/components/widgets/registry.tsx`

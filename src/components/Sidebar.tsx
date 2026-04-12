@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
+import { useUIStore } from '../store/ui'
 import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID } from '../store/whiteboard'
 import { Logo } from './Logo'
 
@@ -8,6 +9,7 @@ type AddStep = 'idle' | 'name-board'
 
 export function Sidebar() {
   const { boards, activeBoardId, setActiveBoard, addBoard, removeBoard, reorderBoards } = useWhiteboardStore()
+  const toggleDisplayMode = useUIStore((s) => s.toggleDisplayMode)
 
   const dragIndex   = useRef<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
@@ -71,8 +73,13 @@ export function Sidebar() {
 
       {/* Top nav — Today + Calendar */}
       <div className="px-2 pt-2 pb-1 flex flex-col gap-0.5">
-        {/* Today board — hidden until built */}
-        {/* <NavBtn icon="Sun" label="Today" collapsed={collapsed} active={isTodayActive} onClick={() => setActiveBoard(todayId)} /> */}
+        <NavBtn
+          icon="Sun"
+          label="Today"
+          collapsed={collapsed}
+          active={isTodayActive}
+          onClick={() => setActiveBoard(todayId)}
+        />
         <NavBtn
           icon="CalendarBlank"
           label="Calendar"
@@ -233,6 +240,13 @@ export function Sidebar() {
           collapsed={collapsed}
           active={isSettingsActive}
           onClick={() => setActiveBoard(settingsId)}
+        />
+        <NavBtn
+          icon="Monitor"
+          label="Display Mode"
+          collapsed={collapsed}
+          active={false}
+          onClick={toggleDisplayMode}
         />
       </div>
     </div>

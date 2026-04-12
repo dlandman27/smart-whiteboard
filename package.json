@@ -18,7 +18,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:client": "vitest run --project client",
-    "test:server": "vitest run --project server"
+    "test:server": "vitest run --project server",
+    "codesight": "npx codesight"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
@@ -40,6 +41,7 @@
     "react-dom": "^18.3.1",
     "react-rnd": "^10.4.1",
     "recharts": "^3.8.0",
+    "rss-parser": "^3.13.0",
     "ws": "^8.20.0",
     "zod": "^3.25.76",
     "zustand": "^5.0.0"

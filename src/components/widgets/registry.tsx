@@ -44,6 +44,10 @@ import { DatabaseWidget } from './DatabaseWidget'
 import { WalliAgentWidget, WalliAgentSettings } from './WalliAgentWidget'
 import { SplitWidget } from './SplitWidget'
 import { SplitSettings } from './SplitSettings'
+import { GooglePhotosWidget } from './GooglePhotosWidget'
+import { GooglePhotosSettings } from './GooglePhotosSettings'
+import { RSSWidget } from './RSSWidget'
+import { RSSSettings } from './RSSSettings'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 export type { WidgetTypeDef, WidgetVariantDef } from './types'
@@ -600,6 +604,42 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
     }],
   },
   {
+    typeId:      '@whiteboard/google-photos',
+    label:       'Google Photos',
+    Icon:        'Image',
+    iconColor:   '#4285F4',
+    keywords:    ['photos', 'images', 'slideshow', 'google', 'album', 'pictures', 'gallery'],
+    description: 'Display a rotating slideshow of your Google Photos',
+    variants: [{
+      variantId:         'default',
+      label:             'Slideshow',
+      description:       'Rotating photo slideshow from Google Photos',
+      shape:             WIDGET_SHAPES['large-wide'],
+      scalable:          true,
+      constraints:       { minWidth: 280, minHeight: 200, maxWidth: 1400, maxHeight: 900 },
+      component:         GooglePhotosWidget,
+      settingsComponent: GooglePhotosSettings,
+    }],
+  },
+  {
+    typeId:      '@whiteboard/rss',
+    label:       'News Feed',
+    Icon:        'Newspaper',
+    iconColor:   '#F97316',
+    keywords:    ['news', 'rss', 'feed', 'headlines', 'articles', 'blog'],
+    description: 'Display headlines from any RSS or Atom feed',
+    variants: [{
+      variantId:         'default',
+      label:             'Headlines',
+      description:       'Scrolling news headlines from RSS feeds',
+      shape:             WIDGET_SHAPES['tall-rect'],
+      scalable:          true,
+      constraints:       { minWidth: 240, minHeight: 260, maxWidth: 600, maxHeight: 800 },
+      component:         RSSWidget,
+      settingsComponent: RSSSettings,
+    }],
+  },
+  {
     typeId:      '@whiteboard/split',
     label:       'Split Container',
     Icon:        'SquareSplitHorizontal',
@@ -647,7 +687,7 @@ export function registerPluginWidgets(defs: StaticWidgetDef[]): void {
 // ── New API (type + variant) ─────────────────────────────────────────────────
 
 export function getAllWidgetTypes(): WidgetTypeDef[] {
-  return [...BUILTIN_WIDGET_TYPES, ...PLUGIN_TYPES]
+  return [...BUILTIN_WIDGET_TYPES, ...PLUGIN_TYPES].sort((a, b) => a.label.localeCompare(b.label))
 }
 
 export function getWidgetType(typeId: string): WidgetTypeDef | undefined {

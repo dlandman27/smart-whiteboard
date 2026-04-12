@@ -1,398 +1,464 @@
 import { useState, useEffect } from 'react'
-import { FlexRow, FlexCol, Text, Icon, ScrollArea } from '@whiteboard/ui-kit'
+import { Icon } from '@whiteboard/ui-kit'
 import {
   useGCalStatus, useGCalCalendars, useAllCalendarEvents,
   type GCalEvent, type GCalCalendar,
 } from '../hooks/useGCal'
+import { useTasksStatus, useTaskLists, useAllTasks, type GTask } from '../hooks/useTasks'
+import { useWeather, type WeatherData } from '../hooks/useWeather'
 
-// ── Color helpers ─────────────────────────────────────────────────────────────
+// ── Quotes ───────────────────────────────────────────────────────────────────
+
+// ── Background images (Unsplash, free to use) ───────────────────────────────
+
+const BG_IMAGES = [
+  'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&q=80', // mountains
+  'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920&q=80', // foggy forest
+  'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&q=80', // sunlit forest
+  'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80', // beach
+  'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=1920&q=80', // green hills
+  'https://images.unsplash.com/photo-1505144808419-1957a94ca61e?w=1920&q=80', // ocean sunset
+  'https://images.unsplash.com/photo-1418065460487-3e41a6c84dc5?w=1920&q=80', // misty mountains
+  'https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=1920&q=80', // lake sunset
+  'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&q=80', // dramatic peaks
+  'https://images.unsplash.com/photo-1433086966358-54859d0ed716?w=1920&q=80', // waterfall
+]
+
+function dailyBg() {
+  const day = Math.floor(Date.now() / 86_400_000)
+  return BG_IMAGES[day % BG_IMAGES.length]
+}
+
+// ── Quotes ───────────────────────────────────────────────────────────────────
+
+const QUOTES = [
+  { text: 'The best way to predict the future is to create it.', author: 'Peter Drucker' },
+  { text: 'Simplicity is the ultimate sophistication.', author: 'Leonardo da Vinci' },
+  { text: 'Done is better than perfect.', author: 'Sheryl Sandberg' },
+  { text: 'The only way to do great work is to love what you do.', author: 'Steve Jobs' },
+  { text: 'Focus is about saying no.', author: 'Steve Jobs' },
+  { text: 'Make it work, make it right, make it fast.', author: 'Kent Beck' },
+  { text: 'Stay hungry, stay foolish.', author: 'Stewart Brand' },
+  { text: 'Think different.', author: 'Apple' },
+  { text: 'Measure twice, cut once.', author: 'Proverb' },
+  { text: 'Less, but better.', author: 'Dieter Rams' },
+]
+
+function dailyQuote() {
+  const day = Math.floor(Date.now() / 86_400_000)
+  return QUOTES[day % QUOTES.length]
+}
+
+// ── Weather helpers ──────────────────────────────────────────────────────────
+
+function getWeatherInfo(code: number): { label: string; icon: string } {
+  if (code === 0)  return { label: 'Clear',         icon: 'Sun' }
+  if (code === 1)  return { label: 'Mainly Clear',  icon: 'SunDim' }
+  if (code === 2)  return { label: 'Partly Cloudy', icon: 'CloudSun' }
+  if (code === 3)  return { label: 'Overcast',      icon: 'Cloud' }
+  if (code <= 48)  return { label: 'Foggy',         icon: 'CloudFog' }
+  if (code <= 57)  return { label: 'Drizzle',       icon: 'CloudDrizzle' }
+  if (code <= 67)  return { label: 'Rain',          icon: 'CloudRain' }
+  if (code <= 77)  return { label: 'Snow',          icon: 'CloudSnow' }
+  if (code <= 86)  return { label: 'Showers',       icon: 'CloudRain' }
+  return                   { label: 'Thunderstorm', icon: 'CloudLightning' }
+}
+
+// ── Time helpers ─────────────────────────────────────────────────────────────
+
+function greeting(hour: number): string {
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function fmtTime(dt: string): string {
+  return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+}
+
+// ── Calendar color helpers ───────────────────────────────────────────────────
 
 const GCAL_COLORS: Record<string, string> = {
   '1': '#7986cb', '2': '#33b679', '3': '#8e24aa', '4': '#e67c73',
   '5': '#f6c026', '6': '#f5511d', '7': '#039be5', '8': '#3f51b5',
   '9': '#0b8043', '10': '#d50000', '11': '#616161',
 }
-const DEFAULT_COLOR = '#4285f4'
 
-function eventColor(e: GCalEvent, calColors: Record<string, string> = {}): string {
-  if (e.colorId) return GCAL_COLORS[e.colorId] ?? DEFAULT_COLOR
+function eventColor(e: GCalEvent, calColors: Record<string, string>): string {
+  if (e.colorId) return GCAL_COLORS[e.colorId] ?? '#4285f4'
   if (e._calendarId && calColors[e._calendarId]) return calColors[e._calendarId]
-  return DEFAULT_COLOR
+  return '#4285f4'
 }
 
-// ── Time formatters ───────────────────────────────────────────────────────────
-
-function fmtTime(dt: string): string {
-  return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-}
-
-function fmtTimeRange(start: string, end: string): string {
-  return `${fmtTime(start)} – ${fmtTime(end)}`
-}
-
-function fmtCountdown(ms: number): string {
-  const totalMin = Math.round(ms / 60_000)
-  if (totalMin < 60) return `in ${totalMin} min`
-  const h = Math.floor(totalMin / 60)
-  const m = totalMin % 60
-  return m > 0 ? `in ${h}h ${m}m` : `in ${h}h`
-}
-
-function fmtRemaining(ms: number): string {
-  const totalMin = Math.ceil(ms / 60_000)
-  if (totalMin < 60) return `${totalMin} min remaining`
-  const h = Math.floor(totalMin / 60)
-  const m = totalMin % 60
-  return m > 0 ? `${h}h ${m}m remaining` : `${h}h remaining`
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Main component ───────────────────────────────────────────────────────────
 
 export function TodayBoardView() {
   const [now, setNow] = useState(() => new Date())
 
+  // Tick every 30 seconds (ambient, not real-time precision)
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000)
+    const id = setInterval(() => setNow(new Date()), 30_000)
     return () => clearInterval(id)
   }, [])
 
+  // ── Data hooks ──────────────────────────────────────────────────────────
+
   const { data: gcalStatus } = useGCalStatus()
   const { data: calendarsData } = useGCalCalendars()
+  const { data: tasksStatus } = useTasksStatus()
+  const { data: taskListsData } = useTaskLists()
 
-  // Date range: today 00:00 to tomorrow 23:59
-  const timeMin = (() => { const d = new Date(now); d.setHours(0,0,0,0); return d.toISOString() })()
-  const timeMax = (() => {
-    const d = new Date(now); d.setDate(d.getDate() + 1); d.setHours(23,59,59,999); return d.toISOString()
-  })()
+  // Weather — use geolocation, fahrenheit default
+  const { data: weather } = useWeather({ unit: 'fahrenheit', windUnit: 'mph', locationQuery: '' })
 
-  const calendarIds: string[] = (calendarsData?.items ?? []).map((c: GCalCalendar) => c.id)
+  // Calendar events for today
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0)
+  const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999)
+  const calendarIds = (calendarsData?.items ?? []).map((c: GCalCalendar) => c.id)
 
   const { data: allEvents } = useAllCalendarEvents(
-    timeMin,
-    timeMax,
+    todayStart.toISOString(),
+    todayEnd.toISOString(),
     gcalStatus?.connected && calendarIds.length > 0 ? calendarIds : [],
   )
 
-  // Build color map from calendars
+  // Tasks
+  const taskListIds = (taskListsData?.items ?? []).map(l => l.id)
+  const { data: allTasks } = useAllTasks(
+    tasksStatus?.connected ? taskListIds : [],
+    false,
+  )
+
+  // ── Process data ────────────────────────────────────────────────────────
+
   const calColors: Record<string, string> = {}
   for (const cal of calendarsData?.items ?? []) {
     if (cal.backgroundColor) calColors[cal.id] = cal.backgroundColor
   }
 
-  // Filter to timed events, sort by start
-  const timedEvents: GCalEvent[] = (allEvents ?? [])
-    .filter((e) => !!e.start.dateTime)
+  // Upcoming events (not ended yet), sorted by start time, max 5
+  const upcomingEvents = (allEvents ?? [])
+    .filter(e => {
+      if (!e.start.dateTime) return false
+      const end = new Date(e.end.dateTime ?? e.start.dateTime)
+      return end > now
+    })
     .sort((a, b) => new Date(a.start.dateTime!).getTime() - new Date(b.start.dateTime!).getTime())
+    .slice(0, 5)
 
-  // Categorise events relative to now
-  const todayEnd = new Date(now); todayEnd.setHours(23,59,59,999)
-  const tomorrowStart = new Date(now); tomorrowStart.setDate(now.getDate()+1); tomorrowStart.setHours(0,0,0,0)
-  const tomorrowEnd   = new Date(tomorrowStart); tomorrowEnd.setHours(23,59,59,999)
+  // Pending tasks, max 6
+  const pendingTasks = (allTasks ?? [])
+    .filter(t => t.status === 'needsAction')
+    .slice(0, 6)
 
-  const currentEvent = timedEvents.find((e) => {
-    const s = new Date(e.start.dateTime!)
-    const en = new Date(e.end.dateTime!)
-    return s <= now && now <= en
-  }) ?? null
+  // Time display
+  const hours = now.getHours()
+  const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const quote = dailyQuote()
 
-  const upNext = timedEvents.find((e) => {
-    const s = new Date(e.start.dateTime!)
-    return s > now && s <= todayEnd
-  }) ?? null
-
-  const upNextEnd = upNext ? new Date(upNext.end.dateTime!) : null
-
-  const laterToday = timedEvents.filter((e) => {
-    const s = new Date(e.start.dateTime!)
-    const afterBoundary = upNextEnd ? s >= upNextEnd : s > now
-    return afterBoundary && s <= todayEnd && e !== upNext
-  })
-
-  const tomorrowEvents = timedEvents.filter((e) => {
-    const s = new Date(e.start.dateTime!)
-    return s >= tomorrowStart && s <= tomorrowEnd
-  })
-
-  // Clock display
-  const clockStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
-  const dateStr  = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-
-  // Not-connected state
-  if (!gcalStatus?.connected) {
-    return (
-      <div className="absolute inset-0 flex items-center justify-center" style={{ background: 'var(--wt-bg)' }}>
-        <div className="flex flex-col items-center gap-3 text-center px-8" style={{ maxWidth: 360 }}>
-          <Icon icon="CalendarBlank" size={40} style={{ opacity: 0.3, color: 'var(--wt-text)' }} />
-          <Text size="small" style={{ color: 'var(--wt-text-muted)', lineHeight: 1.6 }}>
-            Connect Google Calendar in Connectors to see your schedule
-          </Text>
-        </div>
-      </div>
-    )
-  }
+  const bgUrl = dailyBg()
 
   return (
-    <div className="absolute inset-0 flex flex-col" style={{ background: 'var(--wt-bg)' }}>
+    <div style={{
+      position: 'absolute', inset: 0,
+      background: 'var(--wt-bg)',
+      display: 'flex', flexDirection: 'column',
+      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      overflow: 'hidden',
+    }}>
 
-      {/* Header */}
-      <div
-        className="flex-shrink-0 flex items-center justify-between px-8"
-        style={{ height: 64, borderBottom: '1px solid var(--wt-border)' }}
-      >
-        <Text size="small" style={{ color: 'var(--wt-text)', opacity: 0.7, fontWeight: 500 }}>
-          {dateStr}
-        </Text>
-        <span
-          style={{
-            fontSize: 28,
-            fontWeight: 600,
-            letterSpacing: '-0.5px',
-            color: 'var(--wt-text)',
+      {/* Background image */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        backgroundImage: `url(${bgUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        transition: 'opacity 1s ease',
+      }} />
+
+      {/* Dark overlay for readability */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.4) 50%, rgba(0,0,0,0.65) 100%)',
+      }} />
+
+      {/* Content — force light text over photo */}
+      <div style={{
+        position: 'relative', flex: 1, display: 'grid',
+        color: '#fff',
+        gridTemplateColumns: '1fr 1fr',
+        gridTemplateRows: 'auto 1fr auto',
+        padding: '5vh 5vw',
+        gap: '3vh 5vw',
+        minHeight: 0,
+      }}>
+
+        {/* ── Top left: Greeting + Clock ───────────────────────────────── */}
+        <div style={{ gridColumn: '1 / 2', alignSelf: 'start' }}>
+          <div style={{
+            fontSize: 'clamp(14px, 2vw, 18px)',
+            fontWeight: 500,
+            color: 'rgba(255,255,255,0.6)',
+            marginBottom: '1vh',
+            letterSpacing: '0.02em',
+          }}>
+            {greeting(hours)}
+          </div>
+          <div style={{
+            fontSize: 'clamp(64px, 12vw, 120px)',
+            fontWeight: 200,
+            color: '#fff',
+            lineHeight: 1,
+            letterSpacing: '-0.04em',
             fontVariantNumeric: 'tabular-nums',
-          }}
-        >
-          {clockStr}
-        </span>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 overflow-hidden flex gap-0 min-h-0">
-
-        {/* Left column — Now & Next */}
-        <div className="flex flex-col gap-4 p-6 overflow-y-auto" style={{ flex: '0 0 420px', minWidth: 0 }}>
-
-          <SectionLabel>Now</SectionLabel>
-
-          {currentEvent ? (
-            <NowCard event={currentEvent} now={now} calColors={calColors} />
-          ) : (
-            <div
-              className="rounded-xl px-5 py-4 flex items-center gap-3"
-              style={{ background: 'var(--wt-surface)', border: '1px solid var(--wt-border)' }}
-            >
-              <Icon icon="Coffee" size={18} style={{ color: 'var(--wt-text-muted)', opacity: 0.5 }} />
-              <Text size="small" style={{ color: 'var(--wt-text-muted)', opacity: 0.6 }}>
-                Nothing happening right now
-              </Text>
-            </div>
-          )}
-
-          {upNext && (
-            <>
-              <SectionLabel>Up Next</SectionLabel>
-              <UpNextCard event={upNext} now={now} calColors={calColors} />
-            </>
-          )}
-
+            textShadow: '0 2px 20px rgba(0,0,0,0.3)',
+          }}>
+            {timeStr}
+          </div>
+          <div style={{
+            fontSize: 'clamp(14px, 2vw, 20px)',
+            fontWeight: 400,
+            color: 'rgba(255,255,255,0.55)',
+            marginTop: '1.5vh',
+          }}>
+            {dateStr}
+          </div>
         </div>
 
-        {/* Divider */}
-        <div className="flex-shrink-0 self-stretch" style={{ width: 1, background: 'var(--wt-border)', margin: '16px 0' }} />
-
-        {/* Right column — Schedule */}
-        <ScrollArea className="flex-1 min-w-0">
-          <div className="flex flex-col gap-6 p-6">
-
-            <div>
-              <SectionLabel>Later Today</SectionLabel>
-              <div className="mt-3 flex flex-col gap-1">
-                {laterToday.length === 0 ? (
-                  <FlexRow gap="xs" className="py-2">
-                    <Icon icon="Check" size={14} style={{ color: 'var(--wt-text-muted)', opacity: 0.5 }} />
-                    <Text size="small" style={{ color: 'var(--wt-text-muted)', opacity: 0.55 }}>
-                      Free for the rest of the day
-                    </Text>
-                  </FlexRow>
-                ) : (
-                  laterToday.map((e) => (
-                    <EventRow key={e.id} event={e} calColors={calColors} />
-                  ))
-                )}
-              </div>
+        {/* ── Top right: Weather ────────────────────────────────────────── */}
+        <div style={{ gridColumn: '2 / 3', alignSelf: 'start', textAlign: 'right' }}>
+          {weather ? (
+            <WeatherDisplay weather={weather} />
+          ) : (
+            <div style={{ opacity: 0.3, color: 'var(--wt-text-muted)', fontSize: 14 }}>
+              Loading weather...
             </div>
+          )}
+        </div>
 
-            <div>
-              <SectionLabel>Tomorrow</SectionLabel>
-              <div className="mt-3 flex flex-col gap-1">
-                {tomorrowEvents.length === 0 ? (
-                  <Text size="small" style={{ color: 'var(--wt-text-muted)', opacity: 0.45 }} className="py-2">
-                    Nothing scheduled
-                  </Text>
-                ) : (
-                  <>
-                    {tomorrowEvents.slice(0, 5).map((e) => (
-                      <EventRow key={e.id} event={e} calColors={calColors} />
-                    ))}
-                    {tomorrowEvents.length > 5 && (
-                      <Text size="small" style={{ color: 'var(--wt-text-muted)', opacity: 0.5 }} className="pt-1 pl-5">
-                        +{tomorrowEvents.length - 5} more
-                      </Text>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
+        {/* ── Middle left: Calendar events ──────────────────────────────── */}
+        <div style={{
+          gridColumn: '1 / 2', alignSelf: 'start', minHeight: 0,
+          background: 'rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.08)',
+          padding: '18px 20px',
+        }}>
+          <SectionLabel icon="CalendarBlank" label="Today's Schedule" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 14 }}>
+            {upcomingEvents.length === 0 ? (
+              <EmptyState text="No events today" />
+            ) : (
+              upcomingEvents.map(e => (
+                <EventRow key={e.id} event={e} now={now} calColors={calColors} />
+              ))
+            )}
           </div>
-        </ScrollArea>
+        </div>
+
+        {/* ── Middle right: Tasks ───────────────────────────────────────── */}
+        <div style={{
+          gridColumn: '2 / 3', alignSelf: 'start', minHeight: 0,
+          background: 'rgba(0,0,0,0.35)',
+          backdropFilter: 'blur(20px)',
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.08)',
+          padding: '18px 20px',
+        }}>
+          <SectionLabel icon="CheckSquare" label="Tasks" />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 14 }}>
+            {pendingTasks.length === 0 ? (
+              <EmptyState text="All caught up" />
+            ) : (
+              pendingTasks.map(t => <TaskRow key={t.id} task={t} />)
+            )}
+          </div>
+        </div>
+
+        {/* ── Bottom: Quote ─────────────────────────────────────────────── */}
+        <div style={{
+          gridColumn: '1 / -1', alignSelf: 'end',
+          display: 'flex', alignItems: 'center', gap: 12,
+        }}>
+          <div style={{ width: 24, height: 1, background: 'rgba(255,255,255,0.2)', flexShrink: 0 }} />
+          <div style={{
+            fontSize: 'clamp(12px, 1.5vw, 15px)',
+            color: 'rgba(255,255,255,0.35)',
+            fontStyle: 'italic',
+            fontWeight: 300,
+          }}>
+            "{quote.text}" <span style={{ fontStyle: 'normal', opacity: 0.7 }}>— {quote.author}</span>
+          </div>
+        </div>
 
       </div>
     </div>
   )
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Sub-components ───────────────────────────────────────────────────────────
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function SectionLabel({ icon, label }: { icon: string; label: string }) {
   return (
-    <span
-      style={{
-        fontSize: 10,
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <Icon icon={icon as any} size={16} style={{ color: 'rgba(255,255,255,0.5)' }} />
+      <span style={{
+        fontSize: 'clamp(11px, 1.3vw, 13px)',
         fontWeight: 600,
         textTransform: 'uppercase',
-        letterSpacing: '0.08em',
-        color: 'var(--wt-text-muted)',
-        opacity: 0.6,
-      }}
-    >
-      {children}
-    </span>
+        letterSpacing: '0.1em',
+        color: 'rgba(255,255,255,0.4)',
+      }}>
+        {label}
+      </span>
+    </div>
   )
 }
 
-function NowCard({ event, now, calColors }: { event: GCalEvent; now: Date; calColors: Record<string, string> }) {
-  const color    = eventColor(event, calColors)
-  const startMs  = new Date(event.start.dateTime!).getTime()
-  const endMs    = new Date(event.end.dateTime!).getTime()
-  const duration = endMs - startMs
-  const elapsed  = now.getTime() - startMs
-  const pct      = Math.min(100, Math.max(0, (elapsed / duration) * 100))
-  const remaining = endMs - now.getTime()
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div style={{
+      fontSize: 'clamp(13px, 1.5vw, 16px)',
+      color: 'rgba(255,255,255,0.3)',
+      padding: '8px 0',
+    }}>
+      {text}
+    </div>
+  )
+}
+
+function WeatherDisplay({ weather }: { weather: WeatherData }) {
+  const info = getWeatherInfo(weather.weatherCode)
+  const sym = weather.unit === 'celsius' ? '°C' : '°F'
 
   return (
-    <div
-      className="rounded-xl overflow-hidden"
-      style={{
-        background: `color-mix(in srgb, ${color} 8%, var(--wt-surface))`,
-        border: '1px solid var(--wt-border)',
-        borderLeft: `4px solid ${color}`,
-      }}
-    >
-      <div className="px-5 pt-4 pb-3">
-        <Text
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: 'var(--wt-text)',
-            lineHeight: 1.2,
-            display: 'block',
-            marginBottom: 4,
-          }}
-        >
-          {event.summary ?? '(No title)'}
-        </Text>
-        <Text size="small" style={{ color: 'var(--wt-text-muted)', opacity: 0.7 }}>
-          {fmtTimeRange(event.start.dateTime!, event.end.dateTime!)}
-        </Text>
+    <div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
+        <Icon icon={info.icon as any} size={36} style={{ color: 'rgba(255,255,255,0.6)' }} weight="duotone" />
+        <span style={{
+          fontSize: 'clamp(36px, 6vw, 56px)',
+          fontWeight: 200,
+          color: '#fff',
+          lineHeight: 1,
+          letterSpacing: '-0.02em',
+          fontVariantNumeric: 'tabular-nums',
+          textShadow: '0 2px 16px rgba(0,0,0,0.3)',
+        }}>
+          {weather.temperature}{sym}
+        </span>
       </div>
-
-      {/* Progress bar */}
-      <div className="px-5 pb-2">
-        <div
-          className="w-full rounded-full overflow-hidden"
-          style={{ height: 6, background: 'color-mix(in srgb, var(--wt-text) 10%, transparent)' }}
-        >
-          <div
-            style={{
-              width:      `${pct}%`,
-              height:     '100%',
-              background: `color-mix(in srgb, ${color} 70%, transparent)`,
-              transition: 'width 1s linear',
-              borderRadius: 9999,
-            }}
-          />
-        </div>
+      <div style={{
+        fontSize: 'clamp(12px, 1.5vw, 15px)',
+        color: 'rgba(255,255,255,0.5)',
+        marginTop: 6,
+      }}>
+        {info.label} · H:{weather.tempMax}° L:{weather.tempMin}°
       </div>
-
-      <div className="px-5 pb-4">
-        <Text size="small" style={{ color: 'var(--wt-text-muted)', opacity: 0.55 }}>
-          {fmtRemaining(remaining)}
-        </Text>
+      <div style={{
+        fontSize: 'clamp(11px, 1.2vw, 13px)',
+        color: 'rgba(255,255,255,0.35)',
+        marginTop: 2,
+      }}>
+        {weather.city}
       </div>
     </div>
   )
 }
 
-function UpNextCard({ event, now, calColors }: { event: GCalEvent; now: Date; calColors: Record<string, string> }) {
-  const color   = eventColor(event, calColors)
-  const startMs = new Date(event.start.dateTime!).getTime()
-  const diff    = startMs - now.getTime()
-
-  return (
-    <div
-      className="rounded-xl"
-      style={{
-        background: 'var(--wt-surface)',
-        border: '1px solid var(--wt-border)',
-        borderLeft: `4px solid ${color}`,
-      }}
-    >
-      <div className="px-5 py-4">
-        <Text
-          style={{
-            fontSize: 15,
-            fontWeight: 600,
-            color: 'var(--wt-text)',
-            lineHeight: 1.3,
-            display: 'block',
-            marginBottom: 4,
-          }}
-        >
-          {event.summary ?? '(No title)'}
-        </Text>
-        <FlexRow gap="sm" style={{ alignItems: 'center' }}>
-          <Text size="small" style={{ color: 'var(--wt-text-muted)', opacity: 0.65 }}>
-            {fmtTimeRange(event.start.dateTime!, event.end.dateTime!)}
-          </Text>
-          <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--wt-text-muted)', opacity: 0.4 }} />
-          <Text size="small" style={{ color, fontWeight: 600 }}>
-            {fmtCountdown(diff)}
-          </Text>
-        </FlexRow>
-      </div>
-    </div>
-  )
-}
-
-function EventRow({ event, calColors }: { event: GCalEvent; calColors: Record<string, string> }) {
+function EventRow({ event, now, calColors }: { event: GCalEvent; now: Date; calColors: Record<string, string> }) {
   const color = eventColor(event, calColors)
+  const start = new Date(event.start.dateTime!)
+  const end = new Date(event.end.dateTime ?? event.start.dateTime!)
+  const isNow = start <= now && now <= end
+  const isPast = end < now
+
   return (
-    <FlexRow
-      gap="sm"
-      style={{ alignItems: 'center', padding: '5px 4px', borderRadius: 8 }}
-    >
-      <span
-        style={{
-          flexShrink: 0,
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          background: color,
-          marginLeft: 2,
-        }}
-      />
-      <Text
-        size="small"
-        style={{ color: 'var(--wt-text-muted)', opacity: 0.6, flexShrink: 0, fontVariantNumeric: 'tabular-nums' }}
-      >
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '10px 14px',
+      borderRadius: 12,
+      background: isNow ? 'rgba(255,255,255,0.08)' : 'transparent',
+      borderLeft: isNow ? `3px solid ${color}` : '3px solid transparent',
+      opacity: isPast ? 0.35 : 1,
+      transition: 'all 0.3s',
+    }}>
+      <div style={{
+        width: 8, height: 8, borderRadius: '50%',
+        background: color, flexShrink: 0,
+      }} />
+      <span style={{
+        fontSize: 'clamp(12px, 1.4vw, 15px)',
+        color: 'rgba(255,255,255,0.55)',
+        fontVariantNumeric: 'tabular-nums',
+        flexShrink: 0,
+        minWidth: 80,
+      }}>
         {fmtTime(event.start.dateTime!)}
-      </Text>
-      <Text
-        size="small"
-        style={{ color: 'var(--wt-text)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-      >
+      </span>
+      <span style={{
+        fontSize: 'clamp(13px, 1.5vw, 16px)',
+        color: '#fff',
+        fontWeight: isNow ? 600 : 400,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        textShadow: '0 1px 4px rgba(0,0,0,0.2)',
+      }}>
         {event.summary ?? '(No title)'}
-      </Text>
-    </FlexRow>
+      </span>
+      {isNow && (
+        <span style={{
+          fontSize: 11, fontWeight: 700,
+          color: '#fff', marginLeft: 'auto', flexShrink: 0,
+          background: color, padding: '2px 8px', borderRadius: 6,
+        }}>
+          NOW
+        </span>
+      )}
+    </div>
+  )
+}
+
+function TaskRow({ task }: { task: GTask }) {
+  const hasDue = !!task.due
+  const isOverdue = hasDue && new Date(task.due!) < new Date()
+
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '8px 14px',
+      borderRadius: 10,
+      background: 'transparent',
+    }}>
+      <div style={{
+        width: 16, height: 16, borderRadius: '50%',
+        border: '2px solid rgba(255,255,255,0.3)',
+        flexShrink: 0,
+      }} />
+      <span style={{
+        fontSize: 'clamp(13px, 1.5vw, 16px)',
+        color: '#fff',
+        fontWeight: 400,
+        flex: 1,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        textShadow: '0 1px 4px rgba(0,0,0,0.2)',
+      }}>
+        {task.title || '(No title)'}
+      </span>
+      {hasDue && (
+        <span style={{
+          fontSize: 'clamp(10px, 1.1vw, 12px)',
+          color: isOverdue ? '#ff6b6b' : 'rgba(255,255,255,0.45)',
+          fontWeight: isOverdue ? 600 : 400,
+          flexShrink: 0,
+        }}>
+          {new Date(task.due!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </span>
+      )}
+    </div>
   )
 }

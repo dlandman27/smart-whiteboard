@@ -28,6 +28,8 @@ import { agentsRouter }        from './routes/agents.js'
 import { miscRouter }          from './routes/misc.js'
 import { walliRouter }         from './routes/walli.js'
 import { credentialsRouter }   from './routes/credentials.js'
+import { gphotosRouter }       from './routes/gphotos.js'
+import { rssRouter }           from './routes/rss.js'
 
 import { startAllCrons } from './crons/index.js'
 import rateLimit from 'express-rate-limit'
@@ -94,6 +96,8 @@ app.use('/api', briefingRouter(notion))
 app.use('/api', notificationsRouter())
 app.use('/api', miscRouter())
 app.use('/api', credentialsRouter())
+app.use('/api', gphotosRouter())
+app.use('/api', rssRouter())
 
 // ── Agent scheduler ────────────────────────────────────────────────────────────
 
