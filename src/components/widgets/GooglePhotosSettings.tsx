@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { SettingsSection, Toggle, SegmentedControl, FlexCol } from '@whiteboard/ui-kit'
+import { apiFetch } from '../../lib/apiFetch'
 import type { GooglePhotosSettings as Settings } from './GooglePhotosWidget'
 
 const DEFAULT_SETTINGS: Settings = {
@@ -17,9 +18,9 @@ export function GooglePhotosSettings({ widgetId }: { widgetId: string }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/gphotos/albums')
-      .then((r) => r.ok ? r.json() : [])
+    apiFetch<Album[]>('/api/gphotos/albums')
       .then((data) => setAlbums(data))
+      .catch(() => setAlbums([]))
       .finally(() => setLoading(false))
   }, [])
 

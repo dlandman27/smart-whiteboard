@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { IconButton, Text, Button, SegmentedControl } from '@whiteboard/ui-kit'
+import { IconButton, Text, Button, Icon, SegmentedControl } from '@whiteboard/ui-kit'
 import { FlexCol, FlexRow, Box, Grid, Center, ScrollArea } from '@whiteboard/ui-kit'
-import { useGCalEvents, type GCalEvent } from '../../hooks/useGCal'
+import { useGCalEvents, useGCalStatus, type GCalEvent } from '../../hooks/useGCal'
 import { useWidgetSettings, type WidgetProps } from '@whiteboard/sdk'
 
 // Google Calendar event color map
@@ -235,6 +235,7 @@ const VIEW_OPTIONS = [
 
 export function CalendarWidget({ widgetId }: WidgetProps) {
   const [{ calendarId }] = useWidgetSettings(widgetId, { calendarId: '' })
+  const { data: statusData, isLoading: statusLoading } = useGCalStatus()
   const [view, setView]       = useState<View>('day')
   const [current, setCurrent] = useState(new Date())
 
@@ -267,11 +268,34 @@ export function CalendarWidget({ widgetId }: WidgetProps) {
     return current.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   }
 
+  // Unconfigured: Google Calendar not connected
+  if (statusLoading) {
+    return (
+      <Center fullHeight>
+        <Text variant="body" size="small" color="muted" className="animate-pulse">Loading calendar…</Text>
+      </Center>
+    )
+  }
+
+  if (statusData && !statusData.connected) {
+    return (
+      <Center fullHeight className="px-6">
+        <div className="text-center">
+          <Icon icon="CalendarDots" size={28} style={{ marginBottom: 8, color: 'var(--wt-text-muted)' }} />
+          <Text variant="body" size="small" color="muted" align="center">
+            Connect Google Calendar in Connectors to view your events
+          </Text>
+        </div>
+      </Center>
+    )
+  }
+
   if (error) {
     return (
       <FlexCol align="center" justify="center" fullHeight gap="sm" className="p-4">
+        <Icon icon="Warning" size={24} style={{ color: 'var(--wt-danger)' }} />
         <Text variant="label" size="small" color="danger" align="center">Failed to load events</Text>
-        <Text variant="caption" size="large" color="danger" align="center">{(error as Error).message}</Text>
+        <Text variant="caption" size="large" color="muted" align="center">{(error as Error).message}</Text>
         <Button variant="link" size="sm" onClick={() => refetch()}>Retry</Button>
       </FlexCol>
     )
@@ -308,7 +332,7 @@ export function CalendarWidget({ widgetId }: WidgetProps) {
       <ScrollArea>
         {isLoading ? (
           <Center fullHeight>
-            <Text variant="caption" size="large" color="muted">Loading…</Text>
+            <Text variant="body" size="small" color="muted" className="animate-pulse">Loading events…</Text>
           </Center>
         ) : view === 'day' ? (
           <DayView events={events} />

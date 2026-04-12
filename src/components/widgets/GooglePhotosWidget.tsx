@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { Container, Center, Text, Icon } from '@whiteboard/ui-kit'
+import { apiFetch } from '../../lib/apiFetch'
 
 export interface GooglePhotosSettings {
   albumId?:    string
@@ -24,8 +25,7 @@ interface PhotoItem {
 }
 
 async function api(path: string) {
-  const res = await fetch(`/api/gphotos${path}`)
-  return res.ok ? res.json() : null
+  try { return await apiFetch(`/api/gphotos${path}`) } catch { return null }
 }
 
 // ── Widget ───────────────────────────────────────────────────────────────────

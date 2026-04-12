@@ -228,10 +228,24 @@ export function DatabaseWidget({ widgetId }: WidgetProps) {
 
   // ---- Render ----------------------------------------------------------------
 
+  // Unconfigured state: no database selected
+  if (!databaseId) {
+    return (
+      <Center fullHeight className="px-6">
+        <div className="text-center">
+          <Icon icon="Database" size={28} style={{ marginBottom: 8, color: 'var(--wt-text-muted)' }} />
+          <Text variant="body" size="small" color="muted" align="center">
+            Select a Notion database in settings to display entries
+          </Text>
+        </div>
+      </Center>
+    )
+  }
+
   if (isLoading) {
     return (
       <Center fullHeight>
-        <Text variant="caption" color="muted">Loading…</Text>
+        <Text variant="body" size="small" color="muted" className="animate-pulse">Loading entries…</Text>
       </Center>
     )
   }
@@ -239,9 +253,10 @@ export function DatabaseWidget({ widgetId }: WidgetProps) {
   if (error) {
     return (
       <FlexCol align="center" justify="center" fullHeight gap="sm" className="p-4">
-        <Text variant="label" color="danger">Failed to load entries</Text>
-        <Text variant="caption" color="danger">{(error as Error).message}</Text>
-        <Button variant="link" size="sm" onClick={() => refetch()} style={{ color: 'var(--wt-danger)' }}>Retry</Button>
+        <Icon icon="Warning" size={24} style={{ color: 'var(--wt-danger)' }} />
+        <Text variant="label" size="small" color="danger" align="center">Failed to load entries</Text>
+        <Text variant="caption" size="large" color="muted" align="center">{(error as Error).message}</Text>
+        <Button variant="link" size="sm" onClick={() => refetch()}>Retry</Button>
       </FlexCol>
     )
   }

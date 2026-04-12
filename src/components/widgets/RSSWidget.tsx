@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { Container, Center, Text, Icon, useWidgetSizeContext } from '@whiteboard/ui-kit'
+import { apiFetch } from '../../lib/apiFetch'
 
 export interface RSSSettings {
   feedUrl:        string
@@ -69,9 +70,7 @@ function RSSContent({ widgetId }: { widgetId: string }) {
     setError(null)
     try {
       const params = new URLSearchParams({ url: settings.feedUrl, limit: String(settings.limit) })
-      const res = await fetch(`/api/rss/feed?${params}`)
-      if (!res.ok) throw new Error('Failed to fetch feed')
-      const data = await res.json()
+      const data = await apiFetch<any>(`/api/rss/feed?${params}`)
       setFeed(data)
     } catch (e: any) {
       setError(e.message || 'Failed to load feed')

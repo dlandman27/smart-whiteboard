@@ -48,6 +48,8 @@ import { GooglePhotosWidget } from './GooglePhotosWidget'
 import { GooglePhotosSettings } from './GooglePhotosSettings'
 import { RSSWidget } from './RSSWidget'
 import { RSSSettings } from './RSSSettings'
+import { StockTickerWidget } from './StockTickerWidget'
+import { StockTickerSettings } from './StockTickerSettings'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 export type { WidgetTypeDef, WidgetVariantDef } from './types'
@@ -637,6 +639,24 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       constraints:       { minWidth: 240, minHeight: 260, maxWidth: 600, maxHeight: 800 },
       component:         RSSWidget,
       settingsComponent: RSSSettings,
+    }],
+  },
+  {
+    typeId:      '@whiteboard/stocks',
+    label:       'Stock Ticker',
+    Icon:        'TrendUp',
+    iconColor:   '#16a34a',
+    keywords:    ['stocks', 'market', 'finance', 'ticker', 'shares', 'crypto', 'investment'],
+    description: 'Track stock prices and market data',
+    variants: [{
+      variantId:         'default',
+      label:             'Stock Ticker',
+      description:       'Track stock prices and market data',
+      shape:             WIDGET_SHAPES['tall-rect'],
+      scalable:          true,
+      constraints:       { minWidth: 240, minHeight: 260, maxWidth: 500, maxHeight: 700 },
+      component:         StockTickerWidget,
+      settingsComponent: StockTickerSettings,
     }],
   },
   {
