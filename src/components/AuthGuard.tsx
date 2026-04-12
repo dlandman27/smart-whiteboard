@@ -7,6 +7,7 @@ import { startBoardSync, stopBoardSync } from '../lib/syncBoards'
 import { startThemeSync, stopThemeSync } from '../lib/syncTheme'
 import { startRealtimeSync, stopRealtimeSync } from '../lib/realtimeSync'
 import { LoginScreen } from './LoginScreen'
+import { TemplatePicker } from './TemplatePicker'
 
 interface Props {
   children: React.ReactNode
@@ -78,10 +79,22 @@ function LoadingSkeleton() {
   )
 }
 
+/**
+ * Returns true when the user has no real content — only system boards exist
+ * and no user board has any widgets. This indicates a brand-new account.
+ */
+function isFirstRun(boards: ReturnType<typeof useWhiteboardStore.getState>['boards']): boolean {
+  const userBoards = boards.filter((b) => !b.boardType)
+  // No user boards at all, or all user boards are empty
+  return userBoards.every((b) => b.widgets.length === 0)
+}
+
 export function AuthGuard({ children }: Props) {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
-  const { init, isLoading } = useWhiteboardStore()
+  const { init, isLoading, boards } = useWhiteboardStore()
   const initTheme = useThemeStore((s) => s.init)
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false)
+  const [templatePickerDismissed, setTemplatePickerDismissed] = useState(false)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -110,15 +123,34 @@ export function AuthGuard({ children }: Props) {
         stopBoardSync()
         stopThemeSync()
         stopRealtimeSync()
+        setTemplatePickerDismissed(false)
       }
     })
 
     return () => subscription.unsubscribe()
   }, [])
 
+  // Check for first-run after loading completes
+  useEffect(() => {
+    if (!isLoading && session && !templatePickerDismissed && isFirstRun(boards)) {
+      setShowTemplatePicker(true)
+    }
+  }, [isLoading, session, boards, templatePickerDismissed])
+
   if (session === undefined) return <LoadingSkeleton />
   if (!session) return <LoginScreen />
   if (isLoading) return <LoadingSkeleton />
+
+  if (showTemplatePicker) {
+    return (
+      <TemplatePicker
+        onComplete={() => {
+          setShowTemplatePicker(false)
+          setTemplatePickerDismissed(true)
+        }}
+      />
+    )
+  }
 
   return <>{children}</>
 }
