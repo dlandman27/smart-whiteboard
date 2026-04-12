@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
-import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID } from '../store/whiteboard'
+import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID, DEFAULT_FEEDBACK_ID } from '../store/whiteboard'
 import { Logo } from './Logo'
 import { TemplatePicker } from './TemplatePicker'
 
@@ -28,18 +28,21 @@ export function Sidebar() {
   const todayBoard      = boards.find((b) => b.boardType === 'today')
   const calendarBoard   = boards.find((b) => b.boardType === 'calendar')
   const todoBoard       = boards.find((b) => b.boardType === 'todo')
+  const feedbackBoard   = boards.find((b) => b.boardType === 'feedback')
 
   const settingsId   = settingsBoard?.id   ?? DEFAULT_SETTINGS_ID
   const connectorsId = connectorsBoard?.id ?? DEFAULT_CONNECTORS_ID
   const todayId      = todayBoard?.id      ?? DEFAULT_TODAY_ID
   const calendarId   = calendarBoard?.id   ?? ''
   const todoId       = todoBoard?.id       ?? DEFAULT_TODO_ID
+  const feedbackId   = feedbackBoard?.id   ?? DEFAULT_FEEDBACK_ID
 
   const isSettingsActive   = activeBoardId === settingsId
   const isConnectorsActive = activeBoardId === connectorsId
   const isTodayActive      = activeBoardId === todayId
   const isCalendarActive   = activeBoardId === calendarId
   const isTodoActive       = activeBoardId === todoId
+  const isFeedbackActive   = activeBoardId === feedbackId
 
   // Only user-created boards
   const visibleBoards = boards.filter((b) => !b.boardType)
@@ -235,6 +238,13 @@ export function Sidebar() {
 
       {/* Bottom nav — Connectors + Settings */}
       <div className="px-2 pt-1.5 pb-2 flex flex-col gap-0.5" style={{ borderTop: '1px solid var(--wt-border)' }}>
+        <NavBtn
+          icon="Megaphone"
+          label="Feedback"
+          collapsed={collapsed}
+          active={isFeedbackActive}
+          onClick={() => setActiveBoard(feedbackId)}
+        />
         <NavBtn
           icon="Plugs"
           label="Connectors"

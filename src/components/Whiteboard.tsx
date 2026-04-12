@@ -11,6 +11,7 @@ import { SettingsBoardView } from './SettingsBoardView'
 import { ConnectorsBoardView } from './ConnectorsBoardView'
 import { TodayBoardView } from './TodayBoardView'
 import { TodoBoardView } from './TodoBoardView'
+import { FeedbackBoardView } from './FeedbackBoardView'
 import { NotificationToast } from './NotificationToast'
 import { UndoToast } from './UndoToast'
 import { VoiceListener } from './VoiceListener'
@@ -35,7 +36,8 @@ export function Whiteboard() {
   const isConnectorsBoard  = boardType === 'connectors'
   const isTodayBoard       = boardType === 'today'
   const isTodoBoard        = boardType === 'todo'
-  const isSystemBoard      = isCalendarBoard || isSettingsBoard || isConnectorsBoard || isTodayBoard || isTodoBoard
+  const isFeedbackBoard    = boardType === 'feedback'
+  const isSystemBoard      = isCalendarBoard || isSettingsBoard || isConnectorsBoard || isTodayBoard || isTodoBoard || isFeedbackBoard
   const [activeTool,        setActiveTool]        = useState('pointer')
   const [pendingWidget,     setPendingWidget]     = useState<PendingWidget | null>(null)
   const [boardMenu,         setBoardMenu]         = useState<{ x: number; y: number; widgetCtx?: { id: string; hasSettings: boolean } } | null>(null)
@@ -116,6 +118,8 @@ export function Whiteboard() {
               <TodayBoardView />
             ) : isTodoBoard ? (
               <TodoBoardView />
+            ) : isFeedbackBoard ? (
+              <FeedbackBoardView />
             ) : (
               <>
                 <WidgetCanvas
