@@ -46,6 +46,8 @@ const httpServer = createServer(app)
 
 const ALLOWED_ORIGINS = [
   'http://localhost:5173',
+  'https://localhost:5173',
+  'https://localhost',
   'http://localhost:3001',
   'https://smart-whiteboard-production.up.railway.app',
 ]

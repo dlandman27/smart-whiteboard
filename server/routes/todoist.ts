@@ -88,10 +88,12 @@ export function todoistRouter(): Router {
     // Clean up after 10 minutes
     setTimeout(() => pendingOAuth.delete(state), 10 * 60_000)
 
+    const REDIRECT_URI = process.env.TODOIST_REDIRECT_URI ?? 'http://localhost:3001/api/todoist/callback'
     const params = new URLSearchParams({
-      client_id: TODOIST_CLIENT_ID,
-      scope:     'data:read_write',
+      client_id:    TODOIST_CLIENT_ID,
+      scope:        'data:read_write',
       state,
+      redirect_uri: REDIRECT_URI,
     })
 
     const url = `https://todoist.com/oauth/authorize?${params.toString()}`
