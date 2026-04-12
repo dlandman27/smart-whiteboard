@@ -6,8 +6,9 @@ import { Icon } from '@whiteboard/ui-kit'
 const UNDO_DURATION = 5000
 
 export function UndoToast() {
-  const { entry, clear } = useUndoStore()
-  const addWidget        = useWhiteboardStore((s) => s.addWidget)
+  const { stack, pop, clear } = useUndoStore()
+  const addWidget = useWhiteboardStore((s) => s.addWidget)
+  const entry     = stack[0] ?? null
   const [visible,  setVisible]  = useState(false)
   const [progress, setProgress] = useState(100)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -41,11 +42,11 @@ export function UndoToast() {
   }, [entryId])
 
   function handleUndo() {
-    if (!entry) return
+    const popped = pop()
+    if (!popped) return
     if (timerRef.current) clearTimeout(timerRef.current)
     if (rafRef.current)   cancelAnimationFrame(rafRef.current)
-    addWidget(entry.snapshot)
-    clear()
+    addWidget(popped.snapshot)
   }
 
   function handleDismiss() {
@@ -77,7 +78,7 @@ export function UndoToast() {
         }}
       >
         <span className="text-sm" style={{ color: 'var(--wt-text)' }}>
-          {entry.label}
+          {entry.label}{stack.length > 1 && ` (${stack.length})`}
         </span>
 
         <button

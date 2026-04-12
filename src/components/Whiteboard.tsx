@@ -22,11 +22,13 @@ import { LayoutPicker } from './LayoutPicker'
 import { BoardSettingsPanel } from './BoardSettingsPanel'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
 import { useScheduleEngine } from '../hooks/useScheduleEngine'
+import { useHashRouter } from '../hooks/useHashRouter'
 import type { PendingWidget } from '../types'
 
 export function Whiteboard() {
   useCanvasSocket()
   useScheduleEngine()
+  useHashRouter()
   const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize, displayMode, setDisplayMode, toggleDisplayMode } = useUIStore()
   const { boards, activeBoardId } = useWhiteboardStore()
   const activeBoard        = boards.find(b => b.id === activeBoardId)

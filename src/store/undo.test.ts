@@ -18,29 +18,50 @@ beforeEach(() => {
 })
 
 describe('useUndoStore', () => {
-  it('starts with no entry', () => {
-    expect(store().entry).toBeNull()
+  it('starts with empty stack', () => {
+    expect(store().stack).toEqual([])
   })
 
   it('pushes an undo entry', () => {
     store().push('Remove widget', snapshot)
-    expect(store().entry).not.toBeNull()
-    expect(store().entry!.label).toBe('Remove widget')
-    expect(store().entry!.snapshot).toEqual(snapshot)
-    expect(store().entry!.id).toBeTruthy()
+    expect(store().stack).toHaveLength(1)
+    expect(store().stack[0].label).toBe('Remove widget')
+    expect(store().stack[0].snapshot).toEqual(snapshot)
   })
 
-  it('replaces previous entry on subsequent push', () => {
+  it('stacks multiple entries (most recent first)', () => {
     store().push('First', snapshot)
-    const firstId = store().entry!.id
     store().push('Second', { ...snapshot, id: 'w2' })
-    expect(store().entry!.label).toBe('Second')
-    expect(store().entry!.id).not.toBe(firstId)
+    expect(store().stack).toHaveLength(2)
+    expect(store().stack[0].label).toBe('Second')
+    expect(store().stack[1].label).toBe('First')
   })
 
-  it('clears the entry', () => {
-    store().push('Remove widget', snapshot)
+  it('caps at 10 entries', () => {
+    for (let i = 0; i < 15; i++) {
+      store().push(`Entry ${i}`, { ...snapshot, id: `w${i}` })
+    }
+    expect(store().stack).toHaveLength(10)
+    expect(store().stack[0].label).toBe('Entry 14')
+  })
+
+  it('pops the most recent entry', () => {
+    store().push('First', snapshot)
+    store().push('Second', { ...snapshot, id: 'w2' })
+    const popped = store().pop()
+    expect(popped?.label).toBe('Second')
+    expect(store().stack).toHaveLength(1)
+    expect(store().stack[0].label).toBe('First')
+  })
+
+  it('pop returns null on empty stack', () => {
+    expect(store().pop()).toBeNull()
+  })
+
+  it('clears the entire stack', () => {
+    store().push('First', snapshot)
+    store().push('Second', { ...snapshot, id: 'w2' })
     store().clear()
-    expect(store().entry).toBeNull()
+    expect(store().stack).toEqual([])
   })
 })
