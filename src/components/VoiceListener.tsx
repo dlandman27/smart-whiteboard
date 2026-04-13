@@ -3,6 +3,7 @@ import { useVoice } from '../hooks/useVoice'
 import { useBriefingStore } from '../store/briefing'
 import { useChatStore } from '../store/chat'
 import { soundSuccess } from '../lib/sounds'
+import { supabase } from '../lib/supabase'
 
 // ── Shared avatar ─────────────────────────────────────────────────────────────
 
@@ -127,9 +128,13 @@ export function VoiceListener() {
     setBriefingResponse(briefingText)
     addMessage('walli', briefingText)
     soundSuccess()
+    supabase.auth.getSession().then(({ data: { session } }) => {
     fetch('/api/tts', {
       method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':  'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
       body:    JSON.stringify({ text: briefingText }),
     }).then(async (res) => {
       if (!res.ok || !res.body) return
@@ -156,6 +161,7 @@ export function VoiceListener() {
       }, { once: true })
       await audio.play()
     }).catch(() => setBriefingResponse(null))
+    }) // getSession
   }, [briefingText])
 
   // ── Persist voice messages to store ──────────────────────────────────────

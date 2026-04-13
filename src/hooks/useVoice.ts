@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { soundWakeWord, soundProcessingStart, soundSuccess, soundError } from '../lib/sounds'
 import { useVoiceStore } from '../store/voice'
+import { supabase } from '../lib/supabase'
 
 export type VoiceState = 'idle' | 'listening' | 'processing' | 'responding' | 'unsupported'
 
@@ -24,9 +25,13 @@ function cancelSpeak() {
 async function speak(text: string, onEnd?: () => void) {
   cancelSpeak()
   try {
+    const { data: { session } } = await supabase.auth.getSession()
     const res = await fetch('/api/tts', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type':  'application/json',
+        ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+      },
       body: JSON.stringify({ text }),
     })
     if (!res.ok || !res.body) throw new Error(`TTS ${res.status}`)
@@ -160,9 +165,13 @@ export function useVoice(): VoiceStatus {
       const stopProcessing = soundProcessingStart()
 
       try {
+        const { data: { session } } = await supabase.auth.getSession()
         const res  = await fetch('/api/voice', {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type':  'application/json',
+            ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+          },
           body:    JSON.stringify({ text, history: historyRef.current.slice(0, -1) }),
         })
         const data  = await res.json() as { response?: string }

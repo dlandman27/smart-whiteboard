@@ -11,6 +11,7 @@ import { createScheduler, readUserAgents, buildDynamicAgent } from './agents/ind
 import { initWebSocket, broadcast } from './ws.js'
 import { loggedNotify } from './services/notify.js'
 import { getGCalClient } from './services/gcal.js'
+import { getFirstUserWithService } from './services/credentials.js'
 import { getBoards, getActiveBoardId } from './ws.js'
 
 import { canvasRouter }        from './routes/canvas.js'
@@ -123,9 +124,14 @@ const agentScheduler = createScheduler({
   notify:     loggedNotify,
   notion,
   anthropic,
-  get gcal()          { return getGCalClient() },
+  gcal:        null,  // resolved per-run via gcalFactory below
   get boards()        { return getBoards() },
   get activeBoardId() { return getActiveBoardId() },
+})
+
+agentScheduler.setGCalFactory(async () => {
+  const userId = await getFirstUserWithService('gcal')
+  return userId ? getGCalClient(userId) : null
 })
 
 app.use('/api', agentsRouter(agentScheduler))

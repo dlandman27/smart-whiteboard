@@ -1,5 +1,32 @@
 # Roadmap
 
+## Product Phase Plan
+
+From developer self-hosted tool → shippable SaaS product.
+
+| # | Phase | Estimate |
+|---|---|---|
+| 1 | Auth (Clerk or Supabase Auth) | ~1 week |
+| 2 | Board state → server | ~1 week |
+| 3 | Deploy (Railway + domain) | ~2 days |
+| 4 | Integration OAuth flip | ~1 week |
+| 5 | Billing (Stripe) | ~1 week |
+| 6 | Onboarding wizard | ~1 week |
+| 7 | Mobile app rebuild | ~3–4 weeks |
+| 8 | App Store submission | ~1 week + review |
+
+**Total: ~10–12 weeks**
+
+### Key Product Decisions
+
+- **No Connectors complexity** — wiigit owns all OAuth apps (Google, Spotify, Notion). Users click "Connect", never see API keys or `.env` files.
+- **Walli AI is Pro-only** — gated behind billing since we pay Anthropic per call.
+- **Free tier:** boards + widgets only. **Pro (~$10/mo):** Walli, voice, all integrations, unlimited boards.
+- **Web app is the wall display** — Chrome kiosk mode (`--kiosk`) works today; Electron is the next step for a proper installable experience.
+- **Mobile app is a companion** — live board preview, push notifications from Walli, remote control. Not a standalone product.
+
+---
+
 ## Tech Stack
 
 | Layer | Current | Target |

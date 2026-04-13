@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useWidgetSettings } from '@whiteboard/sdk'
 import { Container, FlexCol, FlexRow, Text } from '@whiteboard/ui-kit'
 import { useWalliAgentsStore, type AgentDomain } from '../../store/walliAgents'
+import { apiFetch } from '../../lib/apiFetch'
 
 interface WalliAgentWidgetSettings {
   agentId: AgentDomain
@@ -129,9 +130,8 @@ export function WalliAgentWidget({ widgetId }: { widgetId: string }) {
   useEffect(() => {
     if (hydrated) return
     setHydrated(true)
-    fetch('/api/walli/widgets')
-      .then((r) => r.json())
-      .then((widgets: any[]) => {
+    apiFetch<any[]>('/api/walli/widgets')
+      .then((widgets) => {
         widgets.forEach((w) => useWalliAgentsStore.getState().setWidget(w))
       })
       .catch(() => {/* server not available */})

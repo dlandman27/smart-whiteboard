@@ -10,14 +10,21 @@ import { log, error as logError } from '../lib/logger.js'
 const TICK_MS = 60_000  // check every minute
 
 export class AgentScheduler {
-  private agents  = new Map<string, Agent>()
-  private lastRun = new Map<string, number>()
-  private history = new Map<string, AgentRun[]>()
-  private timer:  ReturnType<typeof setInterval> | null = null
-  readonly ctx:   AgentContext
+  private agents      = new Map<string, Agent>()
+  private lastRun     = new Map<string, number>()
+  private history     = new Map<string, AgentRun[]>()
+  private timer:      ReturnType<typeof setInterval> | null = null
+  private gcalFactory: (() => Promise<any | null>) | null = null
+  readonly ctx:       AgentContext
 
   constructor(ctx: AgentContext) {
     this.ctx = ctx
+  }
+
+  /** Provide an async factory that resolves the GCal client before each agent run. */
+  setGCalFactory(factory: () => Promise<any | null>): this {
+    this.gcalFactory = factory
+    return this
   }
 
   // ── Registration ────────────────────────────────────────────────────────────
@@ -95,10 +102,14 @@ export class AgentScheduler {
     // Wake the pet on the board
     this.ctx.broadcast({ type: 'pet_wake', agentId: agent.id })
 
+    // Resolve gcal fresh for this run (tokens may have refreshed since startup)
+    const gcal = this.gcalFactory ? await this.gcalFactory() : this.ctx.gcal
+
     // Wrap ctx.speak so every spoken line also lights up the pet bubble
     const originalSpeak = this.ctx.speak.bind(this.ctx)
     const patchedCtx: typeof this.ctx = {
       ...this.ctx,
+      gcal,
       speak: (text: string) => {
         originalSpeak(text)
         this.ctx.broadcast({ type: 'pet_message', agentId: agent.id, text })

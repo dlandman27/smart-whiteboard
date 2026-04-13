@@ -85,6 +85,17 @@ export async function saveCredential(userId: string, service: string, cred: Cred
   if (error) console.error('saveCredential:', error)
 }
 
+/** Return the first userId that has a stored OAuth token for the given service (for background agents). */
+export async function getFirstUserWithService(service: string): Promise<string | null> {
+  const { data } = await supabaseAdmin
+    .from('oauth_tokens')
+    .select('user_id')
+    .eq('service', service)
+    .limit(1)
+    .single()
+  return data?.user_id ?? null
+}
+
 export async function deleteCredential(userId: string, service: string): Promise<void> {
   const { error } = await supabaseAdmin
     .from('user_credentials')

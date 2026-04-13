@@ -168,9 +168,10 @@ export function useCanvasSocket() {
         }
       }
 
-      ws.onclose = () => {
-        // Reconnect after 3s if closed unexpectedly
-        setTimeout(connect, 3000)
+      ws.onclose = (event) => {
+        // Auth rejection: retry once after a longer delay (token may have refreshed)
+        const delay = event.code === 4001 ? 10_000 : 3_000
+        setTimeout(connect, delay)
       }
     }
 

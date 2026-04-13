@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import Anthropic from '@anthropic-ai/sdk'
+import Anthropic, { APIError } from '@anthropic-ai/sdk'
 import { Client } from '@notionhq/client'
 import { VOICE_TOOLS, executeVoiceTool } from '../services/voice-tools/registry.js'
 import { loadMemory, memoryToPrompt } from '../services/memory.js'
@@ -7,58 +7,8 @@ import { getBoardSnapshot } from '../services/board-utils.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
 import { normalizeTtsText } from '../services/tts-normalize.js'
 import { getNotionClient } from './notion.js'
+import { getGCalClient } from '../services/gcal.js'
 
-// ── Domain classifier ─────────────────────────────────────────────────────────
-
-type AgentDomain = 'health' | 'tasks' | 'habits' | 'calendar' | 'brief' | null
-
-function classifyAgentDomain(text: string): AgentDomain {
-  const t = text.toLowerCase()
-
-  if (['brief me', 'morning brief', 'daily summary', 'what do i need to know'].some(kw => t.includes(kw)))
-    return 'brief'
-
-  if (['step', 'steps', 'walk', 'exercise', 'workout', 'weight', 'calories',
-       'heart rate', 'health', 'fitness', 'active energy', 'apollo'].some(kw => t.includes(kw)))
-    return 'health'
-
-  if (['task', 'tasks', 'todo', 'to-do', 'to do', 'todoist', 'overdue',
-       'check off', 'my list', 'add to my', 'miles'].some(kw => t.includes(kw)))
-    return 'tasks'
-
-  if (['routine', 'routines', 'habit', 'habits', 'morning routine', 'evening routine',
-       'brush', 'shower', 'streak', 'harvey'].some(kw => t.includes(kw)))
-    return 'habits'
-
-  if (['my calendar', 'my schedule', 'what meetings', 'what events', 'alfred'].some(kw => t.includes(kw)))
-    return 'calendar'
-
-  return null
-}
-
-// ── Route to walli agent service ──────────────────────────────────────────────
-
-async function routeToWalli(text: string, domain: AgentDomain): Promise<string> {
-  const walliUrl = process.env.WALLI_API_URL ?? 'http://localhost:8080'
-
-  const endpoint = domain === 'brief'    ? '/agents/walli/brief'
-                 : domain === 'health'   ? '/agents/apollo/message'
-                 : domain === 'tasks'    ? '/agents/miles/message'
-                 : domain === 'habits'   ? '/agents/harvey/message'
-                 : domain === 'calendar' ? '/agents/alfred/message'
-                 : '/agents/message'
-
-  const isGet = domain === 'brief'
-  const res = await fetch(`${walliUrl}${endpoint}`, {
-    method:  isGet ? 'GET' : 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    ...(isGet ? {} : { body: JSON.stringify({ text }) }),
-  })
-
-  if (!res.ok) throw new Error(`Walli service error: ${res.status}`)
-  const data = await res.json() as { response: string }
-  return data.response
-}
 
 export function voiceRouter(): Router {
   const router = Router()
@@ -66,17 +16,6 @@ export function voiceRouter(): Router {
   router.post('/voice', asyncRoute(async (req, res) => {
     const { text, history = [] } = req.body as { text?: string; history?: { role: string; content: string }[] }
     if (!text?.trim()) return res.json({ response: '' })
-
-    // Route agent-domain queries directly to the walli service
-    const agentDomain = classifyAgentDomain(text.trim())
-    if (agentDomain) {
-      try {
-        const response = await routeToWalli(text.trim(), agentDomain)
-        return res.json({ response })
-      } catch {
-        // Walli service unavailable — fall through to local handler
-      }
-    }
 
     const apiKey = process.env.VITE_ANTHROPIC_API_KEY ?? process.env.ANTHROPIC_API_KEY
     if (!apiKey) throw new AppError(503, 'ANTHROPIC_API_KEY not set', 'MISSING_CONFIG')
@@ -94,8 +33,13 @@ export function voiceRouter(): Router {
       { role: 'user', content: text.trim() },
     ]
 
+    // Resolve user's service clients once, before the tool-use loop
+    const notion = await getNotionClient(req.userId!) ?? new Client({ auth: 'noop' })
+    const gcal   = await getGCalClient(req.userId!)
+
     let finalText = 'Done.'
 
+    try {
     for (let turn = 0; turn < 8; turn++) {
       const response = await anthropic.messages.create({
         model:      'claude-haiku-4-5-20251001',
@@ -106,6 +50,7 @@ export function voiceRouter(): Router {
           'For league standings and table positions always use get_standings — it returns live data directly from ESPN. For other live data (news, weather, scores, etc.) use web_search to find relevant URLs, then fetch_page on the best result to read the actual content before answering.',
           'Always use get_board_state first if you need to find a widget ID or database ID. Notion view widgets (type @whiteboard/notion-view) store their database ID at widget.settings.databaseId — read it directly from the board state instead of calling list_notion_databases. Known databases are also listed in your memory above, so if the user references a database by name you may already have its ID. When the user says "read me my tasks", "what\'s on my list", or similar, use read_notion_items with the tasks database ID from memory or board state.',
           'To edit a Notion entry: use query_notion_database to find the page ID by name or filter, then update_notion_entry with the fields to change. E.g. "mark Buy milk as done" → query for "Buy milk" → update its Status to Done.',
+          'For calendar and schedule questions ("what meetings do I have", "what\'s my schedule", "am I free at 3", "add event", "cancel my meeting"): use list_calendar_events, create_calendar_event, or delete_calendar_event. Always use list_calendar_events before deleting so you have the event ID.',
           `When the user says "set up my daily dashboard" or "set up my board": (1) Create these 4 databases in order using create_notion_database — do NOT ask for a page URL, just proceed: "Tasks" with properties {Name:{title:{}},Status:{status:{options:[{name:"Not started",color:"red"},{name:"In progress",color:"yellow"},{name:"Done",color:"green"}]}},Priority:{select:{options:[{name:"High",color:"red"},{name:"Medium",color:"yellow"},{name:"Low",color:"gray"}]}},Due:{date:{}}}, "Routines" with {Name:{title:{}},Done:{checkbox:{}},Category:{select:{options:[{name:"Morning",color:"blue"},{name:"Evening",color:"purple"},{name:"Fitness",color:"green"}]}},Date:{date:{}}}, "Weight Log" with {Date:{date:{}},Weight:{number:{}},Notes:{rich_text:{}},"Name":{title:{}}}, "Goals" with {Name:{title:{}},Status:{select:{options:[{name:"Active",color:"blue"},{name:"Completed",color:"green"},{name:"Paused",color:"gray"}]}},Progress:{number:{}},"Target Date":{date:{}},Notes:{rich_text:{}}}. (4) After each database is created, call update_memory with field "database" to save the ID. (5) Use create_notion_view_widget to place: Tasks as todo-list (fieldMap:{title:"Name",status:"Status",priority:"Priority",due:"Due"} options:{statusDone:"Done"}) at x:20 y:20 w:480 h:520, Routines as habit-grid (fieldMap:{date:"Date",done:"Done"}) at x:520 y:20 w:420 h:250, Weight Log as metric-chart (fieldMap:{value:"Weight",date:"Date"} options:{unit:"lbs",label:"Weight",chartType:"line"}) at x:520 y:290 w:420 h:250, Goals as data-table (fieldMap:{columns:["Name","Status","Progress","Target Date"]}) at x:960 y:20 w:440 h:520, then add_widget for a calendar widget at x:20 y:560 w:480 h:300. (6) Respond "Your dashboard is ready."`,
           'To create a new background agent: use manage_agents with action "create", a short name, and a plain-English description of what it should check and do each run. Good descriptions say what to look for and what action to take (speak, notify). Set intervalMs appropriately. Confirm with the agent name only.',
           'For Spotify: use spotify_control for play/pause/skip/previous/now_playing. Spotify must be actively playing on a device for controls to work — if it fails, tell the user to open Spotify on their device first.',
@@ -134,14 +79,19 @@ export function voiceRouter(): Router {
         const toolResults: Anthropic.ToolResultBlockParam[] = []
         for (const block of response.content) {
           if (block.type === 'tool_use') {
-            const notion = await getNotionClient(req.userId!) ?? new Client({ auth: 'noop' })
-            const result = await executeVoiceTool(block.name, block.input as Record<string, any>, notion)
+            const result = await executeVoiceTool(block.name, block.input as Record<string, any>, { notion, gcal })
             toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result })
           }
         }
         messages.push({ role: 'assistant', content: response.content })
         messages.push({ role: 'user',      content: toolResults })
       }
+    }
+    } catch (err) {
+      if (err instanceof APIError) {
+        throw new AppError(err.status ?? 502, `Anthropic API error: ${err.message}`, 'ANTHROPIC_ERROR')
+      }
+      throw err
     }
 
     res.json({ response: finalText })
