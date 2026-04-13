@@ -33,13 +33,12 @@ export function voiceRouter(): Router {
       { role: 'user', content: text.trim() },
     ]
 
-    // Resolve user's service clients once, before the tool-use loop
-    const notion = await getNotionClient(req.userId!) ?? new Client({ auth: 'noop' })
-    const gcal   = await getGCalClient(req.userId!)
-
     let finalText = 'Done.'
 
     try {
+    // Resolve user's service clients once, before the tool-use loop
+    const notion = await getNotionClient(req.userId!) ?? new Client({ auth: 'noop' })
+    const gcal   = await getGCalClient(req.userId!)
     for (let turn = 0; turn < 8; turn++) {
       const response = await anthropic.messages.create({
         model:      'claude-haiku-4-5-20251001',
