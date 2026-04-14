@@ -185,8 +185,8 @@ function GCalCard({ googleOauth }: { googleOauth: boolean }) {
       icon="CalendarBlank" name="Google Calendar" providerId="gcal"
       description="View and manage your calendar events on the whiteboard."
       connected={connected}
-      actionLabel={connected ? 'Disconnect' : googleOauth ? 'Connect' : 'Not available'}
-      onAction={connected ? disconnect : googleOauth ? openPopup : undefined}
+      actionLabel={connected ? 'Disconnect' : 'Connect'}
+      onAction={connected ? disconnect : openPopup}
     />
   )
 }
@@ -218,8 +218,8 @@ function GTasksCard({ googleOauth }: { googleOauth: boolean }) {
       icon="CheckSquare" name="Google Tasks" providerId="gtasks"
       description="Sync your task lists and manage todos."
       connected={connected}
-      actionLabel={connected ? undefined : googleOauth ? 'Connect' : undefined}
-      onAction={connected ? undefined : googleOauth ? openPopup : undefined}
+      actionLabel={connected ? undefined : 'Connect'}
+      onAction={connected ? undefined : openPopup}
     />
   )
 }
