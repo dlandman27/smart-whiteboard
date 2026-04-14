@@ -19,10 +19,16 @@ export async function loadOAuthTokens(userId: string, service: string): Promise<
 
   if (error || !data) return null
 
-  return {
-    access_token:  data.access_token ? decrypt(data.access_token) : '',
-    refresh_token: data.refresh_token ? decrypt(data.refresh_token) : undefined,
-    expires_at:    data.expires_at ?? undefined,
+  try {
+    return {
+      access_token:  data.access_token ? decrypt(data.access_token) : '',
+      refresh_token: data.refresh_token ? decrypt(data.refresh_token) : undefined,
+      expires_at:    data.expires_at ?? undefined,
+    }
+  } catch {
+    // Decryption failed — token was encrypted with a different key (e.g. key rotation).
+    // Treat as not connected so the user can reconnect and re-encrypt with the current key.
+    return null
   }
 }
 
@@ -65,11 +71,15 @@ export async function loadCredential(userId: string, service: string): Promise<C
 
   if (error || !data) return null
 
-  return {
-    api_key:       data.api_key ? decrypt(data.api_key) : undefined,
-    client_id:     data.client_id ?? undefined,
-    client_secret: data.client_secret ? decrypt(data.client_secret) : undefined,
-    redirect_uri:  data.redirect_uri ?? undefined,
+  try {
+    return {
+      api_key:       data.api_key ? decrypt(data.api_key) : undefined,
+      client_id:     data.client_id ?? undefined,
+      client_secret: data.client_secret ? decrypt(data.client_secret) : undefined,
+      redirect_uri:  data.redirect_uri ?? undefined,
+    }
+  } catch {
+    return null
   }
 }
 
