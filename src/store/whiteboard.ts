@@ -8,13 +8,13 @@ import { DEFAULT_LAYOUT_ID } from '../layouts/presets'
 import { loadBoards, loadSchedule } from '../lib/db'
 import { markBoardCreated } from '../lib/syncBoards'
 
-export type WidgetStyle = 'solid' | 'glass' | 'borderless'
+export type WidgetStyle = 'solid' | 'glass' | 'glass-dark' | 'glass-light' | 'borderless' | 'none'
 
 export interface Board {
   id: string
   name: string
   layoutId: string
-  boardType?: 'calendar' | 'settings' | 'connectors' | 'today' | 'todo' | 'feedback' | 'agents'
+  boardType?: 'calendar' | 'settings' | 'connectors' | 'today' | 'todo' | 'feedback' | 'agents' | 'routines'
   calendarId?: string
   widgets: WidgetLayout[]
   slotGap?: number
@@ -44,8 +44,9 @@ interface WhiteboardStore {
 
   // Widget management (always on the active board)
   addWidget:        (widget: Omit<WidgetLayout, 'id'>) => void
-  updateLayout:     (id: string, updates: Partial<Pick<WidgetLayout, 'x' | 'y' | 'width' | 'height'>>) => void
-  updateSettings:   (id: string, settings: Record<string, unknown>) => void
+  updateLayout:      (id: string, updates: Partial<Pick<WidgetLayout, 'x' | 'y' | 'width' | 'height'>>) => void
+  updateSettings:    (id: string, settings: Record<string, unknown>) => void
+  updateWidgetStyle: (id: string, style: WidgetStyle | undefined) => void
   removeWidget:     (id: string) => void
   clearWidgets:     () => void
   assignSlot:       (widgetId: string, slotId: string | null) => void
@@ -67,6 +68,7 @@ export const DEFAULT_TODAY_ID      = '00000000-0000-4000-8000-000000000005'
 export const DEFAULT_TODO_ID       = '00000000-0000-4000-8000-000000000006'
 export const DEFAULT_FEEDBACK_ID   = '00000000-0000-4000-8000-000000000007'
 export const DEFAULT_AGENTS_ID     = '00000000-0000-4000-8000-000000000008'
+export const DEFAULT_ROUTINES_ID   = '00000000-0000-4000-8000-000000000009'
 
 function ensureCalendarBoard(boards: Board[]): Board[] {
   if (boards.some((b) => b.boardType === 'calendar')) return boards
@@ -92,6 +94,9 @@ export function ensureSystemBoards(boards: Board[]): Board[] {
   }
   if (!result.some((b) => b.boardType === 'agents')) {
     result = [...result, { id: DEFAULT_AGENTS_ID, name: 'Agents', layoutId: DEFAULT_LAYOUT_ID, boardType: 'agents', widgets: [] }]
+  }
+  if (!result.some((b) => b.boardType === 'routines')) {
+    result = [...result, { id: DEFAULT_ROUTINES_ID, name: 'Routines', layoutId: DEFAULT_LAYOUT_ID, boardType: 'routines', widgets: [] }]
   }
   return result
 }
@@ -217,6 +222,15 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         boards: s.boards.map((b) =>
           b.id === s.activeBoardId
             ? { ...b, widgets: b.widgets.map((w) => w.id === id ? { ...w, settings: { ...w.settings, ...settings } } : w) }
+            : b
+        ),
+      })),
+
+    updateWidgetStyle: (id, style) =>
+      set((s) => ({
+        boards: s.boards.map((b) =>
+          b.id === s.activeBoardId
+            ? { ...b, widgets: b.widgets.map((w) => w.id === id ? { ...w, widgetStyle: style } : w) }
             : b
         ),
       })),

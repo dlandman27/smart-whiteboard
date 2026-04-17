@@ -4,8 +4,9 @@ import {
   useGCalStatus, useGCalCalendars, useAllCalendarEvents,
   type GCalEvent, type GCalCalendar,
 } from '../hooks/useGCal'
-import { useTasksStatus, useTaskLists, useAllTasks, type GTask } from '../hooks/useTasks'
+import { useWiigitTasks, useToggleWiigitTask, type WiigitTask } from '../hooks/useWiigitTasks'
 import { useWeather, type WeatherData } from '../hooks/useWeather'
+import { useRoutines, useRoutineCompletions, useToggleRoutine } from '../hooks/useRoutines'
 
 // ── Quotes ───────────────────────────────────────────────────────────────────
 
@@ -76,6 +77,7 @@ function fmtTime(dt: string): string {
   return new Date(dt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
 }
 
+
 // ── Calendar color helpers ───────────────────────────────────────────────────
 
 const GCAL_COLORS: Record<string, string> = {
@@ -105,8 +107,6 @@ export function TodayBoardView() {
 
   const { data: gcalStatus } = useGCalStatus()
   const { data: calendarsData } = useGCalCalendars()
-  const { data: tasksStatus } = useTasksStatus()
-  const { data: taskListsData } = useTaskLists()
 
   // Weather — use geolocation, fahrenheit default
   const { data: weather } = useWeather({ unit: 'fahrenheit', windUnit: 'mph', locationQuery: '' })
@@ -123,11 +123,14 @@ export function TodayBoardView() {
   )
 
   // Tasks
-  const taskListIds = (taskListsData?.items ?? []).map(l => l.id)
-  const { data: allTasks } = useAllTasks(
-    tasksStatus?.connected ? taskListIds : [],
-    false,
-  )
+  const { data: allTasks } = useWiigitTasks()
+  const toggleTask = useToggleWiigitTask()
+
+  // Routines
+  const today = now.toISOString().slice(0, 10)
+  const { data: allRoutines = [] }     = useRoutines()
+  const { data: completedIds = [] }    = useRoutineCompletions(today)
+  const toggleRoutine = useToggleRoutine()
 
   // ── Process data ────────────────────────────────────────────────────────
 
@@ -149,10 +152,14 @@ export function TodayBoardView() {
   // Pending tasks, max 6
   const pendingTasks = (allTasks ?? [])
     .filter(t => t.status === 'needsAction')
+    .sort((a, b) => a.priority - b.priority)
     .slice(0, 6)
 
-  // Time display
-  const hours = now.getHours()
+  const hours  = now.getHours()
+  const period = hours < 12 ? 'morning' : hours < 18 ? 'daily' : 'evening'
+  const periodRoutines = allRoutines.filter(r => r.category === period)
+  const routinesDone   = periodRoutines.filter(r => completedIds.includes(r.id)).length
+
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   const quote = dailyQuote()
@@ -258,23 +265,72 @@ export function TodayBoardView() {
           </div>
         </div>
 
-        {/* ── Middle right: Tasks ───────────────────────────────────────── */}
-        <div style={{
-          gridColumn: '2 / 3', alignSelf: 'start', minHeight: 0,
-          background: 'rgba(0,0,0,0.35)',
-          backdropFilter: 'blur(20px)',
-          borderRadius: 16,
-          border: '1px solid rgba(255,255,255,0.08)',
-          padding: '18px 20px',
-        }}>
-          <SectionLabel icon="CheckSquare" label="Tasks" />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 14 }}>
-            {pendingTasks.length === 0 ? (
-              <EmptyState text="All caught up" />
-            ) : (
-              pendingTasks.map(t => <TaskRow key={t.id} task={t} />)
-            )}
+        {/* ── Middle right: Tasks + Routines ────────────────────────────── */}
+        <div style={{ gridColumn: '2 / 3', alignSelf: 'start', display: 'flex', flexDirection: 'column', gap: '2vh' }}>
+
+          {/* Tasks */}
+          <div style={{
+            background: 'rgba(0,0,0,0.35)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 16,
+            border: '1px solid rgba(255,255,255,0.08)',
+            padding: '18px 20px',
+          }}>
+            <SectionLabel icon="CheckSquare" label="Tasks" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 14 }}>
+              {pendingTasks.length === 0 ? (
+                <EmptyState text="All caught up" />
+              ) : (
+                pendingTasks.map(t => (
+                  <TaskRow key={t.id} task={t} onToggle={() => toggleTask.mutate({ id: t.id, completed: false })} />
+                ))
+              )}
+            </div>
           </div>
+
+          {/* Routines — current period */}
+          <div style={{
+              background: 'rgba(0,0,0,0.35)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: 16,
+              border: '1px solid rgba(255,255,255,0.08)',
+              padding: '18px 20px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <SectionLabel
+                  icon={period === 'morning' ? 'Sun' : period === 'evening' ? 'Moon' : 'Repeat'}
+                  label={`${period.charAt(0).toUpperCase() + period.slice(1)} Routines`}
+                />
+                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                  {routinesDone}/{periodRoutines.length}
+                </span>
+              </div>
+              {/* Progress bar */}
+              {periodRoutines.length > 0 && (
+                <div style={{ height: 2, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginBottom: 10 }}>
+                  <div style={{
+                    height: '100%', borderRadius: 2,
+                    background: routinesDone === periodRoutines.length ? '#4ade80' : 'rgba(255,255,255,0.5)',
+                    width: `${(routinesDone / periodRoutines.length) * 100}%`,
+                    transition: 'width 0.4s ease',
+                  }} />
+                </div>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {periodRoutines.length === 0 ? (
+                  <EmptyState text="No routines — add some in the Routines board" />
+                ) : (
+                  periodRoutines.map(r => (
+                    <TodayRoutineRow
+                      key={r.id}
+                      routine={r}
+                      completed={completedIds.includes(r.id)}
+                      onToggle={() => toggleRoutine.mutate({ id: r.id, completed: completedIds.includes(r.id), date: today })}
+                    />
+                  ))
+                )}
+              </div>
+            </div>
         </div>
 
         {/* ── Bottom: Quote ─────────────────────────────────────────────── */}
@@ -421,30 +477,69 @@ function EventRow({ event, now, calColors }: { event: GCalEvent; now: Date; calC
   )
 }
 
-function TaskRow({ task }: { task: GTask }) {
+function TodayRoutineRow({ routine, completed, onToggle }: {
+  routine: { id: string; emoji: string; title: string }
+  completed: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      onClick={onToggle}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+        padding: '8px 14px', borderRadius: 10,
+        background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+      }}
+    >
+      <div style={{
+        width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+        border: completed ? 'none' : '2px solid rgba(255,255,255,0.4)',
+        background: completed ? 'rgba(255,255,255,0.8)' : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        transition: 'all 0.15s',
+      }}>
+        {completed && (
+          <svg width={10} height={10} viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="#000" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </div>
+      <span style={{ fontSize: 16, flexShrink: 0 }}>{routine.emoji}</span>
+      <span style={{
+        fontSize: 'clamp(13px, 1.4vw, 15px)', color: completed ? 'rgba(255,255,255,0.35)' : '#fff',
+        fontWeight: 400, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        textDecoration: completed ? 'line-through' : 'none', transition: 'color 0.15s',
+        textShadow: '0 1px 4px rgba(0,0,0,0.2)',
+      }}>
+        {routine.title}
+      </span>
+    </button>
+  )
+}
+
+function TaskRow({ task, onToggle }: { task: WiigitTask; onToggle: () => void }) {
   const hasDue = !!task.due
   const isOverdue = hasDue && new Date(task.due!) < new Date()
+  const PRIORITY_COLORS = ['', '#ef4444', '#f97316', '#facc15', 'rgba(255,255,255,0.2)'] as const
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: 10,
-      padding: '8px 14px',
-      borderRadius: 10,
-      background: 'transparent',
-    }}>
+    <button
+      onClick={onToggle}
+      style={{
+        width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+        padding: '8px 14px', borderRadius: 10,
+        background: 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left',
+      }}
+    >
       <div style={{
         width: 16, height: 16, borderRadius: '50%',
-        border: '2px solid rgba(255,255,255,0.3)',
+        border: `2px solid ${PRIORITY_COLORS[task.priority] ?? 'rgba(255,255,255,0.3)'}`,
         flexShrink: 0,
       }} />
       <span style={{
         fontSize: 'clamp(13px, 1.5vw, 16px)',
-        color: '#fff',
-        fontWeight: 400,
-        flex: 1,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
+        color: '#fff', fontWeight: 400, flex: 1,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         textShadow: '0 1px 4px rgba(0,0,0,0.2)',
       }}>
         {task.title || '(No title)'}
@@ -453,12 +548,11 @@ function TaskRow({ task }: { task: GTask }) {
         <span style={{
           fontSize: 'clamp(10px, 1.1vw, 12px)',
           color: isOverdue ? '#ff6b6b' : 'rgba(255,255,255,0.45)',
-          fontWeight: isOverdue ? 600 : 400,
-          flexShrink: 0,
+          fontWeight: isOverdue ? 600 : 400, flexShrink: 0,
         }}>
           {new Date(task.due!).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </span>
       )}
-    </div>
+    </button>
   )
 }

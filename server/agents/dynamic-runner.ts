@@ -99,7 +99,7 @@ export function buildDynamicAgent(def: UserAgentDef): Agent {
     triggers:    def.triggers,
 
     async run(ctx: AgentContext, extra?: { reminderText?: string }) {
-      const toolCtx = { notion: ctx.notion, gcal: ctx.gcal, userId: 'local', agentId: def.id }
+      const toolCtx = { notion: ctx.notion, gcal: ctx.gcal, userId: ctx.userId, agentId: def.id }
 
       const triggerNote = extra?.reminderText
         ? ` A reminder just fired: "${extra.reminderText}".`

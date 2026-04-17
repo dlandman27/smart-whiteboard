@@ -139,6 +139,8 @@ export function useHashRouter() {
           suppressRef.current = false
           return
         }
+        // Don't overwrite the URL hash during init — let applyHash() restore it
+        if (prev.isLoading && !state.isLoading) return
         const hash = boardIdToHash(state.boards, state.activeBoardId)
         if (hash && window.location.hash !== hash) {
           history.pushState(null, '', hash)

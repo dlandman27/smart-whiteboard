@@ -2,6 +2,7 @@ import { Router } from 'express'
 import { createScheduler, addUserAgent, removeUserAgent, updateUserAgent, buildDynamicAgent } from '../agents/index.js'
 import type { UserAgentDef } from '../agents/index.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
+import db from '../services/db.js'
 
 type AgentScheduler = ReturnType<typeof createScheduler>
 
@@ -41,6 +42,14 @@ export function agentsRouter(agentScheduler: AgentScheduler): Router {
     agentScheduler.register(buildDynamicAgent(def))
     res.json(def)
   }))
+
+  router.get('/agents/:id/runs', (_req, res) => {
+    const runs = db.prepare(
+      `SELECT id, agent_id, started_at, duration_ms, output, error
+       FROM agent_runs WHERE agent_id = ? ORDER BY id DESC LIMIT 20`
+    ).all(_req.params.id)
+    res.json(runs)
+  })
 
   router.delete('/agents/:id', asyncRoute(async (req, res) => {
     try {

@@ -84,6 +84,53 @@ function TriggerBadges({ triggers, intervalMs }: { triggers: AgentTrigger[]; int
   )
 }
 
+// ── Run history ───────────────────────────────────────────────────────────────
+
+interface AgentRunRecord {
+  id:          number
+  agent_id:    string
+  started_at:  string
+  duration_ms: number
+  output:      string | null
+  error:       string | null
+}
+
+function RunHistory({ agentId }: { agentId: string }) {
+  const [runs,    setRuns]    = useState<AgentRunRecord[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    apiFetch<AgentRunRecord[]>(`/api/agents/${agentId}/runs`)
+      .then((data) => { setRuns(data); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [agentId])
+
+  if (loading) return <Text style={{ fontSize: 10, color: 'var(--wt-text-muted)', padding: '4px 0' }}>Loading…</Text>
+  if (runs.length === 0) return <Text style={{ fontSize: 10, color: 'var(--wt-text-muted)', padding: '4px 0' }}>No runs yet</Text>
+
+  return (
+    <FlexCol style={{ gap: 4, marginTop: 4 }}>
+      {runs.slice(0, 5).map((run) => (
+        <FlexRow key={run.id} style={{ gap: 8, alignItems: 'flex-start' }}>
+          <Text style={{ fontSize: 9, color: 'var(--wt-text-muted)', whiteSpace: 'nowrap', paddingTop: 1, minWidth: 60 }}>
+            {relativeTime(run.started_at)}
+          </Text>
+          <Text style={{ fontSize: 9, color: 'var(--wt-text-muted)', whiteSpace: 'nowrap' }}>
+            {run.duration_ms}ms
+          </Text>
+          {run.error ? (
+            <Text style={{ fontSize: 9, color: 'var(--wt-danger)', lineHeight: 1.3 }}>{run.error}</Text>
+          ) : run.output ? (
+            <Text style={{ fontSize: 9, color: 'var(--wt-text-muted)', lineHeight: 1.3, fontStyle: 'italic' }}>"{run.output}"</Text>
+          ) : (
+            <Text style={{ fontSize: 9, color: 'var(--wt-text-muted)' }}>skipped</Text>
+          )}
+        </FlexRow>
+      ))}
+    </FlexCol>
+  )
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function relativeTime(iso: string | null): string {
@@ -113,6 +160,7 @@ function AgentCard({ agent, onToggle, onRunNow, onDelete }: {
   const { pets } = usePetsStore()
   const mood    = pets[agent.id]?.mood ?? 'idle'
   const message = pets[agent.id]?.message ?? null
+  const [showHistory, setShowHistory] = useState(false)
 
   const spriteKey = getSpriteType(agent.id, agent.icon, agent.spriteType)
   const sprite    = SPRITES[spriteKey]
@@ -158,13 +206,24 @@ function AgentCard({ agent, onToggle, onRunNow, onDelete }: {
           {/* Trigger badges */}
           <TriggerBadges triggers={agent.triggers ?? []} intervalMs={agent.intervalMs} />
 
-          {/* Last ran */}
-          <Text style={{ fontSize: 10, color: 'var(--wt-text-muted)', marginTop: 2 }}>
-            last ran {relativeTime(agent.lastRun)}
-            {agent.enabled && agent.nextRun && agent.nextRun !== 'event-driven' && (
-              <> · next {relativeTime(agent.nextRun)}</>
-            )}
-          </Text>
+          {/* Last ran + history toggle */}
+          <FlexRow style={{ gap: 6, alignItems: 'center', marginTop: 2 }}>
+            <Text style={{ fontSize: 10, color: 'var(--wt-text-muted)' }}>
+              last ran {relativeTime(agent.lastRun)}
+              {agent.enabled && agent.nextRun && agent.nextRun !== 'event-driven' && (
+                <> · next {relativeTime(agent.nextRun)}</>
+              )}
+            </Text>
+            <button onClick={() => setShowHistory((v) => !v)} style={{
+              fontSize: 9, padding: '1px 5px', borderRadius: 4, cursor: 'pointer',
+              border: '1px solid var(--wt-border)', background: 'transparent',
+              color: 'var(--wt-text-muted)',
+            }}>
+              {showHistory ? 'hide log' : 'log'}
+            </button>
+          </FlexRow>
+
+          {showHistory && <RunHistory agentId={agent.id} />}
         </FlexCol>
 
         {/* Actions */}

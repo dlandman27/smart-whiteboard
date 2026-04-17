@@ -13,6 +13,7 @@ import { TodayBoardView } from './TodayBoardView'
 import { TodoBoardView } from './TodoBoardView'
 import { FeedbackBoardView } from './FeedbackBoardView'
 import { AgentsBoardView } from './AgentsBoardView'
+import { RoutinesBoardView } from './RoutinesBoardView'
 import { NotificationToast } from './NotificationToast'
 import { UndoToast } from './UndoToast'
 import { VoiceListener } from './VoiceListener'
@@ -42,7 +43,8 @@ export function Whiteboard() {
   const isTodoBoard        = boardType === 'todo'
   const isFeedbackBoard    = boardType === 'feedback'
   const isAgentsBoard      = boardType === 'agents'
-  const isSystemBoard      = isCalendarBoard || isSettingsBoard || isConnectorsBoard || isTodayBoard || isTodoBoard || isFeedbackBoard || isAgentsBoard
+  const isRoutinesBoard    = boardType === 'routines'
+  const isSystemBoard      = isCalendarBoard || isSettingsBoard || isConnectorsBoard || isTodayBoard || isTodoBoard || isFeedbackBoard || isAgentsBoard || isRoutinesBoard
   const [activeTool,        setActiveTool]        = useState('pointer')
   const [pendingWidget,     setPendingWidget]     = useState<PendingWidget | null>(null)
   const [boardMenu,         setBoardMenu]         = useState<{ x: number; y: number; widgetCtx?: { id: string; hasSettings: boolean } } | null>(null)
@@ -128,6 +130,8 @@ export function Whiteboard() {
               <FeedbackBoardView />
             ) : isAgentsBoard ? (
               <AgentsBoardView />
+            ) : isRoutinesBoard ? (
+              <RoutinesBoardView />
             ) : (
               <>
                 <WidgetCanvas
@@ -180,7 +184,7 @@ export function Whiteboard() {
               </div>
             )}
 
-            {!isSystemBoard && !displayMode && petsEnabled && <PetBar />}
+            {/* PetBar hidden for now */}
 
             {/* Display mode exit overlay */}
             {displayMode && <DisplayModeOverlay onExit={() => setDisplayMode(false)} />}

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { usePetsStore } from '../store/pets'
 import { WalkingPet, type AgentInfo } from './pets/WalkingPet'
+import { apiFetch } from '../lib/apiFetch'
 
 // Re-exports for consumers (SettingsPanel etc.)
 export { SPRITES, PX } from './pets/sprites'
@@ -12,9 +13,8 @@ export function PetBar() {
   const { pets, clearMessage } = usePetsStore()
 
   useEffect(() => {
-    fetch('/api/agents')
-      .then((r) => r.json())
-      .then((data: AgentInfo[]) => setAgents(data))
+    apiFetch<AgentInfo[]>('/api/agents')
+      .then((data) => { if (Array.isArray(data)) setAgents(data) })
       .catch(() => {})
   }, [])
 

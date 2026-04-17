@@ -36,6 +36,7 @@ import { todoistRouter }       from './routes/todoist.js'
 import { icalRouter }          from './routes/ical.js'
 import { feedbackRouter }      from './routes/feedback.js'
 import { tasksRouter }         from './routes/tasks.js'
+import { routinesRouter }      from './routes/routines.js'
 import { eventsRouter }        from './routes/events.js'
 import { healthRouter }        from './routes/health.js'
 import { deepgramRouter }      from './routes/deepgram.js'
@@ -116,6 +117,7 @@ app.use('/api', todoistRouter())
 app.use('/api', icalRouter())
 app.use('/api', feedbackRouter())
 app.use('/api', tasksRouter())
+app.use('/api', routinesRouter())
 app.use('/api', eventsRouter())
 app.use('/api', deepgramRouter())
 app.use('/api', healthRouter())
@@ -129,13 +131,16 @@ const agentScheduler = createScheduler({
   notion,
   anthropic,
   gcal:        null,  // resolved per-run via gcalFactory below
+  userId:      'local', // overridden per-user in production via gcalFactory userId
   get boards()        { return getBoards() },
   get activeBoardId() { return getActiveBoardId() },
 })
 
 agentScheduler.setGCalFactory(async () => {
   const userId = await getFirstUserWithService('gcal')
-  return userId ? getGCalClient(userId) : null
+  if (!userId) return null
+  const client = await getGCalClient(userId)
+  return { client, userId }
 })
 
 app.use('/api', agentsRouter(agentScheduler))

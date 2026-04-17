@@ -381,8 +381,9 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   // ── Render ────────────────────────────────────────────────────────
   const isActive    = active || showSettings || fullscreen
   const widgetStyle = useWhiteboardStore((s) => {
-    const board = s.boards.find((b) => b.id === s.activeBoardId)
-    return board?.widgetStyle ?? 'solid'
+    const board  = s.boards.find((b) => b.id === s.activeBoardId)
+    const widget = board?.widgets.find((w) => w.id === id)
+    return widget?.widgetStyle ?? board?.widgetStyle ?? 'solid'
   })
   const canvasSize  = useUIStore((s) => s.canvasSize)
   const renderW = fullscreen && fsExpanded ? canvasSize.w : size.width
@@ -406,7 +407,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         touchAction: 'none',
         transition:  `left 0.3s ${FS_EASE}, top 0.3s ${FS_EASE}, width 0.3s ${FS_EASE}, height 0.3s ${FS_EASE}`,
         borderRadius:   fsExpanded ? 0 : undefined,
-        backdropFilter: widgetStyle === 'glass' ? 'blur(20px) saturate(1.6)' : undefined,
+        backdropFilter: (widgetStyle === 'glass' || widgetStyle === 'glass-dark' || widgetStyle === 'glass-light') ? 'blur(20px) saturate(1.6)' : undefined,
       }
     : {
         position:   'absolute',
@@ -420,7 +421,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         transformOrigin: dragging ? dragOrigin : 'center',
         transition:  dragging ? 'transform 0.15s ease' : 'transform 0.2s ease',
         opacity:     dragging ? 0.85 : 1,
-        backdropFilter: widgetStyle === 'glass' ? 'blur(20px) saturate(1.6)' : undefined,
+        backdropFilter: (widgetStyle === 'glass' || widgetStyle === 'glass-dark' || widgetStyle === 'glass-light') ? 'blur(20px) saturate(1.6)' : undefined,
         animation:   removing ? 'wt-remove 0.15s cubic-bezier(0.4, 0, 1, 1) forwards' : undefined,
       }
 
@@ -445,22 +446,32 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     >
       {/* Widget frame — content fills the entire frame, no overlapping header */}
       <div
-        className={`wt-widget-frame w-full h-full overflow-hidden${widgetStyle === 'borderless' ? ' wt-widget-frame--borderless' : ' border'}${frameAnim === 'entrance' ? ' wt-widget-entrance' : frameAnim === 'settle' ? ' wt-widget-settle' : ''}`}
+        className={`wt-widget-frame w-full h-full overflow-hidden${(widgetStyle === 'borderless' || widgetStyle === 'none') ? ' wt-widget-frame--borderless' : ' border'}${frameAnim === 'entrance' ? ' wt-widget-entrance' : frameAnim === 'settle' ? ' wt-widget-settle' : ''}`}
         style={{
           borderRadius:    fullscreen && fsExpanded ? 0 : '1rem',
           transition:      `border-radius 0.3s ${FS_EASE}, border-color 0.15s, box-shadow 0.15s, background-color 0.2s`,
-          backgroundColor: widgetStyle === 'glass'
-            ? 'color-mix(in srgb, var(--wt-bg) 55%, transparent)'
-            : widgetStyle === 'borderless'
-            ? 'transparent'
-            : 'var(--wt-bg)',
-          ...(widgetStyle === 'borderless'
+          backgroundColor:
+            widgetStyle === 'glass'       ? 'color-mix(in srgb, var(--wt-bg) 55%, transparent)' :
+            widgetStyle === 'glass-dark'  ? 'rgba(0,0,0,0.35)' :
+            widgetStyle === 'glass-light' ? 'rgba(255,255,255,0.15)' :
+            (widgetStyle === 'borderless' || widgetStyle === 'none') ? 'transparent' :
+            'var(--wt-bg)',
+          color: widgetStyle === 'glass-dark' ? '#fff' : undefined,
+          ...(widgetStyle === 'borderless' || widgetStyle === 'none'
             ? { border: 'none' }
+            : widgetStyle === 'glass-dark'
+            ? { borderColor: 'rgba(255,255,255,0.08)' }
+            : widgetStyle === 'glass-light'
+            ? { borderColor: 'rgba(255,255,255,0.3)' }
             : { borderColor: isFlashing ? 'var(--wt-danger)' : (dragging || isActive) ? 'var(--wt-border-active)' : 'var(--wt-border)' }
           ),
           animation:   isFlashing ? 'wt-flash 0.5s ease-in-out 4' : undefined,
-          boxShadow: widgetStyle === 'borderless'
+          boxShadow: (widgetStyle === 'borderless' || widgetStyle === 'none')
             ? 'none'
+            : widgetStyle === 'glass-dark'
+            ? '0 8px 32px rgba(0,0,0,0.4)'
+            : widgetStyle === 'glass-light'
+            ? '0 8px 32px rgba(0,0,0,0.15)'
             : dragging
             ? `0 8px 0 rgba(0,0,0,0.18), var(--wt-shadow-lg)`
             : isActive

@@ -1,39 +1,49 @@
 import type { Agent, AgentContext } from '../types.js'
 
-// ── State ─────────────────────────────────────────────────────────────────────
-
-let lastRemindedDate = ''
-
-// ── Agent ─────────────────────────────────────────────────────────────────────
+const TRIGGER_HOURS: Record<number, string> = { 6: 'morning', 12: 'daily', 18: 'evening' }
 
 export const routineAgent: Agent = {
   id:          'routine-agent',
   name:        'Routine Agent',
-  description: 'Reminds you to start your routines at the beginning of each period.',
+  description: 'Checks your routines at the start of each period and reports how many are done.',
   icon:        '🔁',
-  intervalMs:  10 * 60_000,  // every 10 minutes
+  intervalMs:  10 * 60_000,
   enabled:     true,
 
   async run(ctx: AgentContext, _extra?: { reminderText?: string }) {
-    const now    = new Date()
-    const hour   = now.getHours()
-    const today  = now.toISOString().slice(0, 10)
+    const hour  = new Date().getHours()
+    const label = TRIGGER_HOURS[hour]
+    if (!label) return
 
-    // Only prompt at the start of morning (6am), fitness (12pm), evening (6pm)
-    const triggerHours = [6, 12, 18]
-    if (!triggerHours.includes(hour)) return
+    const port = Number(process.env.PORT) || 3001
+    const today = new Date().toISOString().slice(0, 10)
 
-    const key = `${today}-${hour}`
-    if (lastRemindedDate === key) return
-    lastRemindedDate = key
+    const [routinesRes, completionsRes] = await Promise.all([
+      fetch(`http://localhost:${port}/api/routines`),
+      fetch(`http://localhost:${port}/api/routines/completions?date=${today}`),
+    ])
 
-    // Find a routines widget on the active board
-    const widgets = ctx.boards.find((b: any) => b.id === ctx.activeBoardId)?.widgets ?? []
-    const routineWidget = widgets.find((w: any) => w.type === '@whiteboard/routines')
-    if (!routineWidget) return
+    if (!routinesRes.ok || !completionsRes.ok) return
 
-    const periodLabel = hour === 6 ? 'morning' : hour === 12 ? 'fitness' : 'evening'
-    ctx.speak(`Time for your ${periodLabel} routines.`)
-    await ctx.notify(`${periodLabel.charAt(0).toUpperCase() + periodLabel.slice(1)} Routines`, `Time to start your ${periodLabel} routines.`, { tags: ['muscle'] })
+    const routines:     any[]   = await routinesRes.json()
+    const completedIds: string[] = await completionsRes.json()
+
+    const periodRoutines = routines.filter((r: any) => r.category === label)
+    if (periodRoutines.length === 0) return
+
+    const done  = periodRoutines.filter((r: any) => completedIds.includes(r.id)).length
+    const total = periodRoutines.length
+
+    if (done === total) {
+      ctx.speak(`All ${label} routines done — great work!`)
+    } else {
+      const remaining = total - done
+      const names = periodRoutines
+        .filter((r: any) => !completedIds.includes(r.id))
+        .slice(0, 3)
+        .map((r: any) => r.title)
+        .join(', ')
+      ctx.speak(`${done} of ${total} ${label} routines done. Still to go: ${names}${remaining > 3 ? ' and more' : ''}.`)
+    }
   },
 }

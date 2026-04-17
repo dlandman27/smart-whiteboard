@@ -20,6 +20,8 @@ export interface AgentContext {
   /** Current board state snapshot */
   boards: any[]
   activeBoardId: string
+  /** ID of the user this scheduler is running for */
+  userId: string
 }
 
 // ── Agent definition ──────────────────────────────────────────────────────────
@@ -48,8 +50,9 @@ export interface Agent {
 // ── Run record ────────────────────────────────────────────────────────────────
 
 export interface AgentRun {
-  agentId:   string
-  startedAt: Date
+  agentId:    string
+  startedAt:  Date
   durationMs: number
-  error?:    string
+  output?:    string   // what the agent spoke or did
+  error?:     string
 }

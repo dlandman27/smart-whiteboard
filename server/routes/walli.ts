@@ -1,10 +1,7 @@
 import { Router } from 'express'
 import { broadcast } from '../ws.js'
 import { asyncRoute } from '../middleware/error.js'
-
-// In-memory store of the latest widget push per agent
-// { [widget_id]: WidgetState }
-const _agentWidgets = new Map<string, AgentWidgetState>()
+import db from '../services/db.js'
 
 interface AgentWidgetState {
   widget_id:  string
@@ -21,14 +18,20 @@ interface LayoutDecision {
   reason?:   string
 }
 
+function loadWidgets(): AgentWidgetState[] {
+  return (db.prepare('SELECT widget_id, agent_id AS agent, data, size, updated_at FROM walli_widgets ORDER BY updated_at DESC').all() as any[])
+    .map((r) => ({ ...r, data: JSON.parse(r.data) }))
+}
+
+function saveWidget(state: AgentWidgetState): void {
+  db.prepare(`INSERT OR REPLACE INTO walli_widgets (widget_id, agent_id, data, size, updated_at)
+              VALUES (?, ?, ?, ?, ?)`)
+    .run(state.widget_id, state.agent, JSON.stringify(state.data), state.size, state.updated_at)
+}
+
 export function walliRouter(): Router {
   const router = Router()
 
-  /**
-   * POST /api/walli/widget
-   * Called by walli agents via board_client.push_widget().
-   * Stores the latest state and broadcasts to all connected browser clients.
-   */
   router.post('/walli/widget', asyncRoute(async (req, res) => {
     const { agent, widget_id, data, size, updated_at } = req.body as AgentWidgetState
 
@@ -44,18 +47,12 @@ export function walliRouter(): Router {
       updated_at: updated_at ?? new Date().toISOString(),
     }
 
-    _agentWidgets.set(widget_id, state)
-
+    saveWidget(state)
     broadcast({ type: 'walli_widget_update', ...state })
 
     return res.json({ ok: true, widget_id })
   }))
 
-  /**
-   * POST /api/walli/layout
-   * Called by the Walli orchestrator via board_client.push_layout().
-   * Broadcasts a layout decision (promote, collapse, etc.) to the frontend.
-   */
   router.post('/walli/layout', asyncRoute(async (req, res) => {
     const { widget_id, action, size, reason } = req.body as LayoutDecision
 
@@ -68,13 +65,8 @@ export function walliRouter(): Router {
     return res.json({ ok: true })
   }))
 
-  /**
-   * GET /api/walli/widgets
-   * Returns the current state of all agent-pushed widgets.
-   * Used by the frontend on initial load to hydrate agent widget slots.
-   */
   router.get('/walli/widgets', (_req, res) => {
-    res.json(Array.from(_agentWidgets.values()))
+    res.json(loadWidgets())
   })
 
   return router

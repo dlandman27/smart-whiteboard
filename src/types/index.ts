@@ -25,6 +25,7 @@ export interface WidgetLayout {
   width: number
   height: number
   variantId?: string                    // widget variant id (defaults to 'default')
+  widgetStyle?: import('../store/whiteboard').WidgetStyle  // per-widget style override
   slotId?: string                      // assigned layout slot id, if any
 }
 

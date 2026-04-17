@@ -12,9 +12,12 @@ interface Props {
 // ── Widget Style Picker ───────────────────────────────────────────────────────
 
 const WIDGET_STYLES: { id: WidgetStyle; label: string; description: string }[] = [
-  { id: 'solid',      label: 'Solid',      description: 'Opaque background with shadow' },
-  { id: 'glass',      label: 'Glass',      description: 'Frosted blur with transparency' },
-  { id: 'borderless', label: 'Borderless', description: 'Content only, no frame' },
+  { id: 'solid',       label: 'Solid',       description: 'Opaque background with shadow' },
+  { id: 'glass',       label: 'Glass',       description: 'Frosted blur with transparency' },
+  { id: 'glass-dark',  label: 'Glass Dark',  description: 'Dark frosted glass, white text' },
+  { id: 'glass-light', label: 'Glass Light', description: 'Light frosted glass' },
+  { id: 'borderless',  label: 'Borderless',  description: 'Content only, no frame' },
+  { id: 'none',        label: 'Invisible',   description: 'No container, widget floats raw' },
 ]
 
 function StylePreview({ style }: { style: WidgetStyle }) {
@@ -40,12 +43,36 @@ function StylePreview({ style }: { style: WidgetStyle }) {
     </div>
   )
 
-  // borderless
-  return (
+  if (style === 'glass-dark') return (
+    <div style={{ ...baseStyle, background: 'rgba(0,0,0,0.35)', border: '1.5px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', boxShadow: '0 4px 16px rgba(0,0,0,0.4)' }}>
+      <div style={{ height: 6, borderRadius: 4, background: '#fff', width: '60%', opacity: 0.6 }} />
+      <div style={{ height: 4, borderRadius: 4, background: '#fff', width: '90%', opacity: 0.2 }} />
+      <div style={{ height: 4, borderRadius: 4, background: '#fff', width: '70%', opacity: 0.15 }} />
+    </div>
+  )
+
+  if (style === 'glass-light') return (
+    <div style={{ ...baseStyle, background: 'rgba(255,255,255,0.15)', border: '1.5px solid rgba(255,255,255,0.3)', backdropFilter: 'blur(12px)', boxShadow: '0 4px 16px rgba(0,0,0,0.12)' }}>
+      <div style={{ height: 6, borderRadius: 4, background: 'var(--wt-accent)', width: '60%', opacity: 0.8 }} />
+      <div style={{ height: 4, borderRadius: 4, background: 'var(--wt-text)', width: '90%', opacity: 0.2 }} />
+      <div style={{ height: 4, borderRadius: 4, background: 'var(--wt-text)', width: '70%', opacity: 0.15 }} />
+    </div>
+  )
+
+  if (style === 'borderless') return (
     <div style={{ ...baseStyle, background: 'transparent', border: '1.5px dashed color-mix(in srgb, var(--wt-border) 40%, transparent)' }}>
       <div style={{ height: 6, borderRadius: 4, background: 'var(--wt-accent)', width: '60%', opacity: 0.7 }} />
       <div style={{ height: 4, borderRadius: 4, background: 'var(--wt-text)', width: '90%', opacity: 0.15 }} />
       <div style={{ height: 4, borderRadius: 4, background: 'var(--wt-text)', width: '70%', opacity: 0.1 }} />
+    </div>
+  )
+
+  // none
+  return (
+    <div style={{ ...baseStyle, background: 'transparent', border: 'none' }}>
+      <div style={{ height: 6, borderRadius: 4, background: 'var(--wt-accent)', width: '60%', opacity: 0.5 }} />
+      <div style={{ height: 4, borderRadius: 4, background: 'var(--wt-text)', width: '90%', opacity: 0.1 }} />
+      <div style={{ height: 4, borderRadius: 4, background: 'var(--wt-text)', width: '70%', opacity: 0.07 }} />
     </div>
   )
 }

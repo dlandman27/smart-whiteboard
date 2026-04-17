@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
-import { useWhiteboardStore } from '../store/whiteboard'
+import { useWhiteboardStore, type WidgetStyle } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 
 interface WidgetCtx {
@@ -23,12 +23,26 @@ interface Props {
 const MENU_W = 200
 const MENU_H = 280 // upper-bound for clamping
 
+const STYLE_OPTIONS: { id: WidgetStyle; label: string; preview: string }[] = [
+  { id: 'solid',       label: 'Solid',       preview: 'bg' },
+  { id: 'glass',       label: 'Glass',       preview: 'glass' },
+  { id: 'glass-dark',  label: 'Glass Dark',  preview: 'dark' },
+  { id: 'glass-light', label: 'Glass Light', preview: 'light' },
+  { id: 'borderless',  label: 'Borderless',  preview: 'none' },
+  { id: 'none',        label: 'Invisible',   preview: 'inv' },
+]
+
 export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget, onChangeLayout, onBoardSettings, widgetCtx }: Props) {
-  const { activeBoardId, renameBoard, boards } = useWhiteboardStore()
+  const { activeBoardId, renameBoard, boards, updateWidgetStyle } = useWhiteboardStore()
   const { sendWidgetCommand, fullscreenWidgetId } = useUIStore()
   const activeBoard  = boards.find((b) => b.id === activeBoardId)
   const menuRef      = useRef<HTMLDivElement>(null)
-  const [closing, setClosing] = useState(false)
+  const [closing,      setClosing]      = useState(false)
+  const [styleOpen,    setStyleOpen]    = useState(false)
+
+  const activeWidgetStyle = widgetCtx
+    ? (boards.find(b => b.id === activeBoardId)?.widgets.find(w => w.id === widgetCtx.id)?.widgetStyle)
+    : undefined
   const closingRef   = useRef(false)
   const onCloseRef   = useRef(onClose)
   useEffect(() => { onCloseRef.current = onClose }, [onClose])
@@ -83,6 +97,7 @@ export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget,
     if (!widgetCtx) return
     if (key === 'settings')   { dismiss(() => sendWidgetCommand(widgetCtx.id, 'settings')) }
     if (key === 'fullscreen') { dismiss(() => sendWidgetCommand(widgetCtx.id, 'fullscreen')) }
+    if (key === 'style')      { setStyleOpen(o => !o); return }
     if (key === 'split')      { dismiss(() => sendWidgetCommand(widgetCtx.id, 'split')) }
     if (key === 'delete')     { dismiss(() => sendWidgetCommand(widgetCtx.id, 'delete')) }
   }
@@ -97,6 +112,7 @@ export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget,
     ...(widgetCtx.hasSettings ? [{ icon: 'GearSix',       label: 'Widget settings',                               key: 'settings',   danger: false }] : []),
     { icon: isWidgetFullscreen ? 'ArrowsInSimple' : 'ArrowsOutSimple',
                                                           label: isWidgetFullscreen ? 'Exit fullscreen' : 'Fullscreen', key: 'fullscreen', danger: false },
+    { icon: 'PaintBrush',   label: 'Widget style',  key: 'style',    danger: false },
     { icon: 'SquareSplitHorizontal', label: 'Split widget', key: 'split', danger: false },
     { icon: 'Trash',        label: 'Delete widget', key: 'delete',   danger: true  },
   ] : []
@@ -121,8 +137,30 @@ export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget,
         {widgetCtx && widgetItems.length > 0 && (
           <>
             {widgetItems.map(({ icon, label, key, danger }) => (
-              <MenuItem key={key} icon={icon} label={label} danger={danger} onClick={() => handleWidgetItem(key)} />
+              <MenuItem key={key} icon={icon} label={label} danger={danger}
+                active={key === 'style' && styleOpen}
+                onClick={() => handleWidgetItem(key)} />
             ))}
+            {styleOpen && widgetCtx && (
+              <div style={{ padding: '4px 8px 6px', display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                {STYLE_OPTIONS.map(opt => (
+                  <button
+                    key={opt.id}
+                    onClick={() => { updateWidgetStyle(widgetCtx.id, opt.id === activeWidgetStyle ? undefined : opt.id) }}
+                    title={opt.label}
+                    style={{
+                      padding: '4px 8px', borderRadius: 8, fontSize: 11, fontWeight: 500,
+                      border: `1.5px solid ${activeWidgetStyle === opt.id ? 'var(--wt-accent)' : 'var(--wt-border)'}`,
+                      background: activeWidgetStyle === opt.id ? 'var(--wt-accent)' : 'transparent',
+                      color: activeWidgetStyle === opt.id ? 'var(--wt-accent-text)' : 'var(--wt-text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div style={{ height: 1, background: 'var(--wt-settings-border)', margin: '4px 8px' }} />
           </>
         )}
@@ -135,14 +173,14 @@ export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget,
   )
 }
 
-function MenuItem({ icon, label, danger, onClick }: { icon: string; label: string; danger?: boolean; onClick: () => void }) {
+function MenuItem({ icon, label, danger, active, onClick }: { icon: string; label: string; danger?: boolean; active?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors"
-      style={{ background: 'transparent', color: danger ? 'var(--wt-danger)' : 'var(--wt-text)' }}
+      style={{ background: active ? 'var(--wt-surface-hover)' : 'transparent', color: danger ? 'var(--wt-danger)' : 'var(--wt-text)' }}
       onPointerEnter={(e) => (e.currentTarget.style.background = 'var(--wt-surface-hover)')}
-      onPointerLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+      onPointerLeave={(e) => (e.currentTarget.style.background = active ? 'var(--wt-surface-hover)' : 'transparent')}
     >
       <Icon icon={icon} size={16} style={{ opacity: 0.7, flexShrink: 0 }} />
       <span className="text-sm font-medium">{label}</span>

@@ -2,6 +2,7 @@ import { EventEmitter } from 'events'
 import type { Agent, AgentContext, AgentRun } from './types.js'
 import type { AgentTrigger } from './dynamic-runner.js'
 import { getAgentState, setAgentState } from '../services/agent-state.js'
+import db from '../services/db.js'
 import { log, error as logError } from '../lib/logger.js'
 
 // ── Shared internal event bus ──────────────────────────────────────────────────
@@ -242,14 +243,19 @@ export class AgentScheduler {
 
     this.ctx.broadcast({ type: 'pet_wake', agentId: agent.id })
 
-    const gcal = this.gcalFactory ? await this.gcalFactory() : this.ctx.gcal
+    const gcalResult = this.gcalFactory ? await this.gcalFactory() : { client: this.ctx.gcal, userId: this.ctx.userId }
+    const gcal       = (gcalResult as any)?.client ?? gcalResult
+    const userId     = (gcalResult as any)?.userId ?? this.ctx.userId
 
+    const spokenLines: string[] = []
     const originalSpeak = this.ctx.speak.bind(this.ctx)
     const patchedCtx: typeof this.ctx = {
       ...this.ctx,
       gcal,
+      userId,
       speak: (text: string) => {
         originalSpeak(text)
+        spokenLines.push(text)
         this.ctx.broadcast({ type: 'pet_message', agentId: agent.id, text })
       },
     }
@@ -264,12 +270,25 @@ export class AgentScheduler {
 
     this.ctx.broadcast({ type: 'pet_idle', agentId: agent.id })
 
-    const run: AgentRun = { agentId: agent.id, startedAt: new Date(start), durationMs: Date.now() - start, error }
+    const durationMs = Date.now() - start
+    const output     = spokenLines.length ? spokenLines.join(' | ') : undefined
+    const run: AgentRun = { agentId: agent.id, startedAt: new Date(start), durationMs, output, error }
+
+    // Persist to DB (keep last 20 per agent)
+    try {
+      db.prepare(`INSERT INTO agent_runs (agent_id, started_at, duration_ms, output, error)
+                  VALUES (?, ?, ?, ?, ?)`)
+        .run(agent.id, new Date(start).toISOString(), durationMs, output ?? null, error ?? null)
+      db.prepare(`DELETE FROM agent_runs WHERE agent_id = ? AND id NOT IN (
+                    SELECT id FROM agent_runs WHERE agent_id = ? ORDER BY id DESC LIMIT 20
+                  )`).run(agent.id, agent.id)
+    } catch { /* non-fatal */ }
+
     const hist = this.history.get(agent.id) ?? []
     hist.unshift(run)
     if (hist.length > 10) hist.pop()
     this.history.set(agent.id, hist)
-    log(`[Agent:${agent.name}] Done in ${run.durationMs}ms${error ? ' (error)' : ''}`)
+    log(`[Agent:${agent.name}] Done in ${durationMs}ms${error ? ' (error)' : ''}`)
   }
 }
 

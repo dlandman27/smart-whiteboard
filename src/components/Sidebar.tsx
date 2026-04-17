@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
-import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID, DEFAULT_FEEDBACK_ID, DEFAULT_AGENTS_ID } from '../store/whiteboard'
+import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID, DEFAULT_FEEDBACK_ID, DEFAULT_AGENTS_ID, DEFAULT_ROUTINES_ID } from '../store/whiteboard'
 import { Logo } from './Logo'
 import { TemplatePicker } from './TemplatePicker'
 
@@ -30,6 +30,7 @@ export function Sidebar() {
   const todoBoard       = boards.find((b) => b.boardType === 'todo')
   const feedbackBoard   = boards.find((b) => b.boardType === 'feedback')
   const agentsBoard     = boards.find((b) => b.boardType === 'agents')
+  const routinesBoard   = boards.find((b) => b.boardType === 'routines')
 
   const settingsId   = settingsBoard?.id   ?? DEFAULT_SETTINGS_ID
   const connectorsId = connectorsBoard?.id ?? DEFAULT_CONNECTORS_ID
@@ -38,6 +39,7 @@ export function Sidebar() {
   const todoId       = todoBoard?.id       ?? DEFAULT_TODO_ID
   const feedbackId   = feedbackBoard?.id   ?? DEFAULT_FEEDBACK_ID
   const agentsId     = agentsBoard?.id     ?? DEFAULT_AGENTS_ID
+  const routinesId   = routinesBoard?.id   ?? DEFAULT_ROUTINES_ID
 
   const isSettingsActive   = activeBoardId === settingsId
   const isConnectorsActive = activeBoardId === connectorsId
@@ -46,6 +48,7 @@ export function Sidebar() {
   const isTodoActive       = activeBoardId === todoId
   const isFeedbackActive   = activeBoardId === feedbackId
   const isAgentsActive     = activeBoardId === agentsId
+  const isRoutinesActive   = activeBoardId === routinesId
 
   // Only user-created boards
   const visibleBoards = boards.filter((b) => !b.boardType)
@@ -100,6 +103,13 @@ export function Sidebar() {
           collapsed={collapsed}
           active={isCalendarActive}
           onClick={() => calendarId && setActiveBoard(calendarId)}
+        />
+        <NavBtn
+          icon="Repeat"
+          label="Routines"
+          collapsed={collapsed}
+          active={isRoutinesActive}
+          onClick={() => setActiveBoard(routinesId)}
         />
         <NavBtn
           icon="CheckSquare"

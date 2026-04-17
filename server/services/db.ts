@@ -50,6 +50,40 @@ db.exec(`
     updated_at TEXT NOT NULL,
     PRIMARY KEY (agent_id, key)
   );
+
+  CREATE TABLE IF NOT EXISTS agent_runs (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    agent_id   TEXT    NOT NULL,
+    started_at TEXT    NOT NULL,
+    duration_ms INTEGER NOT NULL,
+    output     TEXT,
+    error      TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS walli_widgets (
+    widget_id  TEXT PRIMARY KEY,
+    agent_id   TEXT NOT NULL,
+    data       TEXT NOT NULL DEFAULT '{}',
+    size       TEXT NOT NULL DEFAULT 'medium',
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS routines (
+    id         TEXT    PRIMARY KEY,
+    title      TEXT    NOT NULL,
+    category   TEXT    NOT NULL DEFAULT 'daily',
+    emoji      TEXT    NOT NULL DEFAULT '✅',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    enabled    INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT    NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS routine_completions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    routine_id TEXT    NOT NULL REFERENCES routines(id) ON DELETE CASCADE,
+    date       TEXT    NOT NULL,
+    UNIQUE(routine_id, date)
+  );
 `)
 
 // Add triggers column to existing installs that predate it
