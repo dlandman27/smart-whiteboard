@@ -14,7 +14,7 @@ export interface Board {
   id: string
   name: string
   layoutId: string
-  boardType?: 'calendar' | 'settings' | 'connectors' | 'today' | 'todo' | 'feedback'
+  boardType?: 'calendar' | 'settings' | 'connectors' | 'today' | 'todo' | 'feedback' | 'agents'
   calendarId?: string
   widgets: WidgetLayout[]
   slotGap?: number
@@ -66,6 +66,7 @@ export const DEFAULT_CONNECTORS_ID = '00000000-0000-4000-8000-000000000004'
 export const DEFAULT_TODAY_ID      = '00000000-0000-4000-8000-000000000005'
 export const DEFAULT_TODO_ID       = '00000000-0000-4000-8000-000000000006'
 export const DEFAULT_FEEDBACK_ID   = '00000000-0000-4000-8000-000000000007'
+export const DEFAULT_AGENTS_ID     = '00000000-0000-4000-8000-000000000008'
 
 function ensureCalendarBoard(boards: Board[]): Board[] {
   if (boards.some((b) => b.boardType === 'calendar')) return boards
@@ -88,6 +89,9 @@ export function ensureSystemBoards(boards: Board[]): Board[] {
   }
   if (!result.some((b) => b.boardType === 'feedback')) {
     result = [...result, { id: DEFAULT_FEEDBACK_ID, name: 'Feedback', layoutId: DEFAULT_LAYOUT_ID, boardType: 'feedback', widgets: [] }]
+  }
+  if (!result.some((b) => b.boardType === 'agents')) {
+    result = [...result, { id: DEFAULT_AGENTS_ID, name: 'Agents', layoutId: DEFAULT_LAYOUT_ID, boardType: 'agents', widgets: [] }]
   }
   return result
 }

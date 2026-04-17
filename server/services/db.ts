@@ -41,6 +41,14 @@ db.exec(`
     sprite_type TEXT,
     created_at  TEXT    NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS agent_state (
+    agent_id   TEXT NOT NULL,
+    key        TEXT NOT NULL,
+    value      TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (agent_id, key)
+  );
 `)
 
 migrateFromJson()

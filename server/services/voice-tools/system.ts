@@ -1,5 +1,6 @@
 import { loadMemory, saveMemory } from '../memory.js'
 import { compileBriefing } from '../briefing.js'
+import { getAgentState, setAgentState, getAllAgentState } from '../agent-state.js'
 import type { VoiceTool } from './_types.js'
 
 export const systemTools: VoiceTool[] = [
@@ -105,6 +106,61 @@ export const systemTools: VoiceTool[] = [
     },
     execute: async (_input, { notion }) => {
       return await compileBriefing(notion)
+    },
+  },
+
+  {
+    definition: {
+      name:        'get_agent_state',
+      description: 'Read a value you saved in a previous run. Use this at the start of each agent run to check what happened last time — e.g. which items you already alerted about, the last count you saw, or the last time you notified the user.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          key: { type: 'string', description: 'The state key to read. Use descriptive names like "alerted_ids", "last_task_count", "last_notified_at".' },
+        },
+        required: ['key'],
+      },
+    },
+    execute: async (input, ctx) => {
+      const agentId = (ctx as any).agentId as string | undefined
+      if (!agentId) return 'error: no agentId in context'
+      const value = getAgentState(agentId, input.key as string)
+      return value ?? 'null'
+    },
+  },
+
+  {
+    definition: {
+      name:        'set_agent_state',
+      description: 'Persist a value so you can read it back next run. Call this after acting so you can avoid repeating yourself. Values are stored as strings — JSON-encode arrays or objects.',
+      input_schema: {
+        type: 'object' as const,
+        properties: {
+          key:   { type: 'string', description: 'State key to write.' },
+          value: { type: 'string', description: 'Value to store. JSON-encode complex types.' },
+        },
+        required: ['key', 'value'],
+      },
+    },
+    execute: async (input, ctx) => {
+      const agentId = (ctx as any).agentId as string | undefined
+      if (!agentId) return 'error: no agentId in context'
+      setAgentState(agentId, input.key as string, input.value as string)
+      return 'saved'
+    },
+  },
+
+  {
+    definition: {
+      name:        'get_all_agent_state',
+      description: 'Read all persisted state for this agent at once. Useful at the start of a run to get the full picture of what you remember.',
+      input_schema: { type: 'object' as const, properties: {} },
+    },
+    execute: async (_input, ctx) => {
+      const agentId = (ctx as any).agentId as string | undefined
+      if (!agentId) return 'error: no agentId in context'
+      const state = getAllAgentState(agentId)
+      return Object.keys(state).length ? JSON.stringify(state) : 'no state saved yet'
     },
   },
 ]

@@ -24,7 +24,7 @@ export function agentsRouter(agentScheduler: AgentScheduler): Router {
     res.json({ ok: true })
   })
 
-  router.post('/agents', (req, res) => {
+  router.post('/agents', asyncRoute(async (req, res) => {
     const { name, description, intervalMs, icon, spriteType } = req.body as Partial<UserAgentDef>
     if (!name || !description) throw new AppError(400, 'name and description are required')
     const id  = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
@@ -39,16 +39,16 @@ export function agentsRouter(agentScheduler: AgentScheduler): Router {
     })
     agentScheduler.register(buildDynamicAgent(def))
     res.json(def)
-  })
+  }))
 
-  router.delete('/agents/:id', (req, res) => {
+  router.delete('/agents/:id', asyncRoute(async (req, res) => {
     try {
       removeUserAgent(req.params.id)
       res.json({ ok: true })
     } catch (err: any) {
       throw new AppError(404, err.message)
     }
-  })
+  }))
 
   return router
 }

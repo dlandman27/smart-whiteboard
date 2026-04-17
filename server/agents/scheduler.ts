@@ -59,7 +59,7 @@ export class AgentScheduler {
 
   // ── Status ────────────────────────────────────────────────────────────────────
 
-  status(): Array<{ id: string; name: string; description: string; icon: string; spriteType?: string; enabled: boolean; lastRun: string | null; nextRun: string | null }> {
+  status(): Array<{ id: string; name: string; description: string; icon: string; spriteType?: string; enabled: boolean; intervalMs: number; lastRun: string | null; nextRun: string | null }> {
     return [...this.agents.values()].map((a) => {
       const last = this.lastRun.get(a.id) ?? null
       const next = last ? new Date(last + a.intervalMs).toISOString() : 'soon'
@@ -70,6 +70,7 @@ export class AgentScheduler {
         icon:        a.icon ?? '🤖',
         spriteType:  a.spriteType,
         enabled:     a.enabled,
+        intervalMs:  a.intervalMs,
         lastRun:     last ? new Date(last).toISOString() : null,
         nextRun:     a.enabled ? next : null,
       }

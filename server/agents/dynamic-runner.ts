@@ -1,4 +1,8 @@
+import type Anthropic from '@anthropic-ai/sdk'
 import db from '../services/db.js'
+import { memoryToPrompt, loadMemory } from '../services/memory.js'
+import { getBoardSnapshot } from '../services/board-utils.js'
+import { VOICE_TOOLS, executeVoiceTool } from '../services/voice-tools/registry.js'
 import type { Agent, AgentContext } from './types.js'
 
 // ── User-defined agent definition ──────────────────────────────────────────────
@@ -81,52 +85,64 @@ export function buildDynamicAgent(def: UserAgentDef): Agent {
     enabled:     def.enabled,
 
     async run(ctx: AgentContext) {
-      const boardSummary = summarizeBoards(ctx)
+      const toolCtx = { notion: ctx.notion, gcal: ctx.gcal, userId: 'local', agentId: def.id }
 
-      const response = await ctx.anthropic.messages.create({
-        model:      'claude-haiku-4-5-20251001',
-        max_tokens: 400,
-        system: `You are Walli, an AI assistant running inside a smart whiteboard. You are executing a user-defined agent.
+      const messages: Anthropic.MessageParam[] = [{
+        role:    'user',
+        content: `It is ${new Date().toLocaleString()}. Run your agent logic now.`,
+      }]
 
-The user described this agent as:
-"${def.description}"
+      for (let turn = 0; turn < 8; turn++) {
+        const response = await ctx.anthropic.messages.create({
+          model:      'claude-haiku-4-5-20251001',
+          max_tokens: 1024,
+          system: [
+            `You are Walli, a background agent running inside a smart whiteboard.${memoryToPrompt(loadMemory())}${getBoardSnapshot()}`,
+            `The user configured you with this description: "${def.description}"`,
+            'ALWAYS start by calling get_all_agent_state to see what you remember from previous runs.',
+            'Use your tools to fetch real data and act on it. Only speak or notify if there is genuinely something worth reporting — do not make things up.',
+            'After acting, call set_agent_state to save what you did (e.g. which IDs you already alerted, last count seen, last notified time) so you never repeat yourself unnecessarily.',
+            'If there is nothing to do this run, respond with the single word: skip',
+            'Keep spoken responses to 1-2 short sentences. Never use markdown.',
+            `Today is ${new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}.`,
+          ].join(' '),
+          tools:    VOICE_TOOLS,
+          messages,
+        })
 
-Your job is to decide what to do RIGHT NOW based on this description and the current board state.
-Respond with a JSON object with these optional fields:
-{
-  "speak": "text to say aloud on the board (null if nothing to say)",
-  "notify": { "title": "...", "body": "...", "priority": "default|high|urgent" } or null,
-  "broadcast": { "type": "...", ...any fields } or null,
-  "skip": true  // set to true if the agent determines there's nothing to do this run
-}
-Be concise. Only act if there is genuinely something to report or do.`,
-        messages: [{
-          role:    'user',
-          content: `Current board state:\n${boardSummary}\n\nCurrent time: ${new Date().toLocaleString()}`,
-        }],
-      })
+        if (response.stop_reason === 'end_turn') {
+          const text = (response.content.find((b) => b.type === 'text') as Anthropic.TextBlock | undefined)?.text?.trim() ?? ''
+          if (text && text.toLowerCase() !== 'skip') ctx.speak(text)
+          break
+        }
 
-      let action: any
-      try {
-        const text = ((response.content[0] as any).text ?? '').trim()
-        // Extract JSON from the response
-        const match = text.match(/\{[\s\S]*\}/)
-        if (!match) return
-        action = JSON.parse(match[0])
-      } catch {
-        return
-      }
+        if (response.stop_reason === 'tool_use') {
+          const toolResults: Anthropic.ToolResultBlockParam[] = []
+          for (const block of response.content) {
+            if (block.type !== 'tool_use') continue
+            const input = block.input as Record<string, any>
 
-      if (action.skip) return
+            // Intercept speak/notify so they go through AgentContext instead of a tool response
+            if (block.name === 'speak' || block.name === 'tts') {
+              ctx.speak(input.text ?? '')
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: 'spoken' })
+              continue
+            }
+            if (block.name === 'send_notification') {
+              await ctx.notify(input.title ?? def.name, input.body ?? '', {
+                priority: input.priority ?? 'default',
+                tags:     [def.id],
+              })
+              toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: 'sent' })
+              continue
+            }
 
-      if (action.speak)     ctx.speak(action.speak)
-      if (action.broadcast) ctx.broadcast(action.broadcast)
-      if (action.notify) {
-        await ctx.notify(
-          action.notify.title ?? def.name,
-          action.notify.body  ?? '',
-          { priority: action.notify.priority ?? 'default', tags: [def.id] },
-        )
+            const result = await executeVoiceTool(block.name, input, toolCtx)
+            toolResults.push({ type: 'tool_result', tool_use_id: block.id, content: result })
+          }
+          messages.push({ role: 'assistant', content: response.content })
+          messages.push({ role: 'user',      content: toolResults })
+        }
       }
     },
   }
@@ -138,13 +154,3 @@ export function loadDynamicAgents(): Agent[] {
   return readUserAgents().map(buildDynamicAgent)
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
-function summarizeBoards(ctx: AgentContext): string {
-  const board = ctx.boards.find((b: any) => b.id === ctx.activeBoardId)
-  if (!board) return 'No active board.'
-  const widgets = (board.widgets ?? []).map((w: any) =>
-    `- ${w.type} (id: ${w.id})${w.settings?.label ? ` "${w.settings.label}"` : ''}`
-  ).join('\n')
-  return `Active board: "${board.name}"\nWidgets:\n${widgets || '(none)'}`
-}
