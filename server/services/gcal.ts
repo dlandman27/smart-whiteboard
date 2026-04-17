@@ -18,6 +18,7 @@ export async function getGCalClient(userId: string) {
   client.setCredentials({
     access_token:  tokens.access_token,
     refresh_token: tokens.refresh_token,
+    expiry_date:   tokens.expires_at ? new Date(tokens.expires_at).getTime() : undefined,
   })
   client.on('tokens', (newTokens: any) => {
     saveOAuthTokens(userId, 'gcal', {

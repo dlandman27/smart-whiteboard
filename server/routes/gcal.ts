@@ -103,11 +103,17 @@ export function gcalRouter(): Router {
 
   router.get('/gcal/events', asyncRoute(async (req, res) => {
     const client = await getGCalClient(req.userId!)
-    if (!client) throw new AppError(401, 'Not authenticated')
+    if (!client) throw new AppError(401, 'Google Calendar not connected')
     const cal = google.calendar({ version: 'v3', auth: client as any })
     const { timeMin, timeMax, calendarId = 'primary' } = req.query as Record<string, string>
-    const response = await cal.events.list({ calendarId, timeMin, timeMax, singleEvents: true, orderBy: 'startTime', maxResults: 250 })
-    res.json(response.data)
+    try {
+      const response = await cal.events.list({ calendarId, timeMin, timeMax, singleEvents: true, orderBy: 'startTime', maxResults: 250 })
+      res.json(response.data)
+    } catch (err: any) {
+      const status = err?.response?.status ?? err?.code ?? 500
+      const message = err?.response?.data?.error?.message ?? err?.message ?? 'Google Calendar error'
+      throw new AppError(status === 401 || status === 403 ? status : 502, message)
+    }
   }))
 
   router.post('/gcal/events', asyncRoute(async (req, res) => {
