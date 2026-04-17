@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { analytics } from '../lib/analytics'
 
 export interface ChatMessage {
   id:   string
@@ -27,6 +28,9 @@ export const useChatStore = create<ChatStore>((set) => ({
       ],
     })),
 
-  toggle: () => set((s) => ({ isOpen: !s.isOpen })),
+  toggle: () => set((s) => {
+    if (!s.isOpen) analytics.track('walli_chat_opened')
+    return { isOpen: !s.isOpen }
+  }),
   close:  () => set({ isOpen: false }),
 }))

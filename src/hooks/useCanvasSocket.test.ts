@@ -1,0 +1,242 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { renderHook } from '@testing-library/react'
+
+// ── Mock all stores ────────────────────────────────────────────────────────────
+
+vi.mock('../store/whiteboard', () => ({
+  useWhiteboardStore: {
+    getState: vi.fn(() => ({
+      boards: [{ id: 'board-1', name: 'Main', widgets: [] }],
+      activeBoardId: 'board-1',
+      addWidget:       vi.fn(),
+      updateLayout:    vi.fn(),
+      updateSettings:  vi.fn(),
+      removeWidget:    vi.fn(),
+      clearWidgets:    vi.fn(),
+      addBoard:        vi.fn(),
+      renameBoard:     vi.fn(),
+      removeBoard:     vi.fn(),
+      setActiveBoard:  vi.fn(),
+      setCustomLayout: vi.fn(),
+    })),
+    subscribe: vi.fn(() => () => {}),
+  },
+}))
+
+vi.mock('../store/ui', () => ({
+  useUIStore: {
+    getState: vi.fn(() => ({
+      setFocusedWidget:   vi.fn(),
+      flashWidget:        vi.fn(),
+      setScreensaverMode: vi.fn(),
+    })),
+  },
+}))
+
+vi.mock('../store/theme', () => ({
+  useThemeStore: {
+    getState: vi.fn(() => ({
+      setTheme:       vi.fn(),
+      setCustomTheme: vi.fn(),
+    })),
+  },
+}))
+
+vi.mock('../store/briefing', () => ({
+  useBriefingStore: {
+    getState: vi.fn(() => ({ trigger: vi.fn() })),
+  },
+}))
+
+vi.mock('../store/notifications', () => ({
+  useNotificationStore: {
+    getState: vi.fn(() => ({ addNotification: vi.fn() })),
+  },
+}))
+
+vi.mock('../store/pets', () => ({
+  usePetsStore: {
+    getState: vi.fn(() => ({ setPet: vi.fn(), pets: {} })),
+  },
+}))
+
+vi.mock('../store/walliAgents', () => ({
+  useWalliAgentsStore: {
+    getState: vi.fn(() => ({ setWidget: vi.fn() })),
+  },
+}))
+
+vi.mock('../lib/sounds', () => ({
+  soundWidgetAdded:   vi.fn(),
+  soundWidgetRemoved: vi.fn(),
+}))
+
+vi.mock('../App', () => ({
+  queryClient: { invalidateQueries: vi.fn() },
+}))
+
+// supabase is globally mocked in setup.ts
+import { supabase } from '../lib/supabase'
+
+// ── Mock WebSocket ─────────────────────────────────────────────────────────────
+
+class MockWebSocket {
+  static OPEN = 1
+  readyState = MockWebSocket.OPEN
+  onopen:    ((e: any) => void) | null = null
+  onmessage: ((e: any) => void) | null = null
+  onclose:   ((e: any) => void) | null = null
+  onerror:   ((e: any) => void) | null = null
+  sent: string[] = []
+
+  constructor(public url: string) {
+    MockWebSocket.instances.push(this)
+  }
+
+  send(data: string) { this.sent.push(data) }
+  close() { this.onclose?.({ code: 1000 }) }
+
+  static instances: MockWebSocket[] = []
+  static reset() { MockWebSocket.instances = [] }
+}
+
+vi.stubGlobal('WebSocket', MockWebSocket)
+
+import { useCanvasSocket } from './useCanvasSocket'
+
+describe('useCanvasSocket', () => {
+  beforeEach(() => {
+    MockWebSocket.reset()
+    vi.clearAllMocks()
+    // Default: authenticated session
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: { access_token: 'test-token' } as any },
+    } as any)
+  })
+
+  afterEach(() => {
+    vi.clearAllTimers()
+  })
+
+  it('does not create WebSocket when session is null', async () => {
+    vi.mocked(supabase.auth.getSession).mockResolvedValue({
+      data: { session: null },
+    } as any)
+
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    expect(MockWebSocket.instances).toHaveLength(0)
+  })
+
+  it('creates a WebSocket with the token in the URL', async () => {
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    expect(MockWebSocket.instances).toHaveLength(1)
+    expect(MockWebSocket.instances[0].url).toContain('test-token')
+  })
+
+  it('sends state_update on open', async () => {
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    const ws = MockWebSocket.instances[0]
+    ws.onopen?.(null)
+    expect(ws.sent.length).toBeGreaterThan(0)
+    const msg = JSON.parse(ws.sent[0])
+    expect(msg.type).toBe('state_update')
+  })
+
+  it('handles create_widget message', async () => {
+    const { useWhiteboardStore } = await import('../store/whiteboard')
+    const { soundWidgetAdded } = await import('../lib/sounds')
+
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    const ws = MockWebSocket.instances[0]
+
+    ws.onmessage?.({ data: JSON.stringify({ type: 'create_widget', id: 'w-1', widgetType: 'clock', x: 100, y: 100, width: 300, height: 200 }) })
+
+    expect(soundWidgetAdded).toHaveBeenCalled()
+    expect(useWhiteboardStore.getState().addWidget).toHaveBeenCalled()
+  })
+
+  it('handles delete_widget message', async () => {
+    const { useWhiteboardStore } = await import('../store/whiteboard')
+    const { soundWidgetRemoved } = await import('../lib/sounds')
+
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    const ws = MockWebSocket.instances[0]
+
+    ws.onmessage?.({ data: JSON.stringify({ type: 'delete_widget', id: 'w-1' }) })
+
+    expect(soundWidgetRemoved).toHaveBeenCalled()
+    expect(useWhiteboardStore.getState().removeWidget).toHaveBeenCalledWith('w-1')
+  })
+
+  it('handles set_theme message', async () => {
+    const { useThemeStore } = await import('../store/theme')
+
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    const ws = MockWebSocket.instances[0]
+
+    ws.onmessage?.({ data: JSON.stringify({ type: 'set_theme', themeId: 'dark' }) })
+
+    expect(useThemeStore.getState().setTheme).toHaveBeenCalledWith('dark')
+  })
+
+  it('handles speak_briefing message', async () => {
+    const { useBriefingStore } = await import('../store/briefing')
+
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    const ws = MockWebSocket.instances[0]
+
+    ws.onmessage?.({ data: JSON.stringify({ type: 'speak_briefing', text: 'Good morning!', id: 'speak-1' }) })
+
+    expect(useBriefingStore.getState().trigger).toHaveBeenCalledWith('Good morning!')
+  })
+
+  it('ignores malformed JSON messages', async () => {
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    const ws = MockWebSocket.instances[0]
+
+    expect(() => ws.onmessage?.({ data: 'not-json' })).not.toThrow()
+  })
+
+  it('closes WebSocket on unmount', async () => {
+    const { unmount } = renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    const ws = MockWebSocket.instances[0]
+    const closeSpy = vi.spyOn(ws, 'close')
+    unmount()
+    expect(closeSpy).toHaveBeenCalled()
+  })
+
+  it('handles timer_alert message', async () => {
+    const { useNotificationStore } = await import('../store/notifications')
+
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    const ws = MockWebSocket.instances[0]
+
+    ws.onmessage?.({ data: JSON.stringify({ type: 'timer_alert', label: 'Pizza Timer' }) })
+
+    expect(useNotificationStore.getState().addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ body: 'Timer done' })
+    )
+  })
+
+  it('handles set_screensaver message', async () => {
+    const { useUIStore } = await import('../store/ui')
+
+    renderHook(() => useCanvasSocket())
+    await new Promise((r) => setTimeout(r, 10))
+    const ws = MockWebSocket.instances[0]
+
+    ws.onmessage?.({ data: JSON.stringify({ type: 'set_screensaver', active: true }) })
+
+    expect(useUIStore.getState().setScreensaverMode).toHaveBeenCalledWith(true)
+  })
+})

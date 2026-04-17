@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { WidgetLayout, LayoutSlot } from '../types'
+import { analytics } from '../lib/analytics'
 import type { Background } from '../constants/backgrounds'
 import type { BoardSchedule } from '../constants/schedulePresets'
 import { DEFAULT_SCHEDULE } from '../constants/schedulePresets'
@@ -94,7 +95,7 @@ export function ensureSystemBoards(boards: Board[]): Board[] {
 const defaultBoards = ensureSystemBoards([{ id: DEFAULT_ID, name: 'Main', layoutId: DEFAULT_LAYOUT_ID, widgets: [] }])
 
 export const useWhiteboardStore = create<WhiteboardStore>()(
-  (set) => ({
+  (set, get) => ({
     boards: defaultBoards,
     activeBoardId: DEFAULT_ID,
     userId: null,
@@ -126,6 +127,7 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
     addBoard: (name, presetId) => {
       const id = presetId ?? crypto.randomUUID()
       markBoardCreated(id)
+      analytics.track('board_created', { boardId: id, name })
       set((s) => ({
         boards:        [...s.boards, { id, name, layoutId: DEFAULT_LAYOUT_ID, widgets: [] }],
         activeBoardId: id,
@@ -140,7 +142,9 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
       }))
     },
 
-    removeBoard: (id) =>
+    removeBoard: (id) => {
+      const board = get().boards.find((b) => b.id === id)
+      analytics.track('board_deleted', { boardId: id, name: board?.name })
       set((s) => {
         if (s.boards.length <= 1) return s
         const remaining  = s.boards.filter((b) => b.id !== id)
@@ -149,7 +153,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           ? (remaining[Math.min(idx, remaining.length - 1)]?.id ?? remaining[0].id)
           : s.activeBoardId
         return { boards: remaining, activeBoardId: nextActive }
-      }),
+      })
+    },
 
     setActiveBoard: (id) => set({ activeBoardId: id }),
 
@@ -158,7 +163,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         boards: s.boards.map((b) => b.id === id ? { ...b, name } : b),
       })),
 
-    setLayout: (boardId, layoutId, widgetUpdates) =>
+    setLayout: (boardId, layoutId, widgetUpdates) => {
+      analytics.track('layout_changed', { boardId, layoutId })
       set((s) => ({
         boards: s.boards.map((b) => {
           if (b.id !== boardId) return b
@@ -171,7 +177,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
             : b.widgets
           return { ...b, layoutId, widgets }
         }),
-      })),
+      }))
+    },
 
     setCustomLayout: (boardId, slots) =>
       set((s) => ({
@@ -180,7 +187,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         ),
       })),
 
-    addWidget: (widget) =>
+    addWidget: (widget) => {
+      analytics.track('widget_added', { type: widget.type, variantId: widget.variantId, boardId: get().activeBoardId })
       set((s) => ({
         boards: s.boards.map((b) => {
           if (b.id !== s.activeBoardId) return b
@@ -188,7 +196,8 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           if (b.widgets.some((w) => w.id === id)) return b  // dedup
           return { ...b, widgets: [...b.widgets, { ...widget, id }] }
         }),
-      })),
+      }))
+    },
 
     updateLayout: (id, updates) =>
       set((s) => ({
@@ -208,14 +217,18 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         ),
       })),
 
-    removeWidget: (id) =>
+    removeWidget: (id) => {
+      const { boards, activeBoardId } = get()
+      const widget = boards.find((b) => b.id === activeBoardId)?.widgets.find((w) => w.id === id)
+      analytics.track('widget_removed', { type: widget?.type, variantId: widget?.variantId, boardId: activeBoardId })
       set((s) => ({
         boards: s.boards.map((b) =>
           b.id === s.activeBoardId
             ? { ...b, widgets: b.widgets.filter((w) => w.id !== id) }
             : b
         ),
-      })),
+      }))
+    },
 
     clearWidgets: () =>
       set((s) => ({
@@ -292,7 +305,11 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
 
     setSchedule: (schedule) => set({ schedule }),
 
-    setActiveBoardManual: (id) => set({ activeBoardId: id, lastManualSwitch: Date.now() }),
+    setActiveBoardManual: (id) => {
+      const board = get().boards.find((b) => b.id === id)
+      analytics.track('board_switched', { boardId: id, name: board?.name, boardType: board?.boardType ?? 'user' })
+      set({ activeBoardId: id, lastManualSwitch: Date.now() })
+    },
   })
 )
 

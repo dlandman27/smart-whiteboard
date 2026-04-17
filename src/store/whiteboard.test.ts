@@ -3,10 +3,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // Mock db.ts so init doesn't actually call Supabase
 vi.mock('../lib/db', () => ({
   loadBoards: vi.fn().mockResolvedValue([]),
+  loadSchedule: vi.fn().mockResolvedValue(null),
 }))
 
 import { useWhiteboardStore, DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID } from './whiteboard'
-import { loadBoards } from '../lib/db'
+import { loadBoards, loadSchedule } from '../lib/db'
 
 const mockLoadBoards = loadBoards as ReturnType<typeof vi.fn>
 

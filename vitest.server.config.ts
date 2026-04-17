@@ -7,5 +7,13 @@ export default defineConfig({
     globals: true,
     include: ['server/**/*.test.ts'],
     setupFiles: ['server/test/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json-summary'],
+      reportsDirectory: './coverage-server',
+      all: true,
+      include: ['server/**/*.ts'],
+      exclude: ['server/**/*.test.ts', 'server/test/**', 'server/index.ts'],
+    },
   },
 })

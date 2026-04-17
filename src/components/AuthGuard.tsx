@@ -8,6 +8,7 @@ import { startThemeSync, stopThemeSync } from '../lib/syncTheme'
 import { startRealtimeSync, stopRealtimeSync } from '../lib/realtimeSync'
 import { LoginScreen } from './LoginScreen'
 import { TemplatePicker } from './TemplatePicker'
+import { analytics } from '../lib/analytics'
 
 interface Props {
   children: React.ReactNode
@@ -99,6 +100,7 @@ export function AuthGuard({ children }: Props) {
       setSession(data.session)
       if (data.session) {
         const uid = data.session.user.id
+        analytics.identify(uid, { email: data.session.user.email })
         Promise.all([init(uid), initTheme(uid)]).then(() => {
           startBoardSync(uid)
           startThemeSync(uid)
@@ -111,6 +113,7 @@ export function AuthGuard({ children }: Props) {
       setSession(session)
       if (event === 'SIGNED_IN' && session) {
         const uid = session.user.id
+        analytics.identify(uid, { email: session.user.email })
         const state = useWhiteboardStore.getState()
         if (state.userId === uid && state.boards.length > 0) {
           // Already initialised for this user (e.g. tab regained focus) — just restart syncs
@@ -126,6 +129,7 @@ export function AuthGuard({ children }: Props) {
         }
       }
       if (event === 'SIGNED_OUT') {
+        analytics.reset()
         stopBoardSync()
         stopThemeSync()
         stopRealtimeSync()

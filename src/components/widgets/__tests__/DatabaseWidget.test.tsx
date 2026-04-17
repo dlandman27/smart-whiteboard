@@ -41,12 +41,14 @@ describe('DatabaseWidget', () => {
   })
 
   it('shows loading state', () => {
+    vi.mocked(useWidgetSettings).mockReturnValue([{ databaseId: 'db-123' }, vi.fn()])
     mockUseNotionPages.mockReturnValue({ data: null, isLoading: true, error: null, refetch: vi.fn(), isFetching: false })
     render(<DatabaseWidget widgetId="test-db-2" />)
-    expect(screen.getByText(/loading/i)).toBeInTheDocument()
+    expect(screen.getByText(/loading entries/i)).toBeInTheDocument()
   })
 
   it('shows error state', () => {
+    vi.mocked(useWidgetSettings).mockReturnValue([{ databaseId: 'db-123' }, vi.fn()])
     mockUseNotionPages.mockReturnValue({ data: null, isLoading: false, error: new Error('Unauthorized'), refetch: vi.fn(), isFetching: false })
     render(<DatabaseWidget widgetId="test-db-3" />)
     expect(screen.getByText(/failed to load entries/i)).toBeInTheDocument()

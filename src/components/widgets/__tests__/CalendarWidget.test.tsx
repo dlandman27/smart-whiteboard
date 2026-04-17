@@ -16,6 +16,7 @@ vi.mock('@whiteboard/ui-kit', async () => {
 const mockUseGCalEvents = vi.fn()
 vi.mock('../../../hooks/useGCal', () => ({
   useGCalEvents: (...args: any[]) => mockUseGCalEvents(...args),
+  useGCalStatus: vi.fn().mockReturnValue({ data: null, isLoading: false }),
 }))
 
 import { CalendarWidget } from '../CalendarWidget'
@@ -33,7 +34,7 @@ describe('CalendarWidget', () => {
   it('shows loading state', () => {
     mockUseGCalEvents.mockReturnValue({ data: null, isLoading: true, error: null, refetch: vi.fn(), isFetching: false })
     render(<CalendarWidget widgetId="test-cal-2" />)
-    expect(screen.getByText(/loading/i)).toBeInTheDocument()
+    expect(screen.getByText(/loading events/i)).toBeInTheDocument()
   })
 
   it('shows error state', () => {

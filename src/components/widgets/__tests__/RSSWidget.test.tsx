@@ -60,7 +60,7 @@ describe('RSSWidget', () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(new Response('Error', { status: 500 }))
     render(<RSSWidget widgetId="test-rss-4" />)
     await waitFor(() => {
-      expect(screen.getByText(/failed to fetch feed/i)).toBeInTheDocument()
+      expect(screen.getByText(/HTTP 500/i)).toBeInTheDocument()
     })
   })
 
