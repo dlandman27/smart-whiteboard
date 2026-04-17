@@ -8,8 +8,10 @@ import { webTools }      from './web.js'
 import { systemTools }   from './system.js'
 import { timerTools }    from './timers.js'
 import { calendarTools } from './calendar.js'
+import { taskTools }     from './tasks.js'
 
 const allTools = [
+  ...taskTools,
   ...boardTools,
   ...notionTools,
   ...calendarTools,

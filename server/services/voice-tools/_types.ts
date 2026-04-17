@@ -4,6 +4,7 @@ import type Anthropic from '@anthropic-ai/sdk'
 export interface ToolContext {
   notion: Client
   gcal: any | null
+  userId: string
 }
 
 export interface VoiceTool {

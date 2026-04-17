@@ -165,6 +165,8 @@ export function useCanvasSocket() {
             queryClient.invalidateQueries({ queryKey: ['notion-view'] })
             queryClient.invalidateQueries({ queryKey: ['pages'] })
           }
+        } else if (msg.type === 'tasks_invalidate') {
+          queryClient.invalidateQueries({ queryKey: ['wiigit-tasks'] })
         }
       }
 

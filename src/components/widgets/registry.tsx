@@ -54,6 +54,7 @@ import { TodoistSettings } from './TodoistSettings'
 import { ICalWidget } from './ICalWidget'
 import { ICalSettings } from './ICalSettings'
 import { WalliAgentWidget, WalliAgentSettings } from './WalliAgentWidget'
+import { TaskListWidget, TaskListSettings } from './TaskListWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 export type { WidgetTypeDef, WidgetVariantDef } from './types'
@@ -679,6 +680,24 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       constraints:       { minWidth: 320, minHeight: 200, maxWidth: 1400, maxHeight: 900 },
       component:         SplitWidget,
       settingsComponent: SplitSettings,
+    }],
+  },
+  {
+    typeId:      '@whiteboard/task-list',
+    label:       'Task List',
+    Icon:        'CheckSquare',
+    iconColor:   '#22c55e',
+    keywords:    ['tasks', 'todos', 'checklist', 'list', 'shopping', 'to-do', 'wiigit'],
+    description: 'Show a wiigit task list on the board',
+    variants: [{
+      variantId:         'default',
+      label:             'Task List',
+      description:       'Show a wiigit task list on the board',
+      shape:             WIDGET_SHAPES['tall-rect'],
+      scalable:          true,
+      constraints:       { minWidth: 220, minHeight: 240, maxWidth: 600, maxHeight: 800 },
+      component:         TaskListWidget,
+      settingsComponent: TaskListSettings,
     }],
   },
   {

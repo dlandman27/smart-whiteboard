@@ -353,11 +353,27 @@ export const notionTools: VoiceTool[] = [
     },
     execute: async (input, { notion }) => {
       const { listName, item } = input as { listName: string; item: string }
-      const mem   = loadMemory()
-      const entry = Object.entries(mem.databases).find(([k]) =>
-        k.toLowerCase().includes(listName.toLowerCase()) ||
-        listName.toLowerCase().includes(k.toLowerCase())
-      )
+      const mem = loadMemory()
+
+      // Normalize common aliases so "todos"/"to-do"/"to do" all match "Tasks"
+      const LIST_ALIASES: Record<string, string[]> = {
+        tasks:     ['todos', 'todo', 'to-do', 'to do', 'task'],
+        groceries: ['grocery', 'shopping', 'shopping list', 'grocery list'],
+        routines:  ['routine', 'habits', 'habit'],
+      }
+      const normalizedInput = listName.toLowerCase()
+      const resolvedName = (() => {
+        for (const [canonical, aliases] of Object.entries(LIST_ALIASES)) {
+          if (aliases.includes(normalizedInput) || normalizedInput === canonical) return canonical
+        }
+        return normalizedInput
+      })()
+
+      const entry = Object.entries(mem.databases).find(([k]) => {
+        const kl = k.toLowerCase()
+        return kl.includes(resolvedName) || resolvedName.includes(kl) ||
+               kl.includes(normalizedInput) || normalizedInput.includes(kl)
+      })
       let databaseId: string
       let dbLabel: string
 
