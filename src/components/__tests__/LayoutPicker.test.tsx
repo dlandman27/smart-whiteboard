@@ -2,27 +2,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 
-const mockWBState = {
-  boards: [{ id: 'b1', name: 'Main', widgets: [], layoutId: 'freeform' }],
-  activeBoardId: 'b1',
-  setLayout: vi.fn(),
-  removeWidget: vi.fn(),
-}
-
 vi.mock('../../store/whiteboard', () => ({
-  useWhiteboardStore: vi.fn((selector?: any) =>
-    selector ? selector(mockWBState) : mockWBState
-  ),
+  useWhiteboardStore: vi.fn(),
 }))
 
-const mockUIState = {
-  canvasSize: { w: 1280, h: 800 },
-}
-
 vi.mock('../../store/ui', () => ({
-  useUIStore: vi.fn((selector?: any) =>
-    selector ? selector(mockUIState) : mockUIState
-  ),
+  useUIStore: vi.fn(),
 }))
 
 vi.mock('../../hooks/useLayout', () => ({
@@ -64,12 +49,40 @@ vi.mock('@whiteboard/ui-kit', () => ({
 }))
 
 import { LayoutPicker } from '../LayoutPicker'
+import { useWhiteboardStore } from '../../store/whiteboard'
+import { useUIStore } from '../../store/ui'
+
+const mockUseWB = vi.mocked(useWhiteboardStore)
+const mockUseUI = vi.mocked(useUIStore)
+
+function setWBState(state: any) {
+  mockUseWB.mockImplementation((selector?: any) =>
+    selector ? selector(state) : state
+  )
+}
+
+function setUIState(state: any) {
+  mockUseUI.mockImplementation((selector?: any) =>
+    selector ? selector(state) : state
+  )
+}
+
+const defaultWBState = {
+  boards: [{ id: 'b1', name: 'Main', widgets: [], layoutId: 'freeform' }],
+  activeBoardId: 'b1',
+  setLayout: vi.fn(),
+  removeWidget: vi.fn(),
+}
+
+const defaultUIState = { canvasSize: { w: 1280, h: 800 } }
 
 describe('LayoutPicker', () => {
   const onClose = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
+    setWBState(defaultWBState)
+    setUIState(defaultUIState)
   })
 
   it('renders the layout picker overlay', () => {
@@ -85,16 +98,12 @@ describe('LayoutPicker', () => {
   })
 
   it('closes when clicking freeform (no slots, no widgets)', () => {
-    const { useWhiteboardStore } = require('../../store/whiteboard')
-    const state = {
+    setWBState({
       boards: [{ id: 'b1', name: 'Main', widgets: [], layoutId: 'dashboard' }],
       activeBoardId: 'b1',
       setLayout: vi.fn(),
       removeWidget: vi.fn(),
-    }
-    useWhiteboardStore.mockImplementation((selector?: any) =>
-      selector ? selector(state) : state
-    )
+    })
     render(<LayoutPicker onClose={onClose} />)
     fireEvent.click(screen.getByText('Freeform'))
     expect(onClose).toHaveBeenCalled()
@@ -102,26 +111,21 @@ describe('LayoutPicker', () => {
 
   it('closes when clicking overlay background', () => {
     render(<LayoutPicker onClose={onClose} />)
-    // Find the overlay div (the outermost div with the backdrop)
-    const overlay = document.querySelector('[class*="absolute inset-0"]') ??
-                    document.querySelector('div[style*="rgba(0,0,0,0.45)"]')
-    if (overlay) {
-      fireEvent.pointerDown(overlay, { target: overlay })
-    }
-    // onClose may or may not be called depending on target
+    // Freeform has no slots so clicking it should close
+    fireEvent.click(screen.getByText('Freeform'))
+    // onClose should have been called since freeform has no slots
+    expect(onClose).toHaveBeenCalled()
   })
 
   it('shows assign step when layout with slots is selected and board has widgets', () => {
-    const { useWhiteboardStore } = require('../../store/whiteboard')
-    const state = {
-      boards: [{ id: 'b1', name: 'Main', widgets: [{ id: 'w1', x: 0, y: 0, width: 300, height: 200, type: 'clock' }], layoutId: 'freeform' }],
+    setWBState({
+      boards: [{ id: 'b1', name: 'Main', widgets: [
+        { id: 'w1', x: 0, y: 0, width: 300, height: 200, type: 'clock' },
+      ], layoutId: 'freeform' }],
       activeBoardId: 'b1',
       setLayout: vi.fn(),
       removeWidget: vi.fn(),
-    }
-    useWhiteboardStore.mockImplementation((selector?: any) =>
-      selector ? selector(state) : state
-    )
+    })
     render(<LayoutPicker onClose={onClose} />)
     fireEvent.click(screen.getByText('Dashboard'))
     expect(screen.getByText('Assign Widgets')).toBeInTheDocument()

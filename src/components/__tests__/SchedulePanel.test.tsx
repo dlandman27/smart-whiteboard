@@ -2,24 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 
-const mockSetSchedule = vi.fn()
-
-const mockScheduleState = {
-  boards: [
-    { id: 'b1', name: 'Main Board', widgets: [], layoutId: 'freeform' },
-    { id: 'b2', name: 'Work Board', widgets: [], layoutId: 'freeform' },
-  ],
-  schedule: {
-    enabled: false,
-    slots: [],
-  },
-  setSchedule: mockSetSchedule,
-}
-
 vi.mock('../../store/whiteboard', () => ({
-  useWhiteboardStore: vi.fn((selector?: any) =>
-    selector ? selector(mockScheduleState) : mockScheduleState
-  ),
+  useWhiteboardStore: vi.fn(),
 }))
 
 vi.mock('../../constants/schedulePresets', () => ({
@@ -32,10 +16,33 @@ vi.mock('@whiteboard/ui-kit', () => ({
 }))
 
 import { SchedulePanel } from '../SchedulePanel'
+import { useWhiteboardStore } from '../../store/whiteboard'
+import { findActiveSlot } from '../../constants/schedulePresets'
+
+const mockUseWB = vi.mocked(useWhiteboardStore)
+const mockFindActiveSlot = vi.mocked(findActiveSlot)
+const mockSetSchedule = vi.fn()
+
+function setState(state: any) {
+  mockUseWB.mockImplementation((selector?: any) =>
+    selector ? selector(state) : state
+  )
+}
+
+const defaultState = {
+  boards: [
+    { id: 'b1', name: 'Main Board', widgets: [], layoutId: 'freeform' },
+    { id: 'b2', name: 'Work Board', widgets: [], layoutId: 'freeform' },
+  ],
+  schedule: { enabled: false, slots: [] },
+  setSchedule: mockSetSchedule,
+}
 
 describe('SchedulePanel', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockFindActiveSlot.mockReturnValue(null)
+    setState(defaultState)
     vi.spyOn(crypto, 'randomUUID').mockReturnValue('slot-uuid-1234-5678-90ab-cdef01234567' as any)
   })
 
@@ -56,43 +63,33 @@ describe('SchedulePanel', () => {
 
   it('does not show slot list when scheduling is disabled', () => {
     render(<SchedulePanel />)
-    // When disabled, the "Add time slot" button should not be visible
     expect(screen.queryByText('Add time slot')).not.toBeInTheDocument()
   })
 
   it('calls setSchedule when toggle is clicked', () => {
     render(<SchedulePanel />)
-    const toggleBtn = document.querySelector('button[style*="backgroundColor"]')
-    if (toggleBtn) fireEvent.click(toggleBtn)
+    // The toggle button is the one that changes schedule.enabled
+    const buttons = screen.getAllByRole('button')
+    // First button is the toggle (based on the rendering order)
+    fireEvent.click(buttons[0])
     expect(mockSetSchedule).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }))
   })
 
   it('shows "Add time slot" button when scheduling is enabled', () => {
-    const { useWhiteboardStore } = require('../../store/whiteboard')
-    const state = {
-      boards: [{ id: 'b1', name: 'Main Board', widgets: [], layoutId: 'freeform' }],
+    setState({
+      ...defaultState,
       schedule: { enabled: true, slots: [] },
-      setSchedule: mockSetSchedule,
-    }
-    useWhiteboardStore.mockImplementation((selector?: any) =>
-      selector ? selector(state) : state
-    )
-
+    })
     render(<SchedulePanel />)
     expect(screen.getByText('Add time slot')).toBeInTheDocument()
   })
 
   it('adds a slot when "Add time slot" is clicked', () => {
-    const { useWhiteboardStore } = require('../../store/whiteboard')
-    const state = {
+    setState({
       boards: [{ id: 'b1', name: 'Main Board', widgets: [], layoutId: 'freeform' }],
       schedule: { enabled: true, slots: [] },
       setSchedule: mockSetSchedule,
-    }
-    useWhiteboardStore.mockImplementation((selector?: any) =>
-      selector ? selector(state) : state
-    )
-
+    })
     render(<SchedulePanel />)
     fireEvent.click(screen.getByText('Add time slot'))
     expect(mockSetSchedule).toHaveBeenCalledWith(expect.objectContaining({
@@ -103,51 +100,28 @@ describe('SchedulePanel', () => {
   })
 
   it('shows slots when schedule has slots', () => {
-    const { useWhiteboardStore } = require('../../store/whiteboard')
-    const state = {
+    setState({
       boards: [{ id: 'b1', name: 'Main Board', widgets: [], layoutId: 'freeform' }],
       schedule: {
         enabled: true,
-        slots: [{
-          id: 's1',
-          boardId: 'b1',
-          startTime: '09:00',
-          endTime: '17:00',
-          days: [],
-        }],
+        slots: [{ id: 's1', boardId: 'b1', startTime: '09:00', endTime: '17:00', days: [] }],
       },
       setSchedule: mockSetSchedule,
-    }
-    useWhiteboardStore.mockImplementation((selector?: any) =>
-      selector ? selector(state) : state
-    )
-
+    })
     render(<SchedulePanel />)
-    // Time inputs should be visible for each slot
     const timeInputs = screen.getAllByDisplayValue('09:00')
     expect(timeInputs.length).toBeGreaterThan(0)
   })
 
   it('shows day buttons for each slot', () => {
-    const { useWhiteboardStore } = require('../../store/whiteboard')
-    const state = {
+    setState({
       boards: [{ id: 'b1', name: 'Main Board', widgets: [], layoutId: 'freeform' }],
       schedule: {
         enabled: true,
-        slots: [{
-          id: 's1',
-          boardId: 'b1',
-          startTime: '09:00',
-          endTime: '17:00',
-          days: [],
-        }],
+        slots: [{ id: 's1', boardId: 'b1', startTime: '09:00', endTime: '17:00', days: [] }],
       },
       setSchedule: mockSetSchedule,
-    }
-    useWhiteboardStore.mockImplementation((selector?: any) =>
-      selector ? selector(state) : state
-    )
-
+    })
     render(<SchedulePanel />)
     expect(screen.getByText('Mon')).toBeInTheDocument()
     expect(screen.getByText('Fri')).toBeInTheDocument()
@@ -155,35 +129,25 @@ describe('SchedulePanel', () => {
   })
 
   it('shows "no boards" message when no user boards exist', () => {
-    const { useWhiteboardStore } = require('../../store/whiteboard')
-    const state = {
+    setState({
       boards: [{ id: 'sys1', name: 'Settings', widgets: [], boardType: 'settings' }],
       schedule: { enabled: true, slots: [] },
       setSchedule: mockSetSchedule,
-    }
-    useWhiteboardStore.mockImplementation((selector?: any) =>
-      selector ? selector(state) : state
-    )
-
+    })
     render(<SchedulePanel />)
     expect(screen.getByText(/Create at least one board/)).toBeInTheDocument()
   })
 
   it('shows active slot indicator when scheduling enabled and slot is active', () => {
-    const { findActiveSlot } = require('../../constants/schedulePresets')
-    findActiveSlot.mockReturnValue({ id: 's1', boardId: 'b1' })
-
-    const { useWhiteboardStore } = require('../../store/whiteboard')
-    const state = {
+    mockFindActiveSlot.mockReturnValue({ id: 's1', boardId: 'b1' } as any)
+    setState({
       boards: [{ id: 'b1', name: 'Main Board', widgets: [], layoutId: 'freeform' }],
-      schedule: { enabled: true, slots: [{ id: 's1', boardId: 'b1', startTime: '09:00', endTime: '17:00', days: [] }] },
+      schedule: {
+        enabled: true,
+        slots: [{ id: 's1', boardId: 'b1', startTime: '09:00', endTime: '17:00', days: [] }],
+      },
       setSchedule: mockSetSchedule,
-    }
-    useWhiteboardStore.mockImplementation((selector?: any) =>
-      selector ? selector(state) : state
-    )
-    )
-
+    })
     render(<SchedulePanel />)
     expect(screen.getByText(/Currently scheduled: Main Board/)).toBeInTheDocument()
   })

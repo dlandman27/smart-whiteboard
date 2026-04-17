@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderHook, waitFor, act } from '@testing-library/react'
+import { renderHook, waitFor, act, waitForElementToBeRemoved } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createElement } from 'react'
 
@@ -107,6 +107,6 @@ describe('useCreateWiigitTask', () => {
     await act(async () => {
       try { await result.current.mutateAsync('Fail') } catch { /* expected */ }
     })
-    expect(result.current.isError).toBe(true)
+    await waitFor(() => expect(result.current.isError).toBe(true))
   })
 })

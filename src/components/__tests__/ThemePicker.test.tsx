@@ -3,12 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 
 vi.mock('../../store/theme', () => ({
-  useThemeStore: vi.fn((selector) =>
-    selector({
-      activeThemeId: 'slate',
-      setTheme: vi.fn(),
-    })
-  ),
+  useThemeStore: vi.fn(),
 }))
 
 vi.mock('../../themes/presets', () => ({
@@ -41,10 +36,18 @@ vi.mock('../../themes/presets', () => ({
 }))
 
 import { ThemePicker } from '../ThemePicker'
+import { useThemeStore } from '../../store/theme'
+
+const mockUseTheme = vi.mocked(useThemeStore)
+const mockSetTheme = vi.fn()
 
 describe('ThemePicker', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseTheme.mockImplementation((selector?: any) => {
+      const state = { activeThemeId: 'slate', setTheme: mockSetTheme }
+      return selector ? selector(state) : state
+    })
   })
 
   it('renders without crashing', () => {
@@ -62,7 +65,6 @@ describe('ThemePicker', () => {
     render(<ThemePicker />)
     expect(screen.getByText('Slate')).toBeInTheDocument()
     expect(screen.getByText('Cream')).toBeInTheDocument()
-    // Dark themes should not be visible in light mode
     expect(screen.queryByText('Dark Slate')).not.toBeInTheDocument()
   })
 
@@ -75,15 +77,9 @@ describe('ThemePicker', () => {
   })
 
   it('calls setTheme when a theme is clicked', () => {
-    const setTheme = vi.fn()
-    const { useThemeStore } = require('../../store/theme')
-    useThemeStore.mockImplementation((selector: any) =>
-      selector({ activeThemeId: 'slate', setTheme })
-    )
-
     render(<ThemePicker />)
     fireEvent.click(screen.getByTitle('Cream'))
-    expect(setTheme).toHaveBeenCalledWith('cream')
+    expect(mockSetTheme).toHaveBeenCalledWith('cream')
   })
 
   it('renders theme names', () => {

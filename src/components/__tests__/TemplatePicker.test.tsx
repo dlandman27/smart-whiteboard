@@ -3,16 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import React from 'react'
 
 vi.mock('../../store/whiteboard', () => ({
-  useWhiteboardStore: vi.fn((selector) =>
-    selector({
-      boards: [{ id: 'b1', name: 'Main', widgets: [] }],
-      activeBoardId: 'b1',
-      addBoard: vi.fn(),
-      setActiveBoard: vi.fn(),
-      addWidget: vi.fn(),
-      setLayout: vi.fn(),
-    })
-  ),
+  useWhiteboardStore: vi.fn(),
 }))
 
 vi.mock('@whiteboard/ui-kit', () => ({
@@ -55,13 +46,31 @@ vi.mock('../../constants/boardTemplates', () => ({
 }))
 
 import { TemplatePicker } from '../TemplatePicker'
+import { useWhiteboardStore } from '../../store/whiteboard'
+
+const mockUseWB = vi.mocked(useWhiteboardStore)
+const mockAddBoard = vi.fn()
+const mockSetActiveBoard = vi.fn()
+const mockAddWidget = vi.fn()
+const mockSetLayout = vi.fn()
+
+const defaultState = {
+  boards: [{ id: 'b1', name: 'Main', widgets: [] }],
+  activeBoardId: 'b1',
+  addBoard: mockAddBoard,
+  setActiveBoard: mockSetActiveBoard,
+  addWidget: mockAddWidget,
+  setLayout: mockSetLayout,
+}
 
 describe('TemplatePicker', () => {
   const onComplete = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // Provide crypto.randomUUID
+    mockUseWB.mockImplementation((selector?: any) =>
+      selector ? selector(defaultState) : defaultState
+    )
     vi.spyOn(crypto, 'randomUUID').mockReturnValue('test-uuid-1234-5678-90ab-cdef01234567' as any)
   })
 

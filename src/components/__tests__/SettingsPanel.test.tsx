@@ -27,28 +27,12 @@ vi.mock('../BackgroundPicker', () => ({
   BackgroundPicker: () => <div data-testid="background-picker">BackgroundPicker</div>,
 }))
 
-const mockWBState = {
-  boards: [{ id: 'b1', name: 'Main', widgets: [], layoutId: 'freeform', slotGap: 16, slotPad: 16 }],
-  activeBoardId: 'b1',
-  setLayout: vi.fn(),
-  setLayoutSpacing: vi.fn(),
-}
-
 vi.mock('../../store/whiteboard', () => ({
-  useWhiteboardStore: vi.fn((selector?: any) =>
-    selector ? selector(mockWBState) : mockWBState
-  ),
+  useWhiteboardStore: vi.fn(),
 }))
 
-const mockThemeState = {
-  petsEnabled: false,
-  setPetsEnabled: vi.fn(),
-}
-
 vi.mock('../../store/theme', () => ({
-  useThemeStore: vi.fn((selector?: any) =>
-    selector ? selector(mockThemeState) : mockThemeState
-  ),
+  useThemeStore: vi.fn(),
 }))
 
 vi.mock('../../hooks/useLayout', () => ({
@@ -77,12 +61,35 @@ vi.mock('../PetBar', () => ({
 }))
 
 import { SettingsPanel } from '../SettingsPanel'
+import { useWhiteboardStore } from '../../store/whiteboard'
+import { useThemeStore } from '../../store/theme'
+
+const mockUseWB = vi.mocked(useWhiteboardStore)
+const mockUseTheme = vi.mocked(useThemeStore)
+
+const defaultWBState = {
+  boards: [{ id: 'b1', name: 'Main', widgets: [], layoutId: 'freeform', slotGap: 16, slotPad: 16 }],
+  activeBoardId: 'b1',
+  setLayout: vi.fn(),
+  setLayoutSpacing: vi.fn(),
+}
+
+const defaultThemeState = {
+  petsEnabled: false,
+  setPetsEnabled: vi.fn(),
+}
 
 describe('SettingsPanel', () => {
   const onClose = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseWB.mockImplementation((selector?: any) =>
+      selector ? selector(defaultWBState) : defaultWBState
+    )
+    mockUseTheme.mockImplementation((selector?: any) =>
+      selector ? selector(defaultThemeState) : defaultThemeState
+    )
   })
 
   it('renders without crashing', () => {

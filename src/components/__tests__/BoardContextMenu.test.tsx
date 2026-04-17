@@ -1,28 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import React from 'react'
 
-const mockWBState = {
-  boards: [{ id: 'b1', name: 'Test Board', widgets: [] }],
-  activeBoardId: 'b1',
-  renameBoard: vi.fn(),
-}
-
 vi.mock('../../store/whiteboard', () => ({
-  useWhiteboardStore: vi.fn((selector?: any) =>
-    selector ? selector(mockWBState) : mockWBState
-  ),
+  useWhiteboardStore: vi.fn(),
 }))
 
-const mockUIState = {
-  sendWidgetCommand: vi.fn(),
-  fullscreenWidgetId: null,
-}
-
 vi.mock('../../store/ui', () => ({
-  useUIStore: vi.fn((selector?: any) =>
-    selector ? selector(mockUIState) : mockUIState
-  ),
+  useUIStore: vi.fn(),
 }))
 
 vi.mock('@whiteboard/ui-kit', () => ({
@@ -30,6 +15,22 @@ vi.mock('@whiteboard/ui-kit', () => ({
 }))
 
 import { BoardContextMenu } from '../BoardContextMenu'
+import { useWhiteboardStore } from '../../store/whiteboard'
+import { useUIStore } from '../../store/ui'
+
+const mockUseWB = vi.mocked(useWhiteboardStore)
+const mockUseUI = vi.mocked(useUIStore)
+
+const defaultWBState = {
+  boards: [{ id: 'b1', name: 'Test Board', widgets: [] }],
+  activeBoardId: 'b1',
+  renameBoard: vi.fn(),
+}
+
+const defaultUIState = {
+  sendWidgetCommand: vi.fn(),
+  fullscreenWidgetId: null,
+}
 
 const defaultProps = {
   x: 100,
@@ -47,6 +48,12 @@ describe('BoardContextMenu', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
+    mockUseWB.mockImplementation((selector?: any) =>
+      selector ? selector(defaultWBState) : defaultWBState
+    )
+    mockUseUI.mockImplementation((selector?: any) =>
+      selector ? selector(defaultUIState) : defaultUIState
+    )
   })
 
   afterEach(() => {
@@ -109,7 +116,7 @@ describe('BoardContextMenu', () => {
     expect(screen.getByText('Fullscreen')).toBeInTheDocument()
   })
 
-  it('auto-dismisses after 5 seconds', async () => {
+  it('auto-dismisses after 5 seconds', () => {
     const onClose = vi.fn()
     render(<BoardContextMenu {...defaultProps} onClose={onClose} />)
     act(() => { vi.advanceTimersByTime(5200) })
