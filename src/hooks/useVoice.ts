@@ -356,7 +356,7 @@ export function useVoice(): VoiceStatus {
     recognition.onend = () => {
       if (stopped) return
       // Only restart when idle — during Deepgram sessions we don't need wake word detection
-      if (stateRef.current === 'idle' || stateRef.current === 'listening') {
+      if (stateRef.current === 'idle') {
         const duration = Date.now() - lastStart
         restartDelay   = duration < 1000 ? Math.min(restartDelay * 2, 10_000) : 300
         setTimeout(() => {
