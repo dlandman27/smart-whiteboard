@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useThemeStore } from '../store/theme'
 import { useUIStore } from '../store/ui'
 import { useWhiteboardStore } from '../store/whiteboard'
@@ -103,16 +103,16 @@ export function Whiteboard() {
   }, [setCanvasSize])
 
   return (
-    <div className="flex w-screen h-screen" style={{ background: displayMode ? '#000' : 'var(--wt-bg)' }}>
+    <div className="flex w-screen h-screen" style={{ background: 'var(--wt-bg)' }}>
       {screensaverMode && <Screensaver />}
-      {!displayMode && <Sidebar />}
+      <Sidebar />
 
       {/* Inset board */}
-      <div className={displayMode ? 'flex-1 min-w-0' : 'flex-1 p-2 min-w-0'}>
+      <div className="flex-1 p-2 min-w-0">
         <div
           ref={boardRef}
-          className={`relative w-full h-full overflow-hidden ${displayMode ? '' : 'rounded-2xl'}`}
-          style={displayMode ? {} : { border: '1px solid var(--wt-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08)' }}
+          className="relative w-full h-full overflow-hidden rounded-2xl"
+          style={{ border: '1px solid var(--wt-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08)' }}
         >
           <WhiteboardBackground background={boardBackground}>
 
@@ -167,18 +167,16 @@ export function Whiteboard() {
                 )}
 
 
-                {!displayMode && (
-                  <BottomToolbar
+                <BottomToolbar
                     onToolChange={setActiveTool}
                     onWidgetSelected={(w) => { setPendingWidget(w); setActiveTool('pointer') }}
                     externalPickerOpen={pickerOpen}
                     onExternalPickerClose={() => setPickerOpen(false)}
                   />
-                )}
               </>
             )}
 
-            {!isSystemBoard && !displayMode && (
+            {!isSystemBoard && (
               <div className="absolute bottom-4 left-4 z-[9990] select-none">
                 <WalliChatButton />
               </div>
@@ -186,8 +184,6 @@ export function Whiteboard() {
 
             {/* PetBar hidden for now */}
 
-            {/* Display mode exit overlay */}
-            {displayMode && <DisplayModeOverlay onExit={() => setDisplayMode(false)} />}
             <NotificationToast />
             <UndoToast />
             <VoiceListener />
@@ -201,80 +197,3 @@ export function Whiteboard() {
 
 // ── Display mode exit overlay ────────────────────────────────────────────────
 
-function DisplayModeOverlay({ onExit }: { onExit: () => void }) {
-  const [visible, setVisible] = useState(false)
-  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const { boards, activeBoardId, setActiveBoardManual } = useWhiteboardStore()
-  const userBoards = boards.filter((b) => !b.boardType)
-
-  const showBar = useCallback(() => {
-    setVisible(true)
-    if (hideTimer.current) clearTimeout(hideTimer.current)
-    hideTimer.current = setTimeout(() => setVisible(false), 3000)
-  }, [])
-
-  useEffect(() => {
-    function onMove(e: MouseEvent) {
-      if (e.clientY < 60) showBar()
-    }
-    window.addEventListener('mousemove', onMove)
-    return () => {
-      window.removeEventListener('mousemove', onMove)
-      if (hideTimer.current) clearTimeout(hideTimer.current)
-    }
-  }, [showBar])
-
-  return (
-    <div
-      className="absolute top-0 left-0 right-0 z-[9999] flex items-center px-4 gap-3"
-      style={{
-        height: 44,
-        background: 'rgba(0,0,0,0.6)',
-        backdropFilter: 'blur(8px)',
-        transition: 'opacity 0.3s ease, transform 0.3s ease',
-        opacity: visible ? 1 : 0,
-        transform: visible ? 'translateY(0)' : 'translateY(-100%)',
-        pointerEvents: visible ? 'auto' : 'none',
-      }}
-      onMouseEnter={showBar}
-    >
-      <span className="text-xs font-medium flex-shrink-0" style={{ color: 'rgba(255,255,255,0.5)' }}>
-        Display Mode
-      </span>
-
-      {/* Board tabs */}
-      {userBoards.length > 1 && (
-        <div className="flex items-center gap-1 flex-1 min-w-0 overflow-x-auto px-2" style={{ scrollbarWidth: 'none' }}>
-          {userBoards.map((b) => (
-            <button
-              key={b.id}
-              onClick={() => setActiveBoardManual(b.id)}
-              className="px-3 py-1 rounded-md text-xs font-medium transition-colors flex-shrink-0"
-              style={{
-                background: b.id === activeBoardId ? 'rgba(255,255,255,0.2)' : 'transparent',
-                color: b.id === activeBoardId ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.5)',
-                border: b.id === activeBoardId ? '1px solid rgba(255,255,255,0.25)' : '1px solid transparent',
-              }}
-            >
-              {b.name}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <button
-        onClick={onExit}
-        className="px-3 py-1 rounded-md text-xs font-medium transition-colors flex-shrink-0 ml-auto"
-        style={{
-          background: 'rgba(255,255,255,0.15)',
-          color: 'rgba(255,255,255,0.9)',
-          border: '1px solid rgba(255,255,255,0.2)',
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)' }}
-      >
-        Exit (Esc)
-      </button>
-    </div>
-  )
-}
