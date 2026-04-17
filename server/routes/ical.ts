@@ -246,6 +246,9 @@ function parseICS(ics: string, daysAhead: number): ParsedICal {
   return { calendarName, events }
 }
 
+export { parseICS }
+export type { ICalEvent, ParsedICal }
+
 // ── Router ───────────────────────────────────────────────────────────────────
 
 export function icalRouter(): Router {

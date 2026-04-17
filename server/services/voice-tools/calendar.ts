@@ -1,11 +1,13 @@
 import { google } from 'googleapis'
+import { getBoards } from '../../ws.js'
+import { parseICS } from '../../routes/ical.js'
 import type { VoiceTool } from './_types.js'
 
 export const calendarTools: VoiceTool[] = [
   {
     definition: {
       name:        'list_calendar_events',
-      description: "List the user's Google Calendar events. Use for any question about their schedule, meetings, what's happening today/tomorrow/this week, or when something is.",
+      description: "List the user's calendar events from all connected calendars (Google Calendar and any iCal feeds). Use for any question about their schedule, meetings, what's happening today/tomorrow/this week, or when something is.",
       input_schema: {
         type: 'object' as const,
         properties: {
@@ -16,8 +18,6 @@ export const calendarTools: VoiceTool[] = [
       },
     },
     execute: async (input, { gcal }) => {
-      if (!gcal) return 'Google Calendar is not connected. Connect it via the Connectors panel.'
-
       const { date, days = 1, calendarId = 'primary' } = input as {
         date?: string; days?: number; calendarId?: string
       }
@@ -27,32 +27,84 @@ export const calendarTools: VoiceTool[] = [
       const end = new Date(start)
       end.setDate(end.getDate() + Math.min(days, 7))
 
-      const cal = google.calendar({ version: 'v3', auth: gcal })
-      let items: any[]
-      try {
-        const res = await cal.events.list({
-          calendarId,
-          timeMin:      start.toISOString(),
-          timeMax:      end.toISOString(),
-          singleEvents: true,
-          orderBy:      'startTime',
-          maxResults:   20,
-        })
-        items = res.data.items ?? []
-      } catch {
-        return 'Could not fetch calendar events — your Google Calendar auth may have expired. Try reconnecting via Connectors.'
+      interface NormEvent { time: Date; label: string }
+      const allEvents: NormEvent[] = []
+
+      // ── Google Calendar ──────────────────────────────────────────────────
+      if (gcal) {
+        try {
+          const cal = google.calendar({ version: 'v3', auth: gcal })
+          const res = await cal.events.list({
+            calendarId,
+            timeMin:      start.toISOString(),
+            timeMax:      end.toISOString(),
+            singleEvents: true,
+            orderBy:      'startTime',
+            maxResults:   20,
+          })
+          for (const e of res.data.items ?? []) {
+            const startVal = e.start?.dateTime ?? e.start?.date
+            const timeStr  = e.start?.dateTime
+              ? new Date(startVal!).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+              : 'all day'
+            const loc = e.location ? ` @ ${e.location}` : ''
+            allEvents.push({
+              time:  new Date(startVal!),
+              label: `${timeStr}: ${e.summary ?? '(no title)'}${loc} [id:${e.id}]`,
+            })
+          }
+        } catch {
+          // GCal auth expired — continue with iCal feeds
+        }
       }
 
-      if (items.length === 0) return 'No events found for that period.'
+      // ── iCal feeds from board widgets ────────────────────────────────────
+      const boards: any[] = getBoards() ?? []
+      const icalFeeds: { url: string; name?: string }[] = []
+      for (const board of boards) {
+        for (const w of board.widgets ?? []) {
+          if (w.type === '@whiteboard/ical' && w.settings?.feedUrl) {
+            icalFeeds.push({ url: w.settings.feedUrl, name: w.settings.feedName || undefined })
+          }
+        }
+      }
 
-      return items.map((e) => {
-        const startVal = e.start?.dateTime ?? e.start?.date
-        const timeStr  = e.start?.dateTime
-          ? new Date(startVal!).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-          : 'all day'
-        const loc = e.location ? ` @ ${e.location}` : ''
-        return `${timeStr}: ${e.summary ?? '(no title)'}${loc} [id:${e.id}]`
-      }).join('\n')
+      await Promise.allSettled(
+        icalFeeds.map(async ({ url, name }) => {
+          try {
+            const r = await fetch(url, {
+              headers: { 'User-Agent': 'SmartWhiteboard/1.0 iCal Reader' },
+              signal:  AbortSignal.timeout(8_000),
+            })
+            if (!r.ok) return
+            const text = await r.text()
+            if (!text.includes('BEGIN:VCALENDAR')) return
+            const parsed = parseICS(text, Math.min(days, 7))
+            const calLabel = name || parsed.calendarName
+            for (const e of parsed.events) {
+              const timeStr = e.allDay
+                ? 'all day'
+                : new Date(e.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+              const loc = e.location ? ` @ ${e.location}` : ''
+              allEvents.push({
+                time:  new Date(e.start),
+                label: `${timeStr}: ${e.title}${loc} [${calLabel}]`,
+              })
+            }
+          } catch {}
+        })
+      )
+
+      if (allEvents.length === 0) {
+        const connected = gcal ? 'Google Calendar' : ''
+        const feeds     = icalFeeds.length ? `${icalFeeds.length} iCal feed${icalFeeds.length > 1 ? 's' : ''}` : ''
+        const sources   = [connected, feeds].filter(Boolean).join(' and ')
+        if (!sources) return 'No calendar connected. Connect Google Calendar or add an iCal widget via Connectors.'
+        return `No events found for that period on ${sources}.`
+      }
+
+      allEvents.sort((a, b) => a.time.getTime() - b.time.getTime())
+      return allEvents.map((e) => e.label).join('\n')
     },
   },
 
