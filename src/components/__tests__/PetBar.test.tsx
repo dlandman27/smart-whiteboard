@@ -2,15 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import React from 'react'
 
-const mockClearMessage = vi.fn()
-
 vi.mock('../../store/pets', () => ({
-  usePetsStore: vi.fn((selector) =>
-    selector({
-      pets: {},
-      clearMessage: mockClearMessage,
-    })
-  ),
+  usePetsStore: vi.fn(),
 }))
 
 vi.mock('../pets/WalkingPet', () => ({
@@ -18,7 +11,7 @@ vi.mock('../pets/WalkingPet', () => ({
     <div
       data-testid={`walking-pet-${agent.id}`}
       data-mood={mood}
-      data-inspecting={inspecting}
+      data-inspecting={String(inspecting)}
       onClick={onInspect}
     >
       {agent.name}
@@ -31,6 +24,10 @@ const mockFetch = vi.fn()
 global.fetch = mockFetch
 
 import { PetBar } from '../PetBar'
+import { usePetsStore } from '../../store/pets'
+
+const mockUsePets = vi.mocked(usePetsStore)
+const mockClearMessage = vi.fn()
 
 const mockAgents = [
   { id: 'task-monitor', name: 'Task Monitor', icon: '📋', spriteType: 'cat', enabled: true, lastRun: null, nextRun: null },
@@ -40,6 +37,10 @@ const mockAgents = [
 describe('PetBar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUsePets.mockImplementation((selector?: any) => {
+      const state = { pets: {}, clearMessage: mockClearMessage }
+      return selector ? selector(state) : state
+    })
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve(mockAgents),
@@ -47,9 +48,8 @@ describe('PetBar', () => {
   })
 
   it('renders without crashing (empty initially)', () => {
-    mockFetch.mockReturnValueOnce(new Promise(() => {})) // never resolves
+    mockFetch.mockReturnValueOnce(new Promise(() => {}))
     const { container } = render(<PetBar />)
-    // Should render an empty fragment while fetching
     expect(container).toBeTruthy()
   })
 
@@ -86,13 +86,13 @@ describe('PetBar', () => {
   })
 
   it('passes pet mood from store', async () => {
-    const { usePetsStore } = require('../../store/pets')
-    usePetsStore.mockImplementation((selector: any) =>
-      selector({
+    mockUsePets.mockImplementation((selector?: any) => {
+      const state = {
         pets: { 'task-monitor': { agentId: 'task-monitor', mood: 'speaking', message: 'Hello!' } },
         clearMessage: mockClearMessage,
-      })
-    )
+      }
+      return selector ? selector(state) : state
+    })
 
     render(<PetBar />)
     await waitFor(() => {
@@ -107,6 +107,5 @@ describe('PetBar', () => {
     await waitFor(() => {
       expect(container).toBeTruthy()
     })
-    // Should not crash
   })
 })

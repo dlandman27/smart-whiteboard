@@ -16,6 +16,10 @@ import { loadMemory } from '../../services/memory.js'
 import { taskMonitorAgent } from './taskMonitor.js'
 import type { AgentContext } from '../types.js'
 
+// Monotonically increasing counter — ensures each test gets a fresh page ID
+// that hasn't been added to the module-level alertedToday Set yet.
+let pageCounter = 0
+
 function makeCtx(overrides?: Partial<AgentContext>): AgentContext {
   return {
     broadcast:     vi.fn(),
@@ -36,6 +40,17 @@ function makeCtx(overrides?: Partial<AgentContext>): AgentContext {
     gcal:          null,
     boards:        [],
     activeBoardId: 'board-1',
+    ...overrides,
+  }
+}
+
+function makeOverduePage(overrides: any = {}) {
+  return {
+    id:         `page-${++pageCounter}`,
+    properties: {
+      Name: { type: 'title', title: [{ plain_text: 'Finish report' }] },
+      due:  { date: { start: '2024-01-01' } },
+    },
     ...overrides,
   }
 }
@@ -104,17 +119,9 @@ describe('taskMonitorAgent.run()', () => {
     vi.mocked(loadMemory).mockReturnValue({
       name: '', location: '', preferences: [], facts: [], databases: { tasks: 'db-1' },
     })
-    const overduePage = {
-      id:         'page-1',
-      properties: {
-        Name: { type: 'title', title: [{ plain_text: 'Finish report' }] },
-        due:  { date: { start: '2024-01-01' } },
-        Status: { status: { name: 'In Progress' } },
-      },
-    }
     const ctx = makeCtx({
       notion: {
-        databases: { query: vi.fn().mockResolvedValue({ results: [overduePage] }) },
+        databases: { query: vi.fn().mockResolvedValue({ results: [makeOverduePage()] }) },
       } as any,
     })
     await taskMonitorAgent.run(ctx)
@@ -151,13 +158,7 @@ describe('taskMonitorAgent.run()', () => {
     vi.mocked(loadMemory).mockReturnValue({
       name: '', location: '', preferences: [], facts: [], databases: { tasks: 'db-1' },
     })
-    const overduePage = {
-      id:         'page-1',
-      properties: {
-        Task: { type: 'title', title: [{ plain_text: 'Write tests' }] },
-        due:  { date: { start: '2024-01-01' } },
-      },
-    }
+    const page = makeOverduePage()
     const ctx = makeCtx({
       boards: [{
         id: 'board-1',
@@ -168,7 +169,7 @@ describe('taskMonitorAgent.run()', () => {
           settings: { databaseId: 'db-1', template: 'todo-list' },
         }],
       }],
-      notion: { databases: { query: vi.fn().mockResolvedValue({ results: [overduePage] }) } } as any,
+      notion: { databases: { query: vi.fn().mockResolvedValue({ results: [page] }) } } as any,
     })
     await taskMonitorAgent.run(ctx)
     expect(ctx.broadcast).toHaveBeenCalledWith(

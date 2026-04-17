@@ -3,20 +3,23 @@ import { render, screen } from '@testing-library/react'
 import React from 'react'
 
 vi.mock('../../store/theme', () => ({
-  useThemeStore: vi.fn((selector) =>
-    selector({
-      background: {
-        label: 'Parchment',
-        bg: '#f5f0eb',
-        dot: '#c9bfb5',
-        pattern: 'dots',
-      },
-    })
-  ),
+  useThemeStore: vi.fn(),
 }))
 
 import { BoardThumbnail } from '../BoardThumbnail'
+import { useThemeStore } from '../../store/theme'
 import type { Board } from '../../store/whiteboard'
+
+const mockUseTheme = vi.mocked(useThemeStore)
+
+const defaultThemeState = {
+  background: {
+    label: 'Parchment',
+    bg: '#f5f0eb',
+    dot: '#c9bfb5',
+    pattern: 'dots' as const,
+  },
+}
 
 const emptyBoard: Board = {
   id: 'b1',
@@ -38,6 +41,9 @@ const boardWithWidgets: Board = {
 describe('BoardThumbnail', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseTheme.mockImplementation((selector?: any) =>
+      selector ? selector(defaultThemeState) : defaultThemeState
+    )
   })
 
   it('renders an SVG element', () => {
@@ -72,7 +78,6 @@ describe('BoardThumbnail', () => {
 
   it('renders widget rectangles for each widget', () => {
     render(<BoardThumbnail board={boardWithWidgets} />)
-    // Each widget should render as a rect
     const rects = document.querySelectorAll('rect[fill="var(--wt-accent)"]')
     expect(rects).toHaveLength(2)
   })
@@ -80,7 +85,6 @@ describe('BoardThumbnail', () => {
   it('renders background rect', () => {
     render(<BoardThumbnail board={emptyBoard} />)
     const rects = document.querySelectorAll('rect')
-    // At least one rect for background
     expect(rects.length).toBeGreaterThan(0)
   })
 

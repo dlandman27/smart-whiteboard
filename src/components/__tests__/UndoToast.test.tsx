@@ -1,27 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import React from 'react'
 
-const mockPop = vi.fn()
-const mockClear = vi.fn()
-const mockAddWidget = vi.fn()
-
 vi.mock('../../store/undo', () => ({
-  useUndoStore: vi.fn((selector) =>
-    selector({
-      stack: [],
-      pop: mockPop,
-      clear: mockClear,
-    })
-  ),
+  useUndoStore: vi.fn(),
 }))
 
 vi.mock('../../store/whiteboard', () => ({
-  useWhiteboardStore: vi.fn((selector) =>
-    selector({
-      addWidget: mockAddWidget,
-    })
-  ),
+  useWhiteboardStore: vi.fn(),
 }))
 
 vi.mock('@whiteboard/ui-kit', () => ({
@@ -29,6 +15,14 @@ vi.mock('@whiteboard/ui-kit', () => ({
 }))
 
 import { UndoToast } from '../UndoToast'
+import { useUndoStore } from '../../store/undo'
+import { useWhiteboardStore } from '../../store/whiteboard'
+
+const mockUseUndo = vi.mocked(useUndoStore)
+const mockUseWB = vi.mocked(useWhiteboardStore)
+const mockPop = vi.fn()
+const mockClear = vi.fn()
+const mockAddWidget = vi.fn()
 
 const mockWidget = {
   id: 'w1',
@@ -41,10 +35,33 @@ const mockWidget = {
   databaseTitle: '',
 }
 
+function setEmptyStack() {
+  mockUseUndo.mockImplementation((selector?: any) => {
+    const state = { stack: [], pop: mockPop, clear: mockClear }
+    return selector ? selector(state) : state
+  })
+}
+
+function setStackWithEntry() {
+  mockUseUndo.mockImplementation((selector?: any) => {
+    const state = {
+      stack: [{ id: 'u1', label: 'Widget deleted', snapshot: mockWidget }],
+      pop: mockPop,
+      clear: mockClear,
+    }
+    return selector ? selector(state) : state
+  })
+}
+
 describe('UndoToast', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
+    setEmptyStack()
+    mockUseWB.mockImplementation((selector?: any) => {
+      const state = { addWidget: mockAddWidget }
+      return selector ? selector(state) : state
+    })
   })
 
   afterEach(() => {
@@ -57,61 +74,36 @@ describe('UndoToast', () => {
   })
 
   it('shows toast when stack has an entry', () => {
-    const { useUndoStore } = require('../../store/undo')
-    useUndoStore.mockImplementation((selector: any) =>
-      selector({
-        stack: [{ id: 'u1', label: 'Widget deleted', snapshot: mockWidget }],
-        pop: mockPop,
-        clear: mockClear,
-      })
-    )
-
+    setStackWithEntry()
     render(<UndoToast />)
     expect(screen.getByText('Widget deleted')).toBeInTheDocument()
   })
 
   it('shows Undo button', () => {
-    const { useUndoStore } = require('../../store/undo')
-    useUndoStore.mockImplementation((selector: any) =>
-      selector({
-        stack: [{ id: 'u1', label: 'Widget deleted', snapshot: mockWidget }],
-        pop: mockPop,
-        clear: mockClear,
-      })
-    )
-
+    setStackWithEntry()
     render(<UndoToast />)
     expect(screen.getByText('Undo')).toBeInTheDocument()
   })
 
   it('shows stack count when multiple entries', () => {
-    const { useUndoStore } = require('../../store/undo')
-    useUndoStore.mockImplementation((selector: any) =>
-      selector({
+    mockUseUndo.mockImplementation((selector?: any) => {
+      const state = {
         stack: [
           { id: 'u1', label: 'Widget deleted', snapshot: mockWidget },
           { id: 'u2', label: 'Widget deleted', snapshot: mockWidget },
         ],
         pop: mockPop,
         clear: mockClear,
-      })
-    )
-
+      }
+      return selector ? selector(state) : state
+    })
     render(<UndoToast />)
     expect(screen.getByText('Widget deleted (2)')).toBeInTheDocument()
   })
 
   it('calls pop and addWidget when Undo is clicked', () => {
     mockPop.mockReturnValue({ id: 'u1', label: 'Widget deleted', snapshot: mockWidget })
-
-    const { useUndoStore } = require('../../store/undo')
-    useUndoStore.mockImplementation((selector: any) =>
-      selector({
-        stack: [{ id: 'u1', label: 'Widget deleted', snapshot: mockWidget }],
-        pop: mockPop,
-        clear: mockClear,
-      })
-    )
+    setStackWithEntry()
 
     render(<UndoToast />)
     fireEvent.click(screen.getByText('Undo'))
@@ -120,15 +112,7 @@ describe('UndoToast', () => {
   })
 
   it('calls clear when X button is clicked', () => {
-    const { useUndoStore } = require('../../store/undo')
-    useUndoStore.mockImplementation((selector: any) =>
-      selector({
-        stack: [{ id: 'u1', label: 'Widget deleted', snapshot: mockWidget }],
-        pop: mockPop,
-        clear: mockClear,
-      })
-    )
-
+    setStackWithEntry()
     render(<UndoToast />)
     const closeBtn = document.querySelector('.wt-action-btn')
     if (closeBtn) fireEvent.click(closeBtn)
@@ -136,15 +120,7 @@ describe('UndoToast', () => {
   })
 
   it('auto-dismisses after 5 seconds', () => {
-    const { useUndoStore } = require('../../store/undo')
-    useUndoStore.mockImplementation((selector: any) =>
-      selector({
-        stack: [{ id: 'u1', label: 'Widget deleted', snapshot: mockWidget }],
-        pop: mockPop,
-        clear: mockClear,
-      })
-    )
-
+    setStackWithEntry()
     render(<UndoToast />)
     act(() => { vi.advanceTimersByTime(5100) })
     expect(mockClear).toHaveBeenCalled()

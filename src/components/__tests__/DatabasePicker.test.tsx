@@ -160,8 +160,13 @@ describe('DatabasePicker', () => {
 
   it('calls onClose when close button is clicked', () => {
     render(<DatabasePicker onClose={onClose} />)
-    const closeButtons = screen.getAllByText('Close')
-    fireEvent.click(closeButtons[0])
+    // Panel mock renders with onClose - find the Close button from PanelHeader in carousel view
+    // First navigate to carousel to see a Close button
+    const clockItem = screen.getByTestId('menu-item-Clock')
+    fireEvent.click(clockItem)
+    // Now carousel is visible with PanelHeader that has Close button
+    const closeBtn = screen.getByText('Close')
+    fireEvent.click(closeBtn)
     expect(onClose).toHaveBeenCalled()
   })
 })

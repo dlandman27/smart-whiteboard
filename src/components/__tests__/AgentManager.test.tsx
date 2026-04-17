@@ -45,9 +45,8 @@ describe('AgentManager', () => {
   })
 
   it('renders loading skeletons initially', () => {
-    mockFetch.mockReturnValueOnce(new Promise(() => {})) // never resolves
+    mockFetch.mockReturnValueOnce(new Promise(() => {}))
     render(<AgentManager />)
-    // Loading state shows skeletons - 3 divs with animation
     const container = document.querySelector('div')
     expect(container).toBeTruthy()
   })
@@ -87,7 +86,7 @@ describe('AgentManager', () => {
       expect(screen.getByText('Task Monitor')).toBeInTheDocument()
     })
     const customBadges = screen.queryAllByText('Custom')
-    expect(customBadges).toHaveLength(1) // only for custom-1
+    expect(customBadges).toHaveLength(1)
   })
 
   it('renders toggle buttons for agents', async () => {
@@ -95,7 +94,6 @@ describe('AgentManager', () => {
     await waitFor(() => {
       expect(screen.getByText('Task Monitor')).toBeInTheDocument()
     })
-    // Each agent has a toggle button
     const buttons = screen.getAllByRole('button')
     expect(buttons.length).toBeGreaterThan(0)
   })
@@ -111,10 +109,11 @@ describe('AgentManager', () => {
       expect(screen.getByText('Task Monitor')).toBeInTheDocument()
     })
 
-    // Find toggle buttons (they have style with borderRadius 12)
+    // Each agent row has: run button (idx 0), toggle (idx 1)
+    // For built-in task-monitor, skip ahead to toggle button
     const allButtons = screen.getAllByRole('button')
-    // Toggle buttons for each agent
-    fireEvent.click(allButtons[1]) // click the toggle for the first agent
+    // Find the toggle for task-monitor - it's the 2nd button in its row
+    fireEvent.click(allButtons[1])
 
     await waitFor(() => {
       expect(mockFetch).toHaveBeenCalledWith(

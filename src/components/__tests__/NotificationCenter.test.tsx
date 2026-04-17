@@ -2,19 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import React from 'react'
 
-const mockMarkAllRead = vi.fn()
-const mockClearAll = vi.fn()
-const mockDismiss = vi.fn()
-
 vi.mock('../../store/notifications', () => ({
-  useNotificationStore: vi.fn((selector) =>
-    selector({
-      notifications: [],
-      markAllRead: mockMarkAllRead,
-      clearAll: mockClearAll,
-      dismissNotification: mockDismiss,
-    })
-  ),
+  useNotificationStore: vi.fn(),
 }))
 
 vi.mock('@whiteboard/ui-kit', () => ({
@@ -38,12 +27,28 @@ const mockFetch = vi.fn()
 global.fetch = mockFetch
 
 import { NotificationCenter } from '../NotificationCenter'
+import { useNotificationStore } from '../../store/notifications'
+
+const mockUseNotif = vi.mocked(useNotificationStore)
+const mockMarkAllRead = vi.fn()
+const mockClearAll = vi.fn()
+const mockDismiss = vi.fn()
+
+const emptyState = {
+  notifications: [],
+  markAllRead: mockMarkAllRead,
+  clearAll: mockClearAll,
+  dismissNotification: mockDismiss,
+}
 
 describe('NotificationCenter', () => {
   const onClose = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseNotif.mockImplementation((selector?: any) =>
+      selector ? selector(emptyState) : emptyState
+    )
     mockFetch.mockResolvedValue({
       ok: true,
       json: () => Promise.resolve([]),
@@ -87,23 +92,23 @@ describe('NotificationCenter', () => {
   })
 
   it('renders notifications when present', () => {
-    const { useNotificationStore } = require('../../store/notifications')
-    useNotificationStore.mockImplementation((selector: any) =>
-      selector({
-        notifications: [
-          {
-            id: 'n1',
-            title: 'Task overdue',
-            body: 'You have 2 overdue tasks',
-            type: 'info',
-            timestamp: Date.now(),
-            read: false,
-          },
-        ],
-        markAllRead: mockMarkAllRead,
-        clearAll: mockClearAll,
-        dismissNotification: mockDismiss,
-      })
+    const stateWithNotif = {
+      notifications: [
+        {
+          id: 'n1',
+          title: 'Task overdue',
+          body: 'You have 2 overdue tasks',
+          type: 'info' as const,
+          timestamp: Date.now(),
+          read: false,
+        },
+      ],
+      markAllRead: mockMarkAllRead,
+      clearAll: mockClearAll,
+      dismissNotification: mockDismiss,
+    }
+    mockUseNotif.mockImplementation((selector?: any) =>
+      selector ? selector(stateWithNotif) : stateWithNotif
     )
 
     render(<NotificationCenter onClose={onClose} />)
@@ -113,16 +118,16 @@ describe('NotificationCenter', () => {
   })
 
   it('calls dismiss when X is clicked on a notification', () => {
-    const { useNotificationStore } = require('../../store/notifications')
-    useNotificationStore.mockImplementation((selector: any) =>
-      selector({
-        notifications: [
-          { id: 'n1', title: 'Test', type: 'info', timestamp: Date.now(), read: false },
-        ],
-        markAllRead: mockMarkAllRead,
-        clearAll: mockClearAll,
-        dismissNotification: mockDismiss,
-      })
+    const stateWithNotif = {
+      notifications: [
+        { id: 'n1', title: 'Test', type: 'info' as const, timestamp: Date.now(), read: false },
+      ],
+      markAllRead: mockMarkAllRead,
+      clearAll: mockClearAll,
+      dismissNotification: mockDismiss,
+    }
+    mockUseNotif.mockImplementation((selector?: any) =>
+      selector ? selector(stateWithNotif) : stateWithNotif
     )
 
     render(<NotificationCenter onClose={onClose} />)

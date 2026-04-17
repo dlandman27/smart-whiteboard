@@ -15,6 +15,10 @@ vi.mock('googleapis', () => ({
 import { calendarAgent } from './calendarAgent.js'
 import type { AgentContext } from '../types.js'
 
+// Monotonically increasing counter so every test gets a fresh event ID,
+// avoiding the module-level alertedEventIds dedup set from de-duplicating.
+let eventCounter = 0
+
 function makeCtx(gcal: any = {}, overrides?: Partial<AgentContext>): AgentContext {
   return {
     broadcast:     vi.fn(),
@@ -32,7 +36,7 @@ function makeCtx(gcal: any = {}, overrides?: Partial<AgentContext>): AgentContex
 function makeGCalEvent(overrides: any = {}) {
   const soon = new Date(Date.now() + 5 * 60_000).toISOString()
   return {
-    id:      'event-1',
+    id:      `event-${++eventCounter}`,
     summary: 'Team Meeting',
     start:   { dateTime: soon },
     ...overrides,
@@ -81,9 +85,7 @@ describe('calendarAgent.run()', () => {
     mockEventsList.mockResolvedValue({ data: { items: [makeGCalEvent()] } })
     const ctx = makeCtx({})
     await calendarAgent.run(ctx)
-    expect(ctx.speak).toHaveBeenCalledWith(
-      expect.stringContaining('Team Meeting')
-    )
+    expect(ctx.speak).toHaveBeenCalledWith(expect.stringContaining('Team Meeting'))
   })
 
   it('calls ctx.broadcast with agent_notification for an event starting soon', async () => {
@@ -107,15 +109,16 @@ describe('calendarAgent.run()', () => {
   })
 
   it('skips an event that has already been alerted (dedup)', async () => {
-    const event = makeGCalEvent({ id: 'dedup-event' })
+    const event = makeGCalEvent()
     mockEventsList.mockResolvedValue({ data: { items: [event] } })
     const ctx = makeCtx({})
 
     // First run — should alert
     await calendarAgent.run(ctx)
     const speakCallCount = (ctx.speak as any).mock.calls.length
+    expect(speakCallCount).toBeGreaterThan(0)
 
-    // Second run with same event
+    // Second run with same event — id already in alertedEventIds
     await calendarAgent.run(ctx)
     // Should not have been called again
     expect((ctx.speak as any).mock.calls.length).toBe(speakCallCount)
@@ -130,7 +133,7 @@ describe('calendarAgent.run()', () => {
   })
 
   it('skips events without a start time', async () => {
-    const event = { id: 'no-start', summary: 'Vague Event', start: {} }
+    const event = { id: `event-${++eventCounter}`, summary: 'Vague Event', start: {} }
     mockEventsList.mockResolvedValue({ data: { items: [event] } })
     const ctx = makeCtx({})
     await calendarAgent.run(ctx)
