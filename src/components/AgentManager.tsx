@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { FlexCol, FlexRow, Text, Icon, Button } from '@whiteboard/ui-kit'
+import { apiFetch } from '../lib/apiFetch'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -283,7 +284,7 @@ function CreateAgentForm({ onCreated }: { onCreated: () => void }) {
       ''
 
     try {
-      await fetch('/api/agents', {
+      await apiFetch('/api/agents', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
@@ -453,9 +454,8 @@ export function AgentManager() {
 
   const fetchAgents = useCallback(async () => {
     try {
-      const res  = await fetch('/api/agents')
-      const data = await res.json()
-      setAgents(data)
+      const data = await apiFetch<AgentStatus[]>('/api/agents')
+      setAgents(Array.isArray(data) ? data : [])
     } catch {
       // server unreachable
     } finally {
@@ -474,7 +474,7 @@ export function AgentManager() {
   async function handleToggle(id: string, enabled: boolean) {
     // Optimistic update
     setAgents((prev) => prev.map((a) => a.id === id ? { ...a, enabled } : a))
-    await fetch(`/api/agents/${id}`, {
+    await apiFetch(`/api/agents/${id}`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ enabled }),
@@ -483,13 +483,13 @@ export function AgentManager() {
   }
 
   async function handleRun(id: string) {
-    await fetch(`/api/agents/${id}/run`, { method: 'POST' })
+    await apiFetch(`/api/agents/${id}/run`, { method: 'POST' })
     setTimeout(fetchAgents, 1000)
   }
 
   async function handleDelete(id: string) {
     setAgents((prev) => prev.filter((a) => a.id !== id))
-    await fetch(`/api/agents/${id}`, { method: 'DELETE' })
+    await apiFetch(`/api/agents/${id}`, { method: 'DELETE' })
     fetchAgents()
   }
 
