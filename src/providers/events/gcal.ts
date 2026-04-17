@@ -79,7 +79,7 @@ export class GCalProvider implements EventProvider {
 
     const calMap = new Map(allCalendars.map((c) => [c.id, c]))
 
-    const results = await Promise.all(
+    const results = await Promise.allSettled(
       targetCalendars.map((cal) =>
         apiFetch<{ items: GCalEvent[] }>(
           `/api/gcal/events?calendarId=${encodeURIComponent(cal.id)}&timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}`
@@ -102,7 +102,9 @@ export class GCalProvider implements EventProvider {
       )
     )
 
-    return results.flat()
+    return results
+      .filter((r): r is PromiseFulfilledResult<UnifiedEvent[]> => r.status === 'fulfilled')
+      .flatMap(r => r.value)
   }
 
   async createEvent(groupId: string, event: { title: string; start: string; end?: string; allDay?: boolean }): Promise<void> {
