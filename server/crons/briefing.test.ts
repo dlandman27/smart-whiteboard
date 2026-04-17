@@ -32,7 +32,8 @@ function makeNotion() { return {} as any }
 
 describe('startBriefingCron()', () => {
   beforeEach(() => {
-    vi.useFakeTimers()
+    // Pin fake clock to 07:59:00 — advancing 60s fires the interval at 08:00:00
+    vi.useFakeTimers({ now: new Date('2024-01-15T07:59:00') })
     mockBroadcast.mockReset()
     mockLoadTokens.mockReset()
     mockCompileBriefing.mockReset()
@@ -59,11 +60,8 @@ describe('startBriefingCron()', () => {
   })
 
   it('does not broadcast when current time does not match briefing_time', async () => {
-    // Set briefing_time to an hour from now (unlikely to match)
-    const future = new Date()
-    future.setHours((future.getHours() + 1) % 24)
-    const hhmm = `${String(future.getHours()).padStart(2, '0')}:${String(future.getMinutes()).padStart(2, '0')}`
-    mockLoadTokens.mockReturnValue({ briefing_time: hhmm })
+    // Fake clock fires at 08:00 — use a different time so it won't match
+    mockLoadTokens.mockReturnValue({ briefing_time: '09:00' })
     mockCompileBriefing.mockResolvedValue('Good morning!')
 
     startBriefingCron(makeNotion())
@@ -72,11 +70,8 @@ describe('startBriefingCron()', () => {
   })
 
   it('broadcasts speak_briefing when time matches', async () => {
-    // Set briefing_time to "now" in HH:MM format
-    const now = new Date()
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-
-    mockLoadTokens.mockReturnValue({ briefing_time: hhmm })
+    // Fake clock is pinned to 07:59; after advancing 60s the interval fires at 08:00
+    mockLoadTokens.mockReturnValue({ briefing_time: '08:00' })
     mockCompileBriefing.mockResolvedValue('Good morning! You have 3 events today.')
 
     startBriefingCron(makeNotion())
@@ -92,9 +87,7 @@ describe('startBriefingCron()', () => {
   })
 
   it('includes a unique id in the speak_briefing broadcast', async () => {
-    const now  = new Date()
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-    mockLoadTokens.mockReturnValue({ briefing_time: hhmm })
+    mockLoadTokens.mockReturnValue({ briefing_time: '08:00' })
     mockCompileBriefing.mockResolvedValue('Morning!')
 
     startBriefingCron(makeNotion())
@@ -106,9 +99,7 @@ describe('startBriefingCron()', () => {
   })
 
   it('logs an error and does not crash when compileBriefing throws', async () => {
-    const now  = new Date()
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-    mockLoadTokens.mockReturnValue({ briefing_time: hhmm })
+    mockLoadTokens.mockReturnValue({ briefing_time: '08:00' })
     mockCompileBriefing.mockRejectedValue(new Error('API error'))
 
     startBriefingCron(makeNotion())
@@ -127,9 +118,7 @@ describe('startBriefingCron()', () => {
   })
 
   it('passes the notion client to compileBriefing', async () => {
-    const now  = new Date()
-    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-    mockLoadTokens.mockReturnValue({ briefing_time: hhmm })
+    mockLoadTokens.mockReturnValue({ briefing_time: '08:00' })
     mockCompileBriefing.mockResolvedValue('Brief.')
 
     const notion = makeNotion()

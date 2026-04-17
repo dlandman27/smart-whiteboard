@@ -45,7 +45,7 @@ describe('startReminderCron()', () => {
 
   it('does not call notify when no reminders are due', () => {
     mockLoadReminders.mockReturnValue([
-      { id: 'r1', text: 'Future reminder', fireAt: futureISO(60_000), fired: false },
+      { id: 'r1', text: 'Future reminder', fireAt: futureISO(3_600_000), fired: false },
     ])
     startReminderCron()
     vi.advanceTimersByTime(60_000)
