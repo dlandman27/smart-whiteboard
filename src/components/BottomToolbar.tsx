@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { soundPanelOpen, soundSwipe, soundClick } from '../lib/sounds'
 import { Icon, IconButton } from '@whiteboard/ui-kit'
-import { DEFAULT_COLOR, DEFAULT_STROKE, DEFAULT_ERASER_SIZE } from '../constants/drawing'
+import { DRAWING_COLORS, STROKE_WIDTHS, DEFAULT_COLOR, DEFAULT_STROKE, DEFAULT_ERASER_SIZE } from '../constants/drawing'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useVoiceStore } from '../store/voice'
 import { useUIStore } from '../store/ui'
 import { DrawingCanvas } from './DrawingCanvas'
+import type { DrawingCanvasHandle } from './DrawingCanvas'
 import { DatabasePicker } from './DatabasePicker'
 import { NotificationCenter, NotificationCenterButton } from './NotificationCenter'
 import { Pill } from './Pill'
@@ -128,6 +129,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOp
   const voiceState = useVoiceStore((s) => s.state)
   const setScreensaverMode = useUIStore((s) => s.setScreensaverMode)
 
+  const drawingRef                    = useRef<DrawingCanvasHandle>(null)
   const [activeTool,  setActiveTool]  = useState<Tool>('pointer')
   const [activeColor, setActiveColor] = useState(DEFAULT_COLOR)
   const [strokeWidth, setStrokeWidth] = useState(DEFAULT_STROKE)
@@ -203,6 +205,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOp
   return (
     <>
       <DrawingCanvas
+        ref={drawingRef}
         boardId={activeBoardId}
         tool={activeTool}
         color={activeColor}
@@ -210,7 +213,63 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOp
         eraserSize={eraserSize}
       />
 
-      {/* ── Main toolbar ──��──────────────────────────────────────── */}
+      {/* ── Drawing options pill (floats above toolbar when marker active) ── */}
+      {activeTool === 'marker' && (
+        <Pill
+          className="absolute left-1/2 z-[9999] flex items-center gap-1.5 p-2 select-none"
+          style={{
+            transform:  'translateX(-50%)',
+            bottom:     hidden ? 14 : 'calc(3.5rem + 14px)',
+            transition: 'bottom 0.25s ease',
+          }}
+        >
+          <div className="flex items-center gap-1">
+            {DRAWING_COLORS.map((c) => (
+              <button
+                key={c}
+                title={c}
+                onClick={() => setActiveColor(c)}
+                style={{
+                  width:           20,
+                  height:          20,
+                  borderRadius:    '50%',
+                  backgroundColor: c,
+                  border:          activeColor === c
+                    ? '2px solid var(--wt-text)'
+                    : '2px solid transparent',
+                  outline:         activeColor === c
+                    ? '1px solid var(--wt-bg)'
+                    : 'none',
+                  flexShrink:      0,
+                }}
+              />
+            ))}
+          </div>
+          <Divider />
+          <div className="flex items-center gap-1">
+            {STROKE_WIDTHS.map((sw) => (
+              <button
+                key={sw.value}
+                title={`${sw.value}px`}
+                onClick={() => setStrokeWidth(sw.value)}
+                className="flex items-center justify-center"
+                style={{ width: 28, height: 28 }}
+              >
+                <div
+                  className={`${sw.dot} rounded-full`}
+                  style={{
+                    backgroundColor: strokeWidth === sw.value
+                      ? 'var(--wt-text)'
+                      : 'color-mix(in srgb, var(--wt-text) 35%, transparent)',
+                  }}
+                />
+              </button>
+            ))}
+          </div>
+        </Pill>
+      )}
+
+      {/* ── Main toolbar ────────────────────────────────────────── */}
       <Pill
         ref={pillRef}
         className="absolute bottom-2 left-1/2 z-[9999] flex items-center gap-1.5 p-2 select-none"
@@ -227,6 +286,33 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOp
         <button data-no-click-sound style={tabStyle} onClick={() => { setHidden(true); setActivePanel(null) }}>
           <Icon icon="CaretDown" size={11} />
         </button>
+
+        <Divider />
+
+        {/* ── Left group: drawing tools ── */}
+        <div key={`draw-${openKey}`} className="toolbar-drop-in flex items-center gap-1" style={{ animationDelay: '80ms' }}>
+          <IconButton
+            icon="PencilSimple"
+            size="xl"
+            variant={activeTool === 'marker' ? 'active' : 'default'}
+            onClick={() => selectTool(activeTool === 'marker' ? 'pointer' : 'marker')}
+            title="Draw"
+          />
+          <IconButton
+            icon="Eraser"
+            size="xl"
+            variant={activeTool === 'eraser' ? 'active' : 'default'}
+            onClick={() => selectTool(activeTool === 'eraser' ? 'pointer' : 'eraser')}
+            title="Eraser"
+          />
+          <IconButton
+            icon="Trash"
+            size="xl"
+            variant="default"
+            onClick={() => drawingRef.current?.clear()}
+            title="Clear drawing"
+          />
+        </div>
 
         <Divider />
 

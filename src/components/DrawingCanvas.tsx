@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useEffect, useCallback, useState, useImperativeHandle, forwardRef } from 'react'
 
 interface Props {
   boardId: string
@@ -6,6 +6,10 @@ interface Props {
   color: string
   strokeWidth: number
   eraserSize: number
+}
+
+export interface DrawingCanvasHandle {
+  clear: () => void
 }
 
 function save(boardId: string, dataUrl: string) {
@@ -16,11 +20,24 @@ function load(boardId: string): string | null {
   return localStorage.getItem(`wb-drawing-${boardId}`)
 }
 
-export function DrawingCanvas({ boardId, tool, color, strokeWidth, eraserSize }: Props) {
+export const DrawingCanvas = forwardRef<DrawingCanvasHandle, Props>(function DrawingCanvas(
+  { boardId, tool, color, strokeWidth, eraserSize }, ref
+) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const isDrawing = useRef(false)
   const lastPos = useRef<{ x: number; y: number } | null>(null)
   const [eraserPos, setEraserPos] = useState<{ x: number; y: number } | null>(null)
+
+  useImperativeHandle(ref, () => ({
+    clear() {
+      const canvas = canvasRef.current
+      if (!canvas) return
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      try { localStorage.removeItem(`wb-drawing-${boardId}`) } catch {}
+    },
+  }))
 
   // Load saved drawing when board changes, save when leaving
   useEffect(() => {
@@ -60,11 +77,17 @@ export function DrawingCanvas({ boardId, tool, color, strokeWidth, eraserSize }:
   }, [])
 
   const getPos = (e: React.MouseEvent | React.TouchEvent): { x: number; y: number } => {
+    const canvas = canvasRef.current
+    if (!canvas) return { x: 0, y: 0 }
+    const rect = canvas.getBoundingClientRect()
+    const scaleX = canvas.width / rect.width
+    const scaleY = canvas.height / rect.height
     if ('touches' in e) {
       const t = e.touches[0]
-      return { x: t.clientX, y: t.clientY }
+      return { x: (t.clientX - rect.left) * scaleX, y: (t.clientY - rect.top) * scaleY }
     }
-    return { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY }
+    const me = e as React.MouseEvent
+    return { x: (me.clientX - rect.left) * scaleX, y: (me.clientY - rect.top) * scaleY }
   }
 
   const applyStroke = useCallback(
@@ -118,7 +141,12 @@ export function DrawingCanvas({ boardId, tool, color, strokeWidth, eraserSize }:
     (e: React.MouseEvent | React.TouchEvent) => {
       const pos = getPos(e)
 
-      if (tool === 'eraser') setEraserPos(pos)
+      if (tool === 'eraser') {
+        const raw = 'touches' in e
+          ? { x: e.touches[0].clientX, y: e.touches[0].clientY }
+          : { x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY }
+        setEraserPos(raw)
+      }
 
       if (!isDrawing.current || tool === 'pointer' || !lastPos.current) return
       e.preventDefault()
@@ -178,4 +206,4 @@ export function DrawingCanvas({ boardId, tool, color, strokeWidth, eraserSize }:
       )}
     </>
   )
-}
+})
