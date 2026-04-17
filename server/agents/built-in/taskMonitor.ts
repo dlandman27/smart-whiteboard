@@ -25,7 +25,7 @@ export const taskMonitorAgent: Agent = {
   intervalMs:  15 * 60_000,  // every 15 minutes
   enabled:     true,
 
-  async run(ctx: AgentContext) {
+  async run(ctx: AgentContext, _extra?: { reminderText?: string }) {
     const taskDbIds = getTaskDatabaseIds(ctx)
     if (taskDbIds.length === 0) return
 

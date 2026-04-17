@@ -11,7 +11,7 @@ export const endOfDayAgent: Agent = {
   intervalMs:  10 * 60_000,  // check every 10 minutes
   enabled:     true,
 
-  async run(ctx: AgentContext) {
+  async run(ctx: AgentContext, _extra?: { reminderText?: string }) {
     const now   = new Date()
     const day   = now.getDay()
     const hour  = now.getHours()

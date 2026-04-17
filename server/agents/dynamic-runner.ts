@@ -5,22 +5,34 @@ import { getBoardSnapshot } from '../services/board-utils.js'
 import { VOICE_TOOLS, executeVoiceTool } from '../services/voice-tools/registry.js'
 import type { Agent, AgentContext } from './types.js'
 
+// ── Trigger types ──────────────────────────────────────────────────────────────
+
+export type AgentTrigger =
+  | { type: 'cron';          expression: string }
+  | { type: 'daily';         time: string }           // HH:MM
+  | { type: 'calendar_soon'; minutesBefore: number }
+  | { type: 'board_opened';  boardType?: string }
+  | { type: 'widget_added';  widgetType?: string }
+  | { type: 'reminder_fired' }
+
 // ── User-defined agent definition ──────────────────────────────────────────────
 
 export interface UserAgentDef {
   id:          string
   name:        string
-  description: string   // natural-language instructions — Claude interprets this at runtime
+  description: string
   intervalMs:  number
   enabled:     boolean
-  icon:        string   // emoji
-  spriteType?: string   // pixel art sprite key (cat, dog, robot, etc.)
+  icon:        string
+  spriteType?: string
+  triggers:    AgentTrigger[]
   createdAt:   string
 }
 
 type AgentRow = {
   id: string; name: string; description: string; interval_ms: number
-  enabled: number; icon: string; sprite_type: string | null; created_at: string
+  enabled: number; icon: string; sprite_type: string | null
+  triggers: string; created_at: string
 }
 
 function rowToDef(r: AgentRow): UserAgentDef {
@@ -32,6 +44,7 @@ function rowToDef(r: AgentRow): UserAgentDef {
     enabled:     r.enabled === 1,
     icon:        r.icon,
     spriteType:  r.sprite_type ?? undefined,
+    triggers:    JSON.parse(r.triggers ?? '[]'),
     createdAt:   r.created_at,
   }
 }
@@ -45,11 +58,11 @@ export function readUserAgents(): UserAgentDef[] {
 export function addUserAgent(def: Omit<UserAgentDef, 'createdAt'>): UserAgentDef {
   const exists = db.prepare('SELECT id FROM user_agents WHERE id = ?').get(def.id)
   if (exists) throw new Error(`Agent "${def.id}" already exists`)
-  const full: UserAgentDef = { ...def, createdAt: new Date().toISOString() }
-  db.prepare(`INSERT INTO user_agents (id, name, description, interval_ms, enabled, icon, sprite_type, created_at)
-              VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+  const full: UserAgentDef = { ...def, triggers: def.triggers ?? [], createdAt: new Date().toISOString() }
+  db.prepare(`INSERT INTO user_agents (id, name, description, interval_ms, enabled, icon, sprite_type, triggers, created_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(full.id, full.name, full.description, full.intervalMs, full.enabled ? 1 : 0,
-         full.icon, full.spriteType ?? null, full.createdAt)
+         full.icon, full.spriteType ?? null, JSON.stringify(full.triggers), full.createdAt)
   return full
 }
 
@@ -60,12 +73,12 @@ export function removeUserAgent(id: string): void {
 export function updateUserAgent(id: string, patch: Partial<UserAgentDef>): UserAgentDef {
   const row = db.prepare('SELECT * FROM user_agents WHERE id = ?').get(id) as AgentRow | undefined
   if (!row) throw new Error(`Agent "${id}" not found`)
-  const updated = rowToDef({ ...row, ...patch as any })
+  const updated = rowToDef({ ...row, ...(patch as any) })
   db.prepare(`UPDATE user_agents
-              SET name=?, description=?, interval_ms=?, enabled=?, icon=?, sprite_type=?
+              SET name=?, description=?, interval_ms=?, enabled=?, icon=?, sprite_type=?, triggers=?
               WHERE id=?`)
     .run(updated.name, updated.description, updated.intervalMs, updated.enabled ? 1 : 0,
-         updated.icon, updated.spriteType ?? null, id)
+         updated.icon, updated.spriteType ?? null, JSON.stringify(updated.triggers), id)
   return updated
 }
 
@@ -83,13 +96,18 @@ export function buildDynamicAgent(def: UserAgentDef): Agent {
     spriteType:  def.spriteType,
     intervalMs:  def.intervalMs,
     enabled:     def.enabled,
+    triggers:    def.triggers,
 
-    async run(ctx: AgentContext) {
+    async run(ctx: AgentContext, extra?: { reminderText?: string }) {
       const toolCtx = { notion: ctx.notion, gcal: ctx.gcal, userId: 'local', agentId: def.id }
+
+      const triggerNote = extra?.reminderText
+        ? ` A reminder just fired: "${extra.reminderText}".`
+        : ''
 
       const messages: Anthropic.MessageParam[] = [{
         role:    'user',
-        content: `It is ${new Date().toLocaleString()}. Run your agent logic now.`,
+        content: `It is ${new Date().toLocaleString()}.${triggerNote} Run your agent logic now.`,
       }]
 
       for (let turn = 0; turn < 8; turn++) {

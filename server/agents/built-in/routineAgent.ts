@@ -14,7 +14,7 @@ export const routineAgent: Agent = {
   intervalMs:  10 * 60_000,  // every 10 minutes
   enabled:     true,
 
-  async run(ctx: AgentContext) {
+  async run(ctx: AgentContext, _extra?: { reminderText?: string }) {
     const now    = new Date()
     const hour   = now.getHours()
     const today  = now.toISOString().slice(0, 10)

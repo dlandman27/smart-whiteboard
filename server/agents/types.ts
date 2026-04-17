@@ -1,5 +1,6 @@
 import type { Client } from '@notionhq/client'
 import type Anthropic from '@anthropic-ai/sdk'
+import type { AgentTrigger } from './dynamic-runner.js'
 
 // ── Context passed to every agent run ─────────────────────────────────────────
 
@@ -34,12 +35,14 @@ export interface Agent {
   icon?: string
   /** Pixel art sprite key (cat, dog, robot, bunny, ghost, owl, bear, frog) */
   spriteType?: string
-  /** How often to run, in milliseconds */
+  /** How often to run, in milliseconds (fallback polling when no triggers match) */
   intervalMs: number
   /** Whether this agent is active */
   enabled: boolean
+  /** Event-driven triggers — agent fires immediately when any trigger condition is met */
+  triggers?: AgentTrigger[]
   /** The agent's logic — fetch data, reason, act */
-  run: (ctx: AgentContext) => Promise<void>
+  run: (ctx: AgentContext, extra?: { reminderText?: string }) => Promise<void>
 }
 
 // ── Run record ────────────────────────────────────────────────────────────────

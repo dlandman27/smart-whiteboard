@@ -2,6 +2,7 @@ import { WebSocketServer, WebSocket } from 'ws'
 import type { Server } from 'http'
 import type { IncomingMessage } from 'http'
 import { supabaseAdmin } from './lib/supabase.js'
+import { agentEvents } from './agents/scheduler.js'
 
 export let wss: WebSocketServer
 
@@ -55,6 +56,12 @@ export function initWebSocket(httpServer: Server) {
           cachedBoards        = msg.boards  ?? []
           cachedActiveBoardId = msg.activeBoardId ?? ''
           if (msg.canvas) cachedCanvas = msg.canvas
+        }
+        if (msg.type === 'board_switched' && msg.boardType) {
+          agentEvents.emit('board_opened', msg.boardType)
+        }
+        if (msg.type === 'widget_added' && msg.widgetType) {
+          agentEvents.emit('widget_added', msg.widgetType)
         }
       } catch { /* ignore */ }
     })

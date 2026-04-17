@@ -11,7 +11,7 @@ export const meetingCountdownAgent: Agent = {
   intervalMs:  2 * 60_000,  // check every 2 minutes
   enabled:     true,
 
-  async run(ctx: AgentContext) {
+  async run(ctx: AgentContext, _extra?: { reminderText?: string }) {
     if (!ctx.gcal) return
 
     const now   = new Date()

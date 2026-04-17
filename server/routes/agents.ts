@@ -18,14 +18,14 @@ export function agentsRouter(agentScheduler: AgentScheduler): Router {
   }))
 
   router.patch('/agents/:id', (req, res) => {
-    const { enabled } = req.body as { enabled?: boolean }
+    const { enabled, triggers } = req.body as { enabled?: boolean; triggers?: any[] }
     if (typeof enabled === 'boolean') agentScheduler.setEnabled(req.params.id, enabled)
-    try { updateUserAgent(req.params.id, { enabled: enabled ?? true }) } catch { /* built-in agent */ }
+    try { updateUserAgent(req.params.id, { ...(typeof enabled === 'boolean' ? { enabled } : {}), ...(triggers ? { triggers } : {}) }) } catch { /* built-in agent */ }
     res.json({ ok: true })
   })
 
   router.post('/agents', asyncRoute(async (req, res) => {
-    const { name, description, intervalMs, icon, spriteType } = req.body as Partial<UserAgentDef>
+    const { name, description, intervalMs, icon, spriteType, triggers } = req.body as Partial<UserAgentDef>
     if (!name || !description) throw new AppError(400, 'name and description are required')
     const id  = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     const def = addUserAgent({
@@ -36,6 +36,7 @@ export function agentsRouter(agentScheduler: AgentScheduler): Router {
       enabled:     true,
       icon:        icon ?? '🤖',
       spriteType,
+      triggers:    triggers ?? [],
     })
     agentScheduler.register(buildDynamicAgent(def))
     res.json(def)

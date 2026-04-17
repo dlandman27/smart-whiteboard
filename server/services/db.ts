@@ -39,6 +39,7 @@ db.exec(`
     enabled     INTEGER NOT NULL DEFAULT 1,
     icon        TEXT    NOT NULL DEFAULT '🤖',
     sprite_type TEXT,
+    triggers    TEXT    NOT NULL DEFAULT '[]',
     created_at  TEXT    NOT NULL
   );
 
@@ -50,6 +51,9 @@ db.exec(`
     PRIMARY KEY (agent_id, key)
   );
 `)
+
+// Add triggers column to existing installs that predate it
+try { db.exec(`ALTER TABLE user_agents ADD COLUMN triggers TEXT NOT NULL DEFAULT '[]'`) } catch { /* already exists */ }
 
 migrateFromJson()
 

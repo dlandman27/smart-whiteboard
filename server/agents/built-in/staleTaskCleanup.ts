@@ -11,7 +11,7 @@ export const staleTaskCleanupAgent: Agent = {
   intervalMs:  60 * 60_000,  // check hourly
   enabled:     true,
 
-  async run(ctx: AgentContext) {
+  async run(ctx: AgentContext, _extra?: { reminderText?: string }) {
     const now  = new Date()
     const day  = now.getDay()   // 1 = Monday
     const week = getWeekNumber(now)

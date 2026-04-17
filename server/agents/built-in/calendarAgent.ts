@@ -15,7 +15,7 @@ export const calendarAgent: Agent = {
   intervalMs:  5 * 60_000,  // every 5 minutes
   enabled:     true,
 
-  async run(ctx: AgentContext) {
+  async run(ctx: AgentContext, _extra?: { reminderText?: string }) {
     if (!ctx.gcal) return  // GCal not configured
 
     const calendar = google.calendar({ version: 'v3', auth: ctx.gcal })
