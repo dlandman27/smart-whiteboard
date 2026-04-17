@@ -23,13 +23,14 @@ import { BoardSettingsPanel } from './BoardSettingsPanel'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
 import { useScheduleEngine } from '../hooks/useScheduleEngine'
 import { useHashRouter } from '../hooks/useHashRouter'
+import { Screensaver } from './Screensaver'
 import type { PendingWidget } from '../types'
 
 export function Whiteboard() {
   useCanvasSocket()
   useScheduleEngine()
   useHashRouter()
-  const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize, displayMode, setDisplayMode, toggleDisplayMode } = useUIStore()
+  const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize, displayMode, setDisplayMode, toggleDisplayMode, screensaverMode } = useUIStore()
   const { boards, activeBoardId } = useWhiteboardStore()
   const activeBoard        = boards.find(b => b.id === activeBoardId)
   const boardType          = (activeBoard as any)?.boardType as string | undefined
@@ -99,6 +100,7 @@ export function Whiteboard() {
 
   return (
     <div className="flex w-screen h-screen" style={{ background: displayMode ? '#000' : 'var(--wt-bg)' }}>
+      {screensaverMode && <Screensaver />}
       {!displayMode && <Sidebar />}
 
       {/* Inset board */}

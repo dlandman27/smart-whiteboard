@@ -17,6 +17,8 @@ interface UIStore {
   displayMode:         boolean
   setDisplayMode:      (on: boolean) => void
   toggleDisplayMode:   () => void
+  screensaverMode:     boolean
+  setScreensaverMode:  (on: boolean) => void
 }
 
 export const useUIStore = create<UIStore>()((set) => ({
@@ -37,4 +39,6 @@ export const useUIStore = create<UIStore>()((set) => ({
   displayMode:         false,
   setDisplayMode:      (on) => set({ displayMode: on }),
   toggleDisplayMode:   () => set((s) => ({ displayMode: !s.displayMode })),
+  screensaverMode:     false,
+  setScreensaverMode:  (on) => set({ screensaverMode: on }),
 }))

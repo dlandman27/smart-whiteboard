@@ -167,6 +167,8 @@ export function useCanvasSocket() {
           }
         } else if (msg.type === 'tasks_invalidate') {
           queryClient.invalidateQueries({ queryKey: ['wiigit-tasks'] })
+        } else if (msg.type === 'set_screensaver') {
+          useUIStore.getState().setScreensaverMode(!!msg.active)
         }
       }
 

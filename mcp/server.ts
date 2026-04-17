@@ -1223,6 +1223,37 @@ server.registerTool(
   }
 )
 
+// ── Screensaver ───────────────────────────────────────────────────────────────
+
+server.registerTool(
+  'enable_screensaver',
+  {
+    description: [
+      'Activate screensaver mode on the whiteboard.',
+      'The board goes dark and displays a floating clock that bounces around the screen.',
+      'Any user interaction (click, keypress, mousemove) will dismiss it.',
+      'Use disable_screensaver to turn it off programmatically.',
+    ].join(' '),
+    inputSchema: z.object({}),
+  },
+  async () => {
+    await api('POST', '/api/canvas/screensaver', { active: true })
+    return { content: [{ type: 'text', text: 'Screensaver activated. Any user interaction will dismiss it.' }] }
+  }
+)
+
+server.registerTool(
+  'disable_screensaver',
+  {
+    description: 'Deactivate screensaver mode and return the whiteboard to its normal view.',
+    inputSchema: z.object({}),
+  },
+  async () => {
+    await api('POST', '/api/canvas/screensaver', { active: false })
+    return { content: [{ type: 'text', text: 'Screensaver dismissed.' }] }
+  }
+)
+
 // ── Start ─────────────────────────────────────────────────────────────────────
 
 const transport = new StdioServerTransport()

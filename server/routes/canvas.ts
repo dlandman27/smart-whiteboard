@@ -38,6 +38,12 @@ export function canvasRouter(): Router {
     res.json({ ok: true })
   })
 
+  router.post('/canvas/screensaver', (req, res) => {
+    const active = !!req.body.active
+    broadcast({ type: 'set_screensaver', active })
+    res.json({ ok: true, active })
+  })
+
   router.post('/canvas/focus-widget', (req, res) => {
     const { id } = req.body
     if (id) broadcast({ type: 'focus_widget', id })

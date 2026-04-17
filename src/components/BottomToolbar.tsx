@@ -4,6 +4,7 @@ import { Icon, IconButton } from '@whiteboard/ui-kit'
 import { DEFAULT_COLOR, DEFAULT_STROKE, DEFAULT_ERASER_SIZE } from '../constants/drawing'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useVoiceStore } from '../store/voice'
+import { useUIStore } from '../store/ui'
 import { DrawingCanvas } from './DrawingCanvas'
 import { DatabasePicker } from './DatabasePicker'
 import { NotificationCenter, NotificationCenterButton } from './NotificationCenter'
@@ -125,6 +126,7 @@ function Divider() {
 export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOpen, onExternalPickerClose }: Props) {
   const { activeBoardId } = useWhiteboardStore()
   const voiceState = useVoiceStore((s) => s.state)
+  const setScreensaverMode = useUIStore((s) => s.setScreensaverMode)
 
   const [activeTool,  setActiveTool]  = useState<Tool>('pointer')
   const [activeColor, setActiveColor] = useState(DEFAULT_COLOR)
@@ -250,6 +252,16 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOp
           <NotificationCenterButton
             active={activePanel === 'notif'}
             onClick={() => togglePanel('notif')}
+          />
+        </div>
+
+        <div key={`ss-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '240ms' }}>
+          <IconButton
+            icon="Moon"
+            size="xl"
+            variant="default"
+            onClick={() => setScreensaverMode(true)}
+            title="Screensaver"
           />
         </div>
       </Pill>
