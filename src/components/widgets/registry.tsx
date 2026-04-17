@@ -55,6 +55,7 @@ import { ICalWidget } from './ICalWidget'
 import { ICalSettings } from './ICalSettings'
 import { WalliAgentWidget, WalliAgentSettings } from './WalliAgentWidget'
 import { TaskListWidget, TaskListSettings } from './TaskListWidget'
+import { AppleHealthWidget } from './AppleHealthWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 export type { WidgetTypeDef, WidgetVariantDef } from './types'
@@ -734,6 +735,23 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       constraints:       { minWidth: 240, minHeight: 280, maxWidth: 500, maxHeight: 700 },
       component:         TodoistWidget,
       settingsComponent: TodoistSettings,
+    }],
+  },
+  {
+    typeId:      '@whiteboard/apple-health',
+    label:       'Apple Health',
+    Icon:        'HeartStraight',
+    iconColor:   '#FF375F',
+    keywords:    ['health', 'apple', 'steps', 'fitness', 'weight', 'rings', 'activity', 'heart'],
+    description: 'Live stats from Apple Health — steps, activity rings, weight, and more',
+    variants: [{
+      variantId:   'default',
+      label:       'Apple Health',
+      description: 'Steps, activity rings, weight and health stats',
+      shape:       WIDGET_SHAPES['tall-rect'],
+      scalable:    true,
+      constraints: { minWidth: 200, minHeight: 280, maxWidth: 420, maxHeight: 800 },
+      component:   AppleHealthWidget,
     }],
   },
 ]
