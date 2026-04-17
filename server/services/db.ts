@@ -68,22 +68,6 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
 
-  CREATE TABLE IF NOT EXISTS routines (
-    id         TEXT    PRIMARY KEY,
-    title      TEXT    NOT NULL,
-    category   TEXT    NOT NULL DEFAULT 'daily',
-    emoji      TEXT    NOT NULL DEFAULT '✅',
-    sort_order INTEGER NOT NULL DEFAULT 0,
-    enabled    INTEGER NOT NULL DEFAULT 1,
-    created_at TEXT    NOT NULL
-  );
-
-  CREATE TABLE IF NOT EXISTS routine_completions (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    routine_id TEXT    NOT NULL REFERENCES routines(id) ON DELETE CASCADE,
-    date       TEXT    NOT NULL,
-    UNIQUE(routine_id, date)
-  );
 `)
 
 // Add triggers column to existing installs that predate it
