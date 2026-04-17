@@ -3,6 +3,7 @@ import {
   FlexRow, FlexCol, Box, Text, Icon, Center,
   IconButton, ScrollArea, Button,
 } from '@whiteboard/ui-kit'
+import { apiFetch } from '../lib/apiFetch'
 import { usePetsStore } from '../store/pets'
 import { SPRITES, getSpriteType } from './pets/sprites'
 import { PixelSprite } from './pets/PixelSprite'
@@ -326,12 +327,11 @@ function CreateAgentPanel({ onCreated }: { onCreated: () => void }) {
     if (!name.trim() || !description.trim()) { setError('Name and description required'); return }
     setSaving(true); setError(null)
     try {
-      const res = await fetch('/api/agents', {
+      await apiFetch('/api/agents', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ name: name.trim(), description: description.trim(), icon, spriteType, triggers, intervalMs }),
       })
-      if (!res.ok) { const d = await res.json() as any; throw new Error(d.error ?? 'Failed') }
       onCreated()
       setName(''); setDescription(''); setIcon('🤖'); setSpriteType('robot')
       setTriggers([]); setIntervalMs(3_600_000)
@@ -397,9 +397,8 @@ export function AgentsBoardView() {
   const [showCreate, setShowCreate] = useState(false)
 
   const fetchAgents = useCallback(() => {
-    fetch('/api/agents')
-      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
-      .then((data: AgentStatus[]) => { setAgents(data); setLoading(false) })
+    apiFetch<AgentStatus[]>('/api/agents')
+      .then((data) => { setAgents(data); setLoading(false) })
       .catch(() => setLoading(false))
   }, [])
 
@@ -407,18 +406,18 @@ export function AgentsBoardView() {
   useEffect(() => { const t = setInterval(fetchAgents, 30_000); return () => clearInterval(t) }, [fetchAgents])
 
   async function handleToggle(id: string, enabled: boolean) {
-    await fetch(`/api/agents/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }) })
+    await apiFetch(`/api/agents/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }) })
     fetchAgents()
   }
 
   async function handleRunNow(id: string) {
-    await fetch(`/api/agents/${id}/run`, { method: 'POST' })
+    await apiFetch(`/api/agents/${id}/run`, { method: 'POST' })
     fetchAgents()
   }
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this agent?')) return
-    await fetch(`/api/agents/${id}`, { method: 'DELETE' })
+    await apiFetch(`/api/agents/${id}`, { method: 'DELETE' })
     fetchAgents()
   }
 
