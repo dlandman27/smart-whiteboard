@@ -121,8 +121,8 @@ function Stat({ label, value, pct }: { label: string; value: string; pct: number
 // ── Main widget ───────────────────────────────────────────────────────────────
 
 export function WalliAgentWidget({ widgetId }: { widgetId: string }) {
-  const { settings } = useWidgetSettings<WalliAgentWidgetSettings>(widgetId)
-  const agentId      = settings?.agentId ?? 'apollo'
+  const [settings] = useWidgetSettings<WalliAgentWidgetSettings>(widgetId, {} as WalliAgentWidgetSettings)
+  const agentId    = settings?.agentId ?? 'apollo'
   const agentState   = useWalliAgentsStore((s) => s.widgets[`${agentId}-primary`])
   const [hydrated, setHydrated] = useState(false)
 
@@ -178,7 +178,7 @@ export function WalliAgentWidget({ widgetId }: { widgetId: string }) {
 // ── Settings ──────────────────────────────────────────────────────────────────
 
 export function WalliAgentSettings({ widgetId }: { widgetId: string }) {
-  const { settings, updateSettings } = useWidgetSettings<WalliAgentWidgetSettings>(widgetId)
+  const [settings, updateSettings] = useWidgetSettings<WalliAgentWidgetSettings>(widgetId, {} as WalliAgentWidgetSettings)
   const agentId = settings?.agentId ?? 'apollo'
 
   const agents: { id: AgentDomain; label: string }[] = [

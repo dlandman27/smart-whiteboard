@@ -53,6 +53,7 @@ import { TodoistWidget } from './TodoistWidget'
 import { TodoistSettings } from './TodoistSettings'
 import { ICalWidget } from './ICalWidget'
 import { ICalSettings } from './ICalSettings'
+import { WalliAgentWidget, WalliAgentSettings } from './WalliAgentWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 export type { WidgetTypeDef, WidgetVariantDef } from './types'
@@ -678,6 +679,24 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       constraints:       { minWidth: 320, minHeight: 200, maxWidth: 1400, maxHeight: 900 },
       component:         SplitWidget,
       settingsComponent: SplitSettings,
+    }],
+  },
+  {
+    typeId:      '@whiteboard/walli-agent',
+    label:       'Walli Agent',
+    Icon:        'Robot',
+    iconColor:   '#6366f1',
+    keywords:    ['walli', 'agent', 'health', 'tasks', 'habits', 'apollo', 'miles', 'harvey'],
+    description: 'Live data from a Walli agent',
+    variants: [{
+      variantId:         'default',
+      label:             'Walli Agent',
+      description:       'Live data from a Walli agent',
+      shape:             WIDGET_SHAPES['tall-rect'],
+      scalable:          true,
+      constraints:       { minWidth: 240, minHeight: 240, maxWidth: 600, maxHeight: 700 },
+      component:         WalliAgentWidget,
+      settingsComponent: WalliAgentSettings,
     }],
   },
   {

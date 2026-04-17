@@ -79,7 +79,7 @@ export function useCanvasSocket() {
             y:             msg.y     ?? 100,
             width:         msg.width ?? 300,
             height:        msg.height ?? 200,
-            databaseTitle: msg.label ?? (msg.widgetType as string).replace('@whiteboard/', ''),
+            databaseTitle: msg.label ?? (msg.widgetType ? (msg.widgetType as string).replace('@whiteboard/', '') : ''),
             settings:      msg.settings ?? {},
           } as any)
         } else if (msg.type === 'update_widget') {

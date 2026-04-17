@@ -64,7 +64,26 @@
       "Bash(git merge:*)",
       "Bash(git cherry-pick:*)",
       "mcp__claude_ai_Figma__get_metadata",
-      "mcp__claude_ai_Figma__whoami"
+      "mcp__claude_ai_Figma__whoami",
+      "Bash(ls -1 /c/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/src/components/*.tsx)",
+      "Bash(xargs -I {} basename {})",
+      "Bash(ls -1 /c/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/src/hooks/*.ts*)",
+      "Bash(ls -1 /c/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/src/store/*.ts*)",
+      "Bash(ls -1 /c/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/src/lib/*.ts*)",
+      "Bash(ls -1 /c/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/packages/ui-kit/src/*.tsx)",
+      "Bash(ls -la /c/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/src/components/widgets/*.tsx)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); [print\\(k,':', v\\) for k,v in d.items\\(\\) if k in \\('version','main','module','peerDependencies','engines'\\)]\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('version:', d.get\\('version'\\)\\); peers = d.get\\('peerDependencies', {}\\); [print\\('peer:', k, v\\) for k,v in peers.items\\(\\)]\")",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); main=d.get\\('main'\\); print\\('main:', main\\)\")",
+      "Bash(mkdir -p /c/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/.claude/mobile-prds)",
+      "Bash(mkdir -p /c/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/.claude/mobile-plans)",
+      "Bash(ls /c/Users/dylan/Documents/projects/wiigit-whiteboard/app/.env*)",
+      "Bash(cp /c/Users/dylan/Documents/projects/wiigit-whiteboard/app/app/\\\\\\(tabs\\\\\\)/appearance.tsx /c/Users/dylan/Documents/projects/wiigit-whiteboard/app/app/appearance.tsx)",
+      "Bash(cp /c/Users/dylan/Documents/projects/wiigit-whiteboard/app/app/\\\\\\(tabs\\\\\\)/integrations.tsx /c/Users/dylan/Documents/projects/wiigit-whiteboard/app/app/connections.tsx)",
+      "WebFetch(domain:docs.expo.dev)",
+      "WebFetch(domain:www.callstack.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:medium.com)"
     ]
   }
 }

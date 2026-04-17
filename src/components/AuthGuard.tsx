@@ -111,11 +111,19 @@ export function AuthGuard({ children }: Props) {
       setSession(session)
       if (event === 'SIGNED_IN' && session) {
         const uid = session.user.id
-        Promise.all([init(uid), initTheme(uid)]).then(() => {
+        const state = useWhiteboardStore.getState()
+        if (state.userId === uid && state.boards.length > 0) {
+          // Already initialised for this user (e.g. tab regained focus) — just restart syncs
           startBoardSync(uid)
           startThemeSync(uid)
           startRealtimeSync(uid)
-        })
+        } else {
+          Promise.all([init(uid), initTheme(uid)]).then(() => {
+            startBoardSync(uid)
+            startThemeSync(uid)
+            startRealtimeSync(uid)
+          })
+        }
       }
       if (event === 'SIGNED_OUT') {
         stopBoardSync()

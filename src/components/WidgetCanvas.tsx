@@ -208,8 +208,8 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
         const content = Comp
           ? <Comp widgetId={widget.id} />
           : widget.type === 'calendar'
-          ? <CalendarWidget calendarId={widget.calendarId ?? 'primary'} />
-          : <DatabaseWidget databaseId={widget.databaseId ?? ''} />
+          ? <CalendarWidget widgetId={widget.id} />
+          : <DatabaseWidget widgetId={widget.id} />
 
         return (
           <Widget

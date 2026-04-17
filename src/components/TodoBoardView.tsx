@@ -158,21 +158,21 @@ function AddTaskInput({
   const [busy, setBusy] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  async function submit() {
+  function submit() {
     if (!value.trim() || busy) return
+    const title = value.trim()
+    const due = dueDate ? new Date(dueDate + 'T00:00:00').toISOString() : undefined
+    setValue('')
+    setDueDate('')
+    inputRef.current?.focus()
     setBusy(true)
-    try {
-      await createUnifiedTask(providerId, groupId, {
-        title: value.trim(),
-        due: dueDate ? new Date(dueDate + 'T00:00:00').toISOString() : undefined,
-      })
-      setValue('')
-      setDueDate('')
+    createUnifiedTask(providerId, groupId, { title, due }).then(() => {
       onCreated()
-      inputRef.current?.focus()
-    } finally {
+    }).catch(() => {
+      onCreated() // still refetch to sync state
+    }).finally(() => {
       setBusy(false)
-    }
+    })
   }
 
   return (
@@ -240,14 +240,34 @@ function TaskGroupSection({
   // Providers that have createTask support creation
   const canCreate = group.provider === 'builtin' || group.provider === 'gtasks' || group.provider === 'todoist'
 
-  async function handleToggle(task: UnifiedTask) {
-    await toggleUnifiedTask(task)
-    qc.invalidateQueries({ queryKey: ['unified-tasks'] })
+  function handleToggle(task: UnifiedTask) {
+    // Optimistic: flip immediately in cache
+    qc.setQueryData<UnifiedTask[]>(['unified-tasks'], old =>
+      old?.map(t =>
+        t.source.provider === task.source.provider && t.source.id === task.source.id
+          ? { ...t, completed: !t.completed }
+          : t
+      ) ?? []
+    )
+    toggleUnifiedTask(task).then(() => {
+      qc.invalidateQueries({ queryKey: ['unified-tasks'] })
+    }).catch(() => {
+      // Rollback on failure
+      qc.invalidateQueries({ queryKey: ['unified-tasks'] })
+    })
   }
 
-  async function handleDelete(task: UnifiedTask) {
-    await deleteUnifiedTask(task)
-    qc.invalidateQueries({ queryKey: ['unified-tasks'] })
+  function handleDelete(task: UnifiedTask) {
+    // Optimistic: remove immediately from cache
+    qc.setQueryData<UnifiedTask[]>(['unified-tasks'], old =>
+      old?.filter(t => !(t.source.provider === task.source.provider && t.source.id === task.source.id)) ?? []
+    )
+    deleteUnifiedTask(task).then(() => {
+      qc.invalidateQueries({ queryKey: ['unified-tasks'] })
+    }).catch(() => {
+      // Rollback on failure
+      qc.invalidateQueries({ queryKey: ['unified-tasks'] })
+    })
   }
 
   return (
