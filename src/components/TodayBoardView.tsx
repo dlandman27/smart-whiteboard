@@ -157,7 +157,10 @@ export function TodayBoardView() {
 
   const hours  = now.getHours()
   const period = hours < 12 ? 'morning' : hours < 18 ? 'daily' : 'evening'
-  const periodRoutines = allRoutines.filter(r => r.category === period)
+  const dailyRoutines  = allRoutines.filter(r => r.category === 'daily')
+  const periodRoutines = period === 'daily'
+    ? dailyRoutines
+    : [...allRoutines.filter(r => r.category === period), ...dailyRoutines]
   const routinesDone   = periodRoutines.filter(r => completedIds.includes(r.id)).length
 
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
