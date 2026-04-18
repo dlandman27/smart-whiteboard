@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiFetch } from '../lib/apiFetch'
 
-export type GoalType   = 'numeric' | 'boolean' | 'habit'
+export type GoalType   = 'numeric' | 'habit' | 'time_based' | 'milestone'
 export type GoalStatus = 'active' | 'completed' | 'archived'
 
 export interface Goal {

@@ -87,7 +87,8 @@
       "Bash(npx vitest *)",
       "Bash(ls coverage-out/)",
       "Bash(awk '{if \\($2+0 < 50 && $2 != \"|\"\\) print $0}')",
-      "Bash(npm init *)"
+      "Bash(npm init *)",
+      "Bash(echo \"EXIT:$?\")"
     ]
   }
 }

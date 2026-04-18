@@ -18,9 +18,10 @@ const GOAL_COLORS = [
 const EMOJI_OPTIONS = ['🎯', '🏆', '💪', '📚', '🧘', '🏃', '💰', '🌱', '✈️', '🎓', '🎨', '🏋️', '🤝', '🚀', '❤️']
 
 const TYPE_LABELS: Record<GoalType, string> = {
-  numeric: 'Numeric',
-  boolean: 'Yes / No',
-  habit:   'Habit',
+  numeric:    'Numeric',
+  habit:      'Habit',
+  time_based: 'Time-based',
+  milestone:  'Milestone',
 }
 
 const STATUS_TABS: { key: GoalStatus; label: string }[] = [
@@ -213,7 +214,7 @@ function GoalCard({
         )}
 
         {/* Boolean complete indicator */}
-        {goal.type === 'boolean' && goal.status === 'completed' && (
+        {goal.type === 'milestone' && goal.status === 'completed' && (
           <div style={{
             display: 'flex', alignItems: 'center', gap: 6,
             fontSize: 12, color: 'var(--wt-success)', fontWeight: 550,
@@ -240,7 +241,7 @@ function GoalModal({
 }) {
   const [title,        setTitle]        = useState(initial?.title        ?? '')
   const [description,  setDescription]  = useState(initial?.description  ?? '')
-  const [type,         setType]         = useState<GoalType>(initial?.type ?? 'boolean')
+  const [type,         setType]         = useState<GoalType>(initial?.type ?? 'numeric')
   const [emoji,        setEmoji]        = useState(initial?.emoji        ?? '🎯')
   const [color,        setColor]        = useState(initial?.color        ?? '#3b82f6')
   const [targetValue,  setTargetValue]  = useState(String(initial?.target_value  ?? ''))
@@ -262,7 +263,7 @@ function GoalModal({
       type,
       emoji,
       color,
-      target_value: type === 'numeric' && targetValue ? Number(targetValue) : null,
+      target_value: (type === 'numeric' || type === 'time_based') && targetValue ? Number(targetValue) : null,
       target_date:  targetDate || null,
     })
   }
@@ -364,7 +365,7 @@ function GoalModal({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={labelStyle}>Type</label>
           <div style={{ display: 'flex', gap: 6 }}>
-            {(['boolean', 'numeric', 'habit'] as GoalType[]).map(t => (
+            {(['numeric', 'habit', 'time_based', 'milestone'] as GoalType[]).map(t => (
               <button
                 key={t}
                 onClick={() => setType(t)}
@@ -407,18 +408,34 @@ function GoalModal({
           </div>
         )}
 
-        {/* Non-numeric: just target date */}
-        {type !== 'numeric' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={labelStyle}>Target date (optional)</label>
-            <input
-              type="date"
-              value={targetDate}
-              onChange={e => setTargetDate(e.target.value)}
-              style={inputStyle}
-            />
+        {/* time_based: duration in days + target date */}
+        {type === 'time_based' && (
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={labelStyle}>Duration (days)</label>
+              <input
+                type="number"
+                value={targetValue}
+                onChange={e => setTargetValue(e.target.value)}
+                placeholder="e.g. 30"
+                style={inputStyle}
+              />
+            </div>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <label style={labelStyle}>Target date (optional)</label>
+              <input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} style={inputStyle} />
+            </div>
           </div>
         )}
+
+        {/* habit: just target date */}
+        {type === 'habit' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <label style={labelStyle}>Target date (optional)</label>
+            <input type="date" value={targetDate} onChange={e => setTargetDate(e.target.value)} style={inputStyle} />
+          </div>
+        )}
+
 
         {/* Color swatches */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -439,8 +456,8 @@ function GoalModal({
           </div>
         </div>
 
-        {/* Milestones (edit mode only) */}
-        {initial && (
+        {/* Milestones (edit mode, or create mode for milestone type) */}
+        {(initial || type === 'milestone') && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <label style={labelStyle}>Milestones</label>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
