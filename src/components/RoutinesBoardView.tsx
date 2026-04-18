@@ -183,13 +183,13 @@ function RoutineForm({
       </div>
 
       <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
-        <button onClick={onCancel} style={{ ...iconBtnStyle, width: 'auto', padding: '5px 12px', fontSize: 12 }}>
+        <button onClick={onCancel} style={{ ...iconBtnStyle, width: 'auto', padding: '5px 12px', fontSize: 12, borderRadius: 9 }}>
           Cancel
         </button>
         <button
           onClick={() => { if (title.trim()) onSave({ title: title.trim(), category: cat, emoji }) }}
           style={{
-            padding: '5px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+            padding: '5px 12px', borderRadius: 9, fontSize: 12, fontWeight: 600,
             background: 'var(--wt-accent)', color: 'var(--wt-accent-text)',
             border: 'none', cursor: 'pointer',
           }}
@@ -268,7 +268,7 @@ function CategoryCard({
               {isCurrent && (
                 <span style={{
                   fontSize: 9, fontWeight: 700, padding: '2px 5px', borderRadius: 4,
-                  background: color, color: '#fff', letterSpacing: '0.06em',
+                  background: color, color: 'var(--wt-accent-text)', letterSpacing: '0.06em',
                 }}>
                   NOW
                 </span>
@@ -349,7 +349,7 @@ function CategoryCard({
               width: '100%', display: 'flex', alignItems: 'center', gap: 7,
               padding: '8px 12px', border: 'none', background: 'transparent',
               cursor: 'pointer', color: 'var(--wt-text-muted)', fontSize: 12,
-              borderRadius: 8,
+              borderRadius: 9,
             }}
             onMouseEnter={e => (e.currentTarget.style.background = 'var(--wt-surface-hover)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -463,7 +463,7 @@ export function RoutinesBoardView() {
       </div>
 
       {/* ── Body ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '18px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
         <SummaryStrip routines={routines} completedIds={completedIds} />
 
         <div style={{
