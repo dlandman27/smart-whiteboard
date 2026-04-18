@@ -37,6 +37,7 @@ import { icalRouter }          from './routes/ical.js'
 import { feedbackRouter }      from './routes/feedback.js'
 import { tasksRouter }         from './routes/tasks.js'
 import { routinesRouter }      from './routes/routines.js'
+import { goalsRouter }         from './routes/goals.js'
 import { eventsRouter }        from './routes/events.js'
 import { healthRouter }        from './routes/health.js'
 import { deepgramRouter }      from './routes/deepgram.js'
@@ -118,6 +119,7 @@ app.use('/api', icalRouter())
 app.use('/api', feedbackRouter())
 app.use('/api', tasksRouter())
 app.use('/api', routinesRouter())
+app.use('/api', goalsRouter())
 app.use('/api', eventsRouter())
 app.use('/api', deepgramRouter())
 app.use('/api', healthRouter())
