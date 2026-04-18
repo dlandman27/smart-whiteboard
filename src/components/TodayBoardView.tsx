@@ -158,9 +158,8 @@ export function TodayBoardView() {
   const hours  = now.getHours()
   const period = hours < 12 ? 'morning' : hours < 18 ? 'daily' : 'evening'
   const dailyRoutines  = allRoutines.filter(r => r.category === 'daily')
-  const periodRoutines = period === 'daily'
-    ? dailyRoutines
-    : [...allRoutines.filter(r => r.category === period), ...dailyRoutines]
+  const timePeriodRoutines = allRoutines.filter(r => r.category === period && r.category !== 'daily')
+  const periodRoutines = period === 'daily' ? dailyRoutines : [...timePeriodRoutines, ...dailyRoutines]
   const routinesDone   = periodRoutines.filter(r => completedIds.includes(r.id)).length
 
   const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
@@ -291,49 +290,65 @@ export function TodayBoardView() {
             </div>
           </div>
 
-          {/* Routines — current period */}
+          {/* Routines */}
           <div style={{
-              background: 'rgba(0,0,0,0.35)',
-              backdropFilter: 'blur(20px)',
-              borderRadius: 16,
-              border: '1px solid rgba(255,255,255,0.08)',
-              padding: '18px 20px',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <SectionLabel
-                  icon={period === 'morning' ? 'Sun' : period === 'evening' ? 'Moon' : 'Repeat'}
-                  label={`${period.charAt(0).toUpperCase() + period.slice(1)} Routines`}
-                />
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-                  {routinesDone}/{periodRoutines.length}
-                </span>
-              </div>
-              {/* Progress bar */}
-              {periodRoutines.length > 0 && (
-                <div style={{ height: 2, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginBottom: 10 }}>
-                  <div style={{
-                    height: '100%', borderRadius: 2,
-                    background: routinesDone === periodRoutines.length ? '#4ade80' : 'rgba(255,255,255,0.5)',
-                    width: `${(routinesDone / periodRoutines.length) * 100}%`,
-                    transition: 'width 0.4s ease',
-                  }} />
-                </div>
-              )}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {periodRoutines.length === 0 ? (
-                  <EmptyState text="No routines — add some in the Routines board" />
-                ) : (
-                  periodRoutines.map(r => (
-                    <TodayRoutineRow
-                      key={r.id}
-                      routine={r}
-                      completed={completedIds.includes(r.id)}
-                      onToggle={() => toggleRoutine.mutate({ id: r.id, completed: completedIds.includes(r.id), date: today })}
-                    />
-                  ))
-                )}
-              </div>
+            background: 'rgba(0,0,0,0.35)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: 16,
+            border: '1px solid rgba(255,255,255,0.08)',
+            padding: '18px 20px',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <SectionLabel icon="Repeat" label="Routines" />
+              <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                {routinesDone}/{periodRoutines.length}
+              </span>
             </div>
+            {periodRoutines.length > 0 && (
+              <div style={{ height: 2, borderRadius: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginBottom: 10 }}>
+                <div style={{
+                  height: '100%', borderRadius: 2,
+                  background: routinesDone === periodRoutines.length ? '#4ade80' : 'rgba(255,255,255,0.5)',
+                  width: `${(routinesDone / periodRoutines.length) * 100}%`,
+                  transition: 'width 0.4s ease',
+                }} />
+              </div>
+            )}
+
+            {/* Period-specific routines */}
+            {period !== 'daily' && (
+              <>
+                <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 4, paddingLeft: 14 }}>
+                  {period === 'morning' ? '☀️ Morning' : '🌙 Evening'}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginBottom: timePeriodRoutines.length > 0 && dailyRoutines.length > 0 ? 8 : 0 }}>
+                  {timePeriodRoutines.length === 0
+                    ? <EmptyState text={`No ${period} routines`} />
+                    : timePeriodRoutines.map(r => (
+                        <TodayRoutineRow key={r.id} routine={r} completed={completedIds.includes(r.id)}
+                          onToggle={() => toggleRoutine.mutate({ id: r.id, completed: completedIds.includes(r.id), date: today })} />
+                      ))
+                  }
+                </div>
+              </>
+            )}
+
+            {/* Daily routines */}
+            {period !== 'daily' && dailyRoutines.length > 0 && (
+              <div style={{ fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.3)', marginBottom: 4, paddingLeft: 14 }}>
+                🔁 Daily
+              </div>
+            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {dailyRoutines.length === 0 && period === 'daily'
+                ? <EmptyState text="No routines — add some in the Routines board" />
+                : dailyRoutines.map(r => (
+                    <TodayRoutineRow key={r.id} routine={r} completed={completedIds.includes(r.id)}
+                      onToggle={() => toggleRoutine.mutate({ id: r.id, completed: completedIds.includes(r.id), date: today })} />
+                  ))
+              }
+            </div>
+          </div>
         </div>
 
         {/* ── Bottom: Quote ─────────────────────────────────────────────── */}
