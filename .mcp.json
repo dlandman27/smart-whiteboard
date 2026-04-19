@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "whiteboard": {
+      "command": "cmd",
+      "args": ["/c", "npx", "tsx", "mcp/server.ts"],
+      "cwd": "C:/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard"
+    }
+  }
+}

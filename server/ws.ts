@@ -11,11 +11,29 @@ export let cachedWidgets: unknown[] = []
 export let cachedCanvas: { width: number; height: number } = { width: 1920, height: 1080 }
 export let cachedBoards: { id: string; name: string; widgets: unknown[] }[] = []
 export let cachedActiveBoardId = ''
+export let cachedSlots: unknown[] = []
 
 export function getBoards() { return cachedBoards }
 export function getActiveBoardId() { return cachedActiveBoardId }
 export function getWidgets() { return cachedWidgets }
 export function getCanvas() { return cachedCanvas }
+export function getSlots() { return cachedSlots }
+export function setSlots(slots: unknown[]) { cachedSlots = slots }
+
+// ── Board event ring buffer ───────────────────────────────────────────────────
+
+interface BoardEvent { type: string; ts: number; [key: string]: unknown }
+const boardEventRing: BoardEvent[] = []
+const MAX_BOARD_EVENTS = 200
+
+export function recordBoardEvent(evt: Omit<BoardEvent, 'ts'>) {
+  boardEventRing.push({ ...evt, ts: Date.now() } as BoardEvent)
+  if (boardEventRing.length > MAX_BOARD_EVENTS) boardEventRing.shift()
+}
+
+export function getBoardEvents(since?: number): BoardEvent[] {
+  return since == null ? [...boardEventRing] : boardEventRing.filter((e) => e.ts > since)
+}
 
 export function broadcast(msg: object) {
   const payload = JSON.stringify(msg)
@@ -57,11 +75,16 @@ export function initWebSocket(httpServer: Server) {
           cachedActiveBoardId = msg.activeBoardId ?? ''
           if (msg.canvas) cachedCanvas = msg.canvas
         }
-        if (msg.type === 'board_switched' && msg.boardType) {
-          agentEvents.emit('board_opened', msg.boardType)
+        if (msg.type === 'board_switched') {
+          if (msg.boardType) agentEvents.emit('board_opened', msg.boardType)
+          recordBoardEvent({ type: 'board_switched', boardId: msg.boardId, boardName: msg.boardName })
         }
-        if (msg.type === 'widget_added' && msg.widgetType) {
-          agentEvents.emit('widget_added', msg.widgetType)
+        if (msg.type === 'widget_added') {
+          if (msg.widgetType) agentEvents.emit('widget_added', msg.widgetType)
+          recordBoardEvent({ type: 'widget_added', widgetType: msg.widgetType, widgetId: msg.widgetId })
+        }
+        if (msg.type === 'widget_focused') {
+          recordBoardEvent({ type: 'widget_focused', widgetId: msg.widgetId ?? null })
         }
       } catch { /* ignore */ }
     })

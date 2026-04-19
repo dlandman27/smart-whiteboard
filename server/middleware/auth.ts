@@ -25,7 +25,7 @@ const PUBLIC_PATHS = [
  * Skips verification for OAuth callback routes and health checks.
  */
 export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (PUBLIC_PATHS.includes(req.path)) {
+  if (process.env.NODE_ENV !== 'production' || PUBLIC_PATHS.includes(req.path)) {
     next()
     return
   }

@@ -88,7 +88,13 @@
       "Bash(ls coverage-out/)",
       "Bash(awk '{if \\($2+0 < 50 && $2 != \"|\"\\) print $0}')",
       "Bash(npm init *)",
-      "Bash(echo \"EXIT:$?\")"
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(xargs -I{} basename {} .tsx)",
+      "mcp__whiteboard__delete_widget"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "whiteboard"
+  ]
 }

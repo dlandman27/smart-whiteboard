@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import Anthropic from '@anthropic-ai/sdk'
-import { broadcast, getWidgets, getCanvas } from '../ws.js'
+import { broadcast, getWidgets, getCanvas, getActiveBoardId, getSlots, setSlots, getBoardEvents, recordBoardEvent } from '../ws.js'
 import { AppError, asyncRoute } from '../middleware/error.js'
 
 export function canvasRouter(): Router {
@@ -34,31 +34,57 @@ export function canvasRouter(): Router {
   router.post('/canvas/layout', (req, res) => {
     const { slots } = req.body
     if (!Array.isArray(slots)) throw new AppError(400, 'slots must be an array')
+    setSlots(slots)
     broadcast({ type: 'set_custom_layout', slots })
+    recordBoardEvent({ type: 'layout_changed', slotCount: slots.length })
     res.json({ ok: true })
   })
 
   router.post('/canvas/screensaver', (req, res) => {
     const active = !!req.body.active
     broadcast({ type: 'set_screensaver', active })
+    recordBoardEvent({ type: 'screensaver_changed', active })
     res.json({ ok: true, active })
   })
 
   router.post('/canvas/focus-widget', (req, res) => {
     const { id } = req.body
-    if (id) broadcast({ type: 'focus_widget', id })
-    else    broadcast({ type: 'unfocus_widget' })
+    if (id) {
+      broadcast({ type: 'focus_widget', id })
+      recordBoardEvent({ type: 'widget_focused', widgetId: id })
+    } else {
+      broadcast({ type: 'unfocus_widget' })
+      recordBoardEvent({ type: 'widget_focused', widgetId: null })
+    }
     res.json({ ok: true })
   })
 
   router.post('/canvas/theme', (req, res) => {
     broadcast({ type: 'set_theme', themeId: req.body.themeId })
+    recordBoardEvent({ type: 'theme_changed', themeId: req.body.themeId })
     res.json({ ok: true })
   })
 
   router.post('/canvas/custom-theme', (req, res) => {
     broadcast({ type: 'set_custom_theme', vars: req.body.vars ?? {}, background: req.body.background })
+    recordBoardEvent({ type: 'theme_changed', themeId: 'custom' })
     res.json({ ok: true })
+  })
+
+  // ── Snapshot & events ────────────────────────────────────────────────────────
+
+  router.get('/canvas/state', (_req, res) => {
+    res.json({
+      canvas:        getCanvas(),
+      activeBoardId: getActiveBoardId(),
+      widgets:       getWidgets(),
+      slots:         getSlots(),
+    })
+  })
+
+  router.get('/canvas/events', (req, res) => {
+    const since = req.query.since ? Number(req.query.since) : undefined
+    res.json({ events: getBoardEvents(since) })
   })
 
   router.post('/theme/generate', asyncRoute(async (req, res) => {

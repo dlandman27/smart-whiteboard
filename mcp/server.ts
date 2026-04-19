@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const SRC_WIDGETS_DIR = path.join(__dirname, '../src/components/widgets')
+const PLUGINS_DIR     = path.join(__dirname, '../plugins')
 
 const BASE_URL = process.env.WHITEBOARD_URL ?? 'http://localhost:3001'
 
@@ -216,13 +217,33 @@ server.registerTool(
 server.registerTool(
   'list_widgets',
   {
-    description: 'List all widgets currently on the active whiteboard. Use this before update_widget or delete_widget to get widget IDs.',
-    inputSchema: z.object({}),
+    description: [
+      'List widgets on the active board (default) or any board by ID.',
+      'Pass boardId to inspect another board without switching to it.',
+      'Use list_boards to get board IDs.',
+      'Use this before update_widget or delete_widget to get widget IDs.',
+    ].join(' '),
+    inputSchema: z.object({
+      boardId: z.string().optional().describe('Board ID to inspect. Omit for the currently active board.'),
+    }),
   },
-  async () => {
-    const data = await api('GET', '/api/canvas/widgets')
-    const canvas = data.canvas ?? { width: 1920, height: 1080 }
-    const widgets = (data.widgets ?? []).map((w: any) => ({
+  async ({ boardId }) => {
+    let widgets: any[]
+    let canvas: { width: number; height: number }
+
+    if (boardId) {
+      const { boards } = await api('GET', '/api/canvas/boards')
+      const board = (boards ?? []).find((b: any) => b.id === boardId)
+      if (!board) return { content: [{ type: 'text', text: `Board ${boardId} not found.` }] }
+      widgets = board.widgets ?? []
+      canvas  = { width: 1920, height: 1080 }
+    } else {
+      const data = await api('GET', '/api/canvas/widgets')
+      canvas  = data.canvas ?? { width: 1920, height: 1080 }
+      widgets = data.widgets ?? []
+    }
+
+    const mapped = widgets.map((w: any) => ({
       id:       w.id,
       type:     w.type ?? 'unknown',
       x:        w.x,
@@ -235,11 +256,9 @@ server.registerTool(
       `Canvas size: ${canvas.width} × ${canvas.height} px`,
       `Center: (${Math.round(canvas.width / 2)}, ${Math.round(canvas.height / 2)})`,
       '',
-      widgets.length === 0 ? 'No widgets on the board.' : JSON.stringify(widgets, null, 2),
+      mapped.length === 0 ? 'No widgets on the board.' : JSON.stringify(mapped, null, 2),
     ].join('\n')
-    return {
-      content: [{ type: 'text', text: summary }],
-    }
+    return { content: [{ type: 'text', text: summary }] }
   }
 )
 
@@ -261,17 +280,33 @@ server.registerTool(
       width:      z.number().optional().describe('Width in pixels'),
       height:     z.number().optional().describe('Height in pixels'),
       settings:   z.record(z.unknown()).optional().describe('Widget-specific settings'),
+      slotId:     z.string().optional().describe('Layout slot ID from create_layout. When provided, the widget fills that slot automatically — x/y/width/height are ignored.'),
     }),
   },
-  async ({ widgetType, x, y, width, height, settings }) => {
+  async ({ widgetType, x, y, width, height, settings, slotId }) => {
     const defaults = WIDGET_DEFAULTS[widgetType] ?? { width: 300, height: 200, label: widgetType }
+
+    // Resolve slot → pixel coords when slotId is provided
+    if (slotId) {
+      const state = await api('GET', '/api/canvas/state')
+      const canvas = state.canvas ?? { width: 1920, height: 1080 }
+      const slot   = (state.slots ?? []).find((s: any) => s.id === slotId)
+      if (!slot) {
+        return { content: [{ type: 'text', text: `Slot "${slotId}" not found. Use create_layout first, or call get_board_state to see available slots.` }] }
+      }
+      x      = Math.round(slot.x * canvas.width)
+      y      = Math.round(slot.y * canvas.height)
+      width  = Math.round(slot.width  * canvas.width)
+      height = Math.round(slot.height * canvas.height)
+    }
+
     const w = width  ?? defaults.width
     const h = height ?? defaults.height
-    // Default to center of canvas if no position given
+
     let finalX = x
     let finalY = y
     if (finalX == null || finalY == null) {
-      const data = await api('GET', '/api/canvas/widgets')
+      const data = await api('GET', '/api/canvas/state')
       const canvas = data.canvas ?? { width: 1920, height: 1080 }
       finalX = finalX ?? Math.round(canvas.width  / 2 - w / 2)
       finalY = finalY ?? Math.round(canvas.height / 2 - h / 2)
@@ -289,7 +324,7 @@ server.registerTool(
     return {
       content: [{
         type: 'text',
-        text: `Created ${widgetType} widget with id: ${id}`,
+        text: `Created ${widgetType} widget with id: ${id} at (${finalX}, ${finalY}) ${w}×${h}px${slotId ? ` [slot: ${slotId}]` : ''}`,
       }],
     }
   }
@@ -309,9 +344,20 @@ server.registerTool(
     }),
   },
   async ({ id, x, y, width, height, settings }) => {
+    const before = (await api('GET', '/api/canvas/widgets')).widgets?.find((w: any) => w.id === id)
+    if (!before) return { content: [{ type: 'text', text: `Widget ${id} not found.` }] }
     await api('PATCH', `/api/canvas/widget/${id}`, { x, y, width, height, settings })
+    const merged = {
+      id,
+      type:     before.type,
+      x:        x      ?? before.x,
+      y:        y      ?? before.y,
+      width:    width  ?? before.width,
+      height:   height ?? before.height,
+      settings: settings ? { ...(before.settings ?? {}), ...settings } : (before.settings ?? {}),
+    }
     return {
-      content: [{ type: 'text', text: `Updated widget ${id}` }],
+      content: [{ type: 'text', text: `Updated widget ${id}:\n${JSON.stringify(merged, null, 2)}` }],
     }
   }
 )
@@ -881,14 +927,7 @@ server.registerTool(
     }),
   },
   async ({ pageId }) => {
-    // Normalize: remove hyphens if user pasted a UUID-style ID
     const clean = pageId.replace(/-/g, '').trim()
-    // Validate the page is accessible
-    try {
-      await api('GET', `/api/databases/${clean}`)
-    } catch {
-      // Page might not be a database — try a broader check via workspace page list
-    }
     await api('POST', '/api/notion/workspace-page', { pageId: clean })
     return {
       content: [{
@@ -1089,55 +1128,51 @@ function toPascal(slug: string): string {
     + slug.slice(1).replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
-async function patchRegistry(params: {
+async function createPlugin(params: {
   widgetType:    string
+  slug:          string
   pascal:        string
   label:         string
   icon:          string
-  iconBg:        string
-  iconClass:     string
+  iconColor:     string
   keywords:      string[]
   defaultWidth:  number
   defaultHeight: number
   hasSettings:   boolean
-}) {
-  const registryPath = path.join(SRC_WIDGETS_DIR, 'registry.tsx')
-  let content = await fs.readFile(registryPath, 'utf-8')
+}): Promise<string | null> {
+  const { widgetType, slug, pascal, label, icon, iconColor, keywords, defaultWidth, defaultHeight, hasSettings } = params
+  const pluginDir = path.join(PLUGINS_DIR, slug)
 
-  const { pascal, widgetType, label, icon, iconBg, iconClass, keywords, defaultWidth, defaultHeight, hasSettings } = params
+  try {
+    await fs.access(pluginDir)
+    return `Plugin directory already exists: plugins/${slug}. Choose a different widgetType or delete the directory first.`
+  } catch { /* doesn't exist — good */ }
 
-  // Add import before "export type { WidgetProps }"
-  const importLine = hasSettings
-    ? `import { ${pascal}Widget, ${pascal}Settings } from './${pascal}Widget'`
-    : `import { ${pascal}Widget } from './${pascal}Widget'`
+  await fs.mkdir(pluginDir, { recursive: true })
 
-  content = content.replace(
-    '\nexport type { WidgetProps }',
-    `\n${importLine}\n\nexport type { WidgetProps }`
-  )
+  const manifest = {
+    id:          slug,
+    name:        label,
+    version:     '1.0.0',
+    author:      'smart-whiteboard',
+    description: label,
+    widgets: [{
+      type:        widgetType,
+      label,
+      icon,
+      iconColor,
+      keywords,
+      defaultSize: { width: defaultWidth, height: defaultHeight },
+    }],
+  }
+  await fs.writeFile(path.join(pluginDir, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n', 'utf-8')
 
-  // Build the widget entry
-  const entry = [
-    `  {`,
-    `    type:              '${widgetType}',`,
-    `    label:             '${label}',`,
-    `    Icon:              '${icon}',`,
-    `    iconBg:            '${iconBg}',`,
-    `    iconClass:         '${iconClass}',`,
-    `    keywords:          ${JSON.stringify(keywords)},`,
-    `    defaultSize:       { width: ${defaultWidth}, height: ${defaultHeight} },`,
-    `    component:         ${pascal}Widget,`,
-    hasSettings ? `    settingsComponent: ${pascal}Settings,` : null,
-    `  },`,
-  ].filter(Boolean).join('\n')
+  const exportLine = hasSettings
+    ? `export { ${pascal}Widget as component, ${pascal}Settings as settingsComponent } from '../../src/components/widgets/${pascal}Widget'\n`
+    : `export { ${pascal}Widget as component } from '../../src/components/widgets/${pascal}Widget'\n`
+  await fs.writeFile(path.join(pluginDir, 'index.tsx'), exportLine, 'utf-8')
 
-  // Insert before the closing ] of BUILTIN_WIDGETS
-  content = content.replace(
-    '\n]\n\n// ── Plugin registry',
-    `\n${entry}\n]\n\n// ── Plugin registry`
-  )
-
-  await fs.writeFile(registryPath, content, 'utf-8')
+  return null // no error
 }
 
 server.registerTool(
@@ -1166,8 +1201,7 @@ server.registerTool(
       widgetType:    z.string().describe('Unique widget type slug, e.g. "@whiteboard/grocery-list"'),
       label:         z.string().describe('Display name shown in the add-widget menu, e.g. "Grocery List"'),
       icon:          z.string().describe('Phosphor icon name, e.g. "ShoppingCart"'),
-      iconBg:        z.string().describe('Tailwind bg class for icon background, e.g. "bg-green-50"'),
-      iconClass:     z.string().describe('Tailwind text class for icon color, e.g. "text-green-500"'),
+      iconColor:     z.string().describe('CSS color for the widget icon, e.g. "#22c55e" or "#6366f1"'),
       keywords:      z.array(z.string()).describe('Search keywords for the add-widget menu'),
       defaultWidth:  z.number().optional().describe('Default widget width in pixels (default 320)'),
       defaultHeight: z.number().optional().describe('Default widget height in pixels (default 400)'),
@@ -1179,12 +1213,12 @@ server.registerTool(
       }).optional().describe('If provided, a Notion database is created automatically and its ID is returned'),
     }),
   },
-  async ({ widgetType, label, icon, iconBg, iconClass, keywords, defaultWidth = 320, defaultHeight = 400, code, hasSettings = true, notion }) => {
+  async ({ widgetType, label, icon, iconColor, keywords, defaultWidth = 320, defaultHeight = 400, code, hasSettings = true, notion }) => {
     const slug   = widgetType.replace('@whiteboard/', '')
     const pascal = toPascal(slug)
     const file   = path.join(SRC_WIDGETS_DIR, `${pascal}Widget.tsx`)
 
-    // Check for name collision
+    // Check for widget file collision
     try {
       await fs.access(file)
       return { content: [{ type: 'text', text: `Error: ${file} already exists. Choose a different widgetType or use get_widget_source to read it.` }] }
@@ -1200,16 +1234,21 @@ server.registerTool(
       databaseId = res.id
     }
 
-    // Write widget file
+    // Write widget source file
     await fs.writeFile(file, code, 'utf-8')
 
-    // Patch registry.tsx
-    await patchRegistry({ widgetType, pascal, label, icon, iconBg, iconClass, keywords, defaultWidth, defaultHeight, hasSettings })
+    // Register as a plugin (writes plugins/{slug}/manifest.json + index.tsx)
+    const pluginError = await createPlugin({ widgetType, slug, pascal, label, icon, iconColor, keywords, defaultWidth, defaultHeight, hasSettings })
+    if (pluginError) {
+      // Widget file already written — report partial success
+      return { content: [{ type: 'text', text: `Widget file written but plugin registration failed: ${pluginError}` }] }
+    }
 
     const lines = [
       `Widget "${label}" created successfully.`,
-      `File: src/components/widgets/${pascal}Widget.tsx`,
-      `Type: ${widgetType}`,
+      `File:   src/components/widgets/${pascal}Widget.tsx`,
+      `Plugin: plugins/${slug}/`,
+      `Type:   ${widgetType}`,
       databaseId ? `Notion database ID: ${databaseId}` : null,
       '',
       databaseId
@@ -1220,6 +1259,71 @@ server.registerTool(
     ].filter((l) => l !== null).join('\n')
 
     return { content: [{ type: 'text', text: lines }] }
+  }
+)
+
+// ── Board state & events ──────────────────────────────────────────────────────
+
+server.registerTool(
+  'get_board_state',
+  {
+    description: [
+      'Full snapshot of the active board in one call.',
+      'Returns: canvas dimensions, active board ID, all widget positions/settings, and current layout slots.',
+      'Use this instead of multiple list_widgets + list_boards calls when you need full context.',
+    ].join(' '),
+    inputSchema: z.object({}),
+  },
+  async () => {
+    const state = await api('GET', '/api/canvas/state')
+    const canvas  = state.canvas  ?? { width: 1920, height: 1080 }
+    const widgets = state.widgets ?? []
+    const slots   = state.slots   ?? []
+    const lines = [
+      `Canvas: ${canvas.width} × ${canvas.height} px`,
+      `Active board: ${state.activeBoardId ?? 'unknown'}`,
+      `Widgets (${widgets.length}):`,
+      widgets.length === 0
+        ? '  (none)'
+        : JSON.stringify(widgets.map((w: any) => ({
+            id:       w.id,
+            type:     w.type ?? 'unknown',
+            x:        w.x,
+            y:        w.y,
+            width:    w.width,
+            height:   w.height,
+            settings: w.settings ?? {},
+          })), null, 2),
+      '',
+      slots.length
+        ? `Layout slots (${slots.length}):\n${JSON.stringify(slots, null, 2)}`
+        : 'No layout slots defined.',
+    ].join('\n')
+    return { content: [{ type: 'text', text: lines }] }
+  }
+)
+
+server.registerTool(
+  'get_board_events',
+  {
+    description: [
+      'Poll recent board events — theme changes, widget additions, board switches, focus changes, screensaver toggles.',
+      'Use `since` (Unix ms timestamp) to get only events after a known point.',
+      'Returns events in chronological order. Each event has a `ts` (Unix ms) and `type` field.',
+    ].join(' '),
+    inputSchema: z.object({
+      since: z.number().optional().describe('Unix timestamp in ms. Only return events after this time. Omit to get all recent events (up to 200).'),
+      limit: z.number().optional().describe('Max events to return (default 50, max 200)'),
+    }),
+  },
+  async ({ since, limit = 50 }) => {
+    const qs   = since != null ? `?since=${since}` : ''
+    const data = await api('GET', `/api/canvas/events${qs}`)
+    const events = (data.events ?? []).slice(-Math.min(limit, 200))
+    const text = events.length === 0
+      ? 'No events found.'
+      : `${events.length} event(s):\n${JSON.stringify(events, null, 2)}`
+    return { content: [{ type: 'text', text }] }
   }
 )
 

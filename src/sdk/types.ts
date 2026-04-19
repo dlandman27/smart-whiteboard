@@ -18,8 +18,9 @@ export interface WidgetManifestEntry {
   type:        string
   label:       string
   icon:        string   // Lucide icon name (e.g. "Music")
-  iconBg:      string
-  iconClass:   string
+  iconBg?:     string
+  iconClass?:  string
+  iconColor?:  string   // CSS color, e.g. "#22c55e". Used by new plugin API.
   keywords:    string[]
   defaultSize: { width: number; height: number }
   scalable?:   boolean
