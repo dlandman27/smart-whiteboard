@@ -417,10 +417,10 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         height:     size.height,
         zIndex:     showSettings ? 10002 : zOrder + (dragging ? 3 : isActive ? 1 : 0),
         touchAction: 'none',
-        transform:   dragging ? `scale(${slotAssigned ? dragScale : 1.03})` : undefined,
+        transform:   dragging ? `scale(${slotAssigned ? dragScale : 1.04}) rotate(1.5deg)` : undefined,
         transformOrigin: dragging ? dragOrigin : 'center',
         transition:  dragging ? 'transform 0.15s ease' : 'transform 0.2s ease',
-        opacity:     dragging ? 0.85 : 1,
+        opacity:     dragging ? 0.92 : 1,
         backdropFilter: (widgetStyle === 'glass' || widgetStyle === 'glass-dark' || widgetStyle === 'glass-light') ? 'blur(20px) saturate(1.6)' : undefined,
         animation:   removing ? 'wt-remove 0.15s cubic-bezier(0.4, 0, 1, 1) forwards' : undefined,
       }
@@ -473,7 +473,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
             : widgetStyle === 'glass-light'
             ? '0 8px 32px rgba(0,0,0,0.15)'
             : dragging
-            ? `10px 16px 18px rgba(0,0,0,0.18), 4px 6px 6px rgba(0,0,0,0.1), inset 0 1px 0 var(--wt-widget-highlight)`
+            ? `16px 24px 32px rgba(0,0,0,0.28), 6px 10px 12px rgba(0,0,0,0.16), inset 0 1px 0 var(--wt-widget-highlight)`
             : isActive
             ? `0 5px 0 rgba(0,0,0,0.14), var(--wt-shadow-md), inset 0 1px 0 var(--wt-widget-highlight)`
             : `0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm), inset 0 1px 0 var(--wt-widget-highlight)`,
