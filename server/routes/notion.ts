@@ -235,6 +235,11 @@ export function notionRouter(): Router {
     res.json(await notion.pages.create({ parent: { database_id: req.params.id }, properties: props }))
   }))
 
+  router.get('/pages/:id', asyncRoute(async (req, res) => {
+    const notion = await requireNotion(req.userId!)
+    res.json(await notion.pages.retrieve({ page_id: req.params.id }))
+  }))
+
   router.patch('/pages/:id', asyncRoute(async (req, res) => {
     const notion = await requireNotion(req.userId!)
     res.json(await notion.pages.update({ page_id: req.params.id, properties: req.body.properties }))

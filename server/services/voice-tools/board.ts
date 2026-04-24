@@ -27,7 +27,7 @@ export const boardTools: VoiceTool[] = [
   {
     definition: {
       name:        'create_widget',
-      description: 'Add a new widget to the board. Available types: @whiteboard/clock, @whiteboard/weather, @whiteboard/task-list, @whiteboard/note, @whiteboard/pomodoro, @whiteboard/countdown, @whiteboard/quote, @whiteboard/routines, @whiteboard/nfl, @whiteboard/nba, @whiteboard/html, @whiteboard/timers. For @whiteboard/task-list pass settings: { listName: "My Tasks" } (or whichever list name).',
+      description: 'Add a new widget to the board. Available types: @whiteboard/clock, @whiteboard/weather, @whiteboard/task-list, @whiteboard/note, @whiteboard/pomodoro, @whiteboard/countdown, @whiteboard/quote, @whiteboard/routines, @whiteboard/nfl, @whiteboard/nba, @whiteboard/html, @whiteboard/timers, @whiteboard/image. For @whiteboard/task-list pass settings: { listName: "My Tasks" } (or whichever list name). For @whiteboard/image pass settings: { url: "...", prompt: "..." }.',
       input_schema: {
         type: 'object' as const,
         properties: {

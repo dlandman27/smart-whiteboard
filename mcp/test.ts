@@ -32,9 +32,19 @@ async function call(client: Client, tool: string, args: Record<string, unknown> 
   const res = await client.callTool({ name: tool, arguments: args })
   const content = (res.content as any[])[0]
   if (!content?.text) throw new Error('No text in response')
-  if (content.text.startsWith('Error:') || content.text.includes('not found')) {
+  // Match server error patterns: "Error:", " not found" (with space, e.g. "Widget X not found"),
+  // or HTTP API errors that bubble up as "API GET ... → 4xx/5xx".
+  if (content.text.startsWith('Error:') || / not found/i.test(content.text) || content.text.includes('→ 4') || content.text.includes('→ 5')) {
     throw new Error(content.text)
   }
+  return content.text as string
+}
+
+/** For tools that legitimately return "no X found" messages. Doesn't throw. */
+async function callRaw(client: Client, tool: string, args: Record<string, unknown> = {}) {
+  const res = await client.callTool({ name: tool, arguments: args })
+  const content = (res.content as any[])[0]
+  if (!content?.text) throw new Error('No text in response')
   return content.text as string
 }
 
@@ -66,10 +76,13 @@ async function run() {
   console.log('\x1b[1mBoards\x1b[0m')
 
   await test('list_boards', async () => {
-    const text = await call(client, 'list_boards')
+    const text = await callRaw(client, 'list_boards')
     // Extract original active board ID
     const match = text.match(/id: ([a-f0-9-]+)/)
-    if (match) originalBoardId = match[1]
+    if (!match) {
+      throw new Error('list_boards returned no boards. Open http://localhost:3001 in a browser to populate the cache, then re-run.')
+    }
+    originalBoardId = match[1]
   })
 
   await test('create_board', async () => {
@@ -277,17 +290,109 @@ async function run() {
   // ── Notion ───────────────────────────────────────────────────────────────────
   console.log('\n\x1b[1mNotion\x1b[0m')
 
+  let notionDbId = ''
+
   await test('list_notion_databases', async () => {
     // Just check it responds — may have 0 DBs if Notion key not set
-    const res = await client.callTool({ name: 'list_notion_databases', arguments: {} })
-    const text = (res.content as any[])[0]?.text ?? ''
+    const text = await callRaw(client, 'list_notion_databases')
     if (!text) throw new Error('Empty response')
+    // Try to capture a database ID for the row-CRUD tests below
+    const match = text.match(/"id":\s*"([a-f0-9-]{32,})"/)
+    if (match) notionDbId = match[1]
   })
+
+  // Row-CRUD tests run only if we found a database — otherwise skip rather than fail
+  if (notionDbId) {
+    await test('get_notion_database', async () => {
+      const text = await call(client, 'get_notion_database', { databaseId: notionDbId })
+      if (!text.includes('properties')) throw new Error('Missing properties in response')
+    })
+
+    await test('query_notion_database (read-only)', async () => {
+      // pageSize=1 to keep it light
+      await callRaw(client, 'query_notion_database', { databaseId: notionDbId, pageSize: 1 })
+    })
+  } else {
+    skip('get_notion_database', 'no Notion database available to test against')
+    skip('query_notion_database', 'no Notion database available to test against')
+  }
 
   skip('create_notion_database', 'requires parentPageId — manual test only')
   skip('link_notion_database', 'requires existing DB ID — manual test only')
   skip('set_notion_workspace_page', 'modifies persistent config — manual test only')
   skip('create_widget_component', 'writes source files to disk — manual test only')
+  skip('add_notion_entry', 'mutates real Notion data — manual test only')
+  skip('create_notion_page', 'mutates real Notion data — manual test only')
+  skip('update_notion_page', 'mutates real Notion data — manual test only')
+  skip('check_off_item', 'mutates real Notion data — manual test only')
+  skip('delete_notion_page', 'mutates real Notion data — manual test only')
+  skip('get_notion_page', 'requires a known page ID — manual test only')
+  skip('get_notion_page_content', 'requires a known page ID — manual test only')
+
+  // ── Native productivity (tasks / routines / goals / events) ─────────────────
+  console.log('\n\x1b[1mNative productivity\x1b[0m')
+
+  await test('list_tasks', async () => {
+    await callRaw(client, 'list_tasks')
+  })
+
+  await test('list_task_lists', async () => {
+    const text = await callRaw(client, 'list_task_lists')
+    if (!text) throw new Error('Empty response')
+  })
+
+  await test('list_routines', async () => {
+    await callRaw(client, 'list_routines')
+  })
+
+  await test('list_routine_completions', async () => {
+    await callRaw(client, 'list_routine_completions')
+  })
+
+  await test('list_goals', async () => {
+    await callRaw(client, 'list_goals')
+  })
+
+  await test('list_events', async () => {
+    await callRaw(client, 'list_events')
+  })
+
+  await test('list_calendars', async () => {
+    await callRaw(client, 'list_calendars')
+  })
+
+  skip('create_task',         'mutates user data — manual test only')
+  skip('update_task',         'mutates user data — manual test only')
+  skip('complete_task',       'mutates user data — manual test only')
+  skip('delete_task',         'mutates user data — manual test only')
+  skip('create_task_list',    'mutates user data — manual test only')
+  skip('create_routine',      'mutates user data — manual test only')
+  skip('update_routine',      'mutates user data — manual test only')
+  skip('delete_routine',      'mutates user data — manual test only')
+  skip('reorder_routines',    'mutates user data — manual test only')
+  skip('complete_routine',    'mutates user data — manual test only')
+  skip('uncomplete_routine',  'mutates user data — manual test only')
+  skip('get_routine_streak',  'requires routine ID — manual test only')
+  skip('create_goal',         'mutates user data — manual test only')
+  skip('update_goal',         'mutates user data — manual test only')
+  skip('log_goal_progress',   'mutates user data — manual test only')
+  skip('delete_goal',         'mutates user data — manual test only')
+  skip('create_event',        'mutates user data — manual test only')
+  skip('update_event',        'mutates user data — manual test only')
+  skip('delete_event',        'mutates user data — manual test only')
+
+  // ── Board state & events ─────────────────────────────────────────────────────
+  console.log('\n\x1b[1mBoard state & events\x1b[0m')
+
+  await test('get_board_state (includes theme)', async () => {
+    const text = await callRaw(client, 'get_board_state')
+    if (!text.includes('Theme:')) throw new Error('Theme missing from get_board_state')
+    if (!text.includes('Canvas:')) throw new Error('Canvas missing from get_board_state')
+  })
+
+  await test('get_board_events', async () => {
+    await callRaw(client, 'get_board_events', { limit: 10 })
+  })
 
   // ── Board switch + cleanup ───────────────────────────────────────────────────
   console.log('\n\x1b[1mCleanup\x1b[0m')

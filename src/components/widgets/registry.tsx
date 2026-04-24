@@ -12,6 +12,7 @@ import { CountdownSettings } from './CountdownSettings'
 import { QuoteWidget } from './QuoteWidget'
 import { QuoteSettings } from './QuoteSettings'
 import { HtmlWidget } from './HtmlWidget'
+import { ImageWidget } from './ImageWidget'
 import {
   NFLWidget, NBAWidget, NHLWidget, MLBWidget,
   NFLScoresWidget, NBAScoresWidget, NHLScoresWidget, MLBScoresWidget,
@@ -57,6 +58,7 @@ import { WalliAgentWidget, WalliAgentSettings } from './WalliAgentWidget'
 import { TaskListWidget, TaskListSettings } from './TaskListWidget'
 import { AppleHealthWidget } from './AppleHealthWidget'
 import { GoalsWidget, GoalsSettings } from './GoalsWidget'
+import { GifWidget, GifSettings } from './GifWidget'
 
 export type { WidgetProps } from '@whiteboard/sdk'
 export type { WidgetTypeDef, WidgetVariantDef } from './types'
@@ -440,6 +442,23 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
     }],
   },
   {
+    typeId:      '@whiteboard/image',
+    label:       'Image',
+    Icon:        'Image',
+    iconColor:   '#8b5cf6',
+    keywords:    ['image', 'picture', 'photo', 'ai', 'generated', 'dalle', 'draw'],
+    description: 'AI-generated or custom image',
+    variants: [{
+      variantId:   'default',
+      label:       'Image',
+      description: 'Display an image on the board',
+      shape:       WIDGET_SHAPES['medium-square'],
+      scalable:    true,
+      constraints: { minWidth: 160, minHeight: 160 },
+      component:   ImageWidget,
+    }],
+  },
+  {
     typeId:      '@whiteboard/html',
     label:       'Custom (HTML)',
     Icon:        'Code',
@@ -771,6 +790,24 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       scalable:    true,
       constraints: { minWidth: 200, minHeight: 280, maxWidth: 420, maxHeight: 800 },
       component:   AppleHealthWidget,
+    }],
+  },
+  {
+    typeId:      '@whiteboard/gif',
+    label:       'GIF',
+    Icon:        'FilmSlate',
+    iconColor:   '#8b5cf6',
+    keywords:    ['gif', 'animation', 'tenor', 'meme', 'image', 'fun'],
+    description: 'Display an animated GIF',
+    variants: [{
+      variantId:         'default',
+      label:             'GIF',
+      description:       'Display an animated GIF from Tenor or a direct URL',
+      shape:             WIDGET_SHAPES['medium-square'],
+      scalable:          true,
+      constraints:       { minWidth: 160, minHeight: 160, maxWidth: 800, maxHeight: 800 },
+      component:         GifWidget,
+      settingsComponent: GifSettings,
     }],
   },
 ]

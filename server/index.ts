@@ -41,12 +41,14 @@ import { goalsRouter }         from './routes/goals.js'
 import { eventsRouter }        from './routes/events.js'
 import { healthRouter }        from './routes/health.js'
 import { deepgramRouter }      from './routes/deepgram.js'
+import { gifsRouter }          from './routes/gifs.js'
 
 import { startAllCrons } from './crons/index.js'
 import rateLimit from 'express-rate-limit'
 import { errorMiddleware } from './middleware/error.js'
 import { requireAuth }    from './middleware/auth.js'
 import { log, warn } from './lib/logger.js'
+import { IMAGES_DIR } from './services/voice-tools/image.js'
 
 const app        = express()
 const httpServer = createServer(app)
@@ -97,6 +99,9 @@ const anthropic = new Anthropic()
 
 // ── Routes (auth applied only to /api) ────────────────────────────────────────
 
+// Serve generated images without auth so <img> tags can load them freely
+app.use('/images', express.static(IMAGES_DIR))
+
 app.use('/api', requireAuth)
 app.use('/api', canvasRouter())
 app.use('/api', boardsRouter())
@@ -122,6 +127,7 @@ app.use('/api', routinesRouter())
 app.use('/api', goalsRouter())
 app.use('/api', eventsRouter())
 app.use('/api', deepgramRouter())
+app.use('/api', gifsRouter())
 app.use('/api', healthRouter())
 
 // ── Agent scheduler ────────────────────────────────────────────────────────────

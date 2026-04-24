@@ -9,9 +9,11 @@ import { systemTools }   from './system.js'
 import { timerTools }    from './timers.js'
 import { calendarTools } from './calendar.js'
 import { taskTools }     from './tasks.js'
+import { imageTools }    from './image.js'
 
 const allTools = [
   ...taskTools,
+  ...imageTools,
   ...boardTools,
   ...notionTools,
   ...calendarTools,
