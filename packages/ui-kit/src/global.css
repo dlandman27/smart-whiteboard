@@ -37,6 +37,8 @@
   --wt-settings-divider: #f5f5f4;
   --wt-settings-label:   #a8a29e;
   --wt-scroll-thumb:     #d6d3d1;
+  --wt-widget-highlight:    rgba(255,255,255,0.85);
+  --wt-widget-rest-border:  transparent;
   /* Widget-specific vars */
   --wt-clock-face:       #ffffff;
   --wt-clock-stroke:     #e7e5e4;

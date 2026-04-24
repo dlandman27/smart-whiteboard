@@ -417,7 +417,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         height:     size.height,
         zIndex:     showSettings ? 10002 : zOrder + (dragging ? 3 : isActive ? 1 : 0),
         touchAction: 'none',
-        transform:   dragging ? `scale(${dragScale})` : undefined,
+        transform:   dragging ? `scale(${slotAssigned ? dragScale : 1.03})` : undefined,
         transformOrigin: dragging ? dragOrigin : 'center',
         transition:  dragging ? 'transform 0.15s ease' : 'transform 0.2s ease',
         opacity:     dragging ? 0.85 : 1,
@@ -448,7 +448,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
       <div
         className={`wt-widget-frame w-full h-full overflow-hidden${(widgetStyle === 'borderless' || widgetStyle === 'none') ? ' wt-widget-frame--borderless' : ' border'}${frameAnim === 'entrance' ? ' wt-widget-entrance' : frameAnim === 'settle' ? ' wt-widget-settle' : ''}`}
         style={{
-          borderRadius:    fullscreen && fsExpanded ? 0 : '1rem',
+          borderRadius:    fullscreen && fsExpanded ? 0 : '1.25rem',
           transition:      `border-radius 0.3s ${FS_EASE}, border-color 0.15s, box-shadow 0.15s, background-color 0.2s`,
           backgroundColor:
             widgetStyle === 'glass'       ? 'color-mix(in srgb, var(--wt-bg) 55%, transparent)' :
@@ -463,7 +463,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
             ? { borderColor: 'rgba(255,255,255,0.08)' }
             : widgetStyle === 'glass-light'
             ? { borderColor: 'rgba(255,255,255,0.3)' }
-            : { borderColor: isFlashing ? 'var(--wt-danger)' : (dragging || isActive) ? 'var(--wt-border-active)' : 'var(--wt-border)' }
+            : { borderColor: isFlashing ? 'var(--wt-danger)' : (dragging || isActive) ? 'var(--wt-border-active)' : 'var(--wt-widget-rest-border)' }
           ),
           animation:   isFlashing ? 'wt-flash 0.5s ease-in-out 4' : undefined,
           boxShadow: (widgetStyle === 'borderless' || widgetStyle === 'none')
@@ -473,10 +473,10 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
             : widgetStyle === 'glass-light'
             ? '0 8px 32px rgba(0,0,0,0.15)'
             : dragging
-            ? `0 8px 0 rgba(0,0,0,0.18), var(--wt-shadow-lg)`
+            ? `10px 16px 18px rgba(0,0,0,0.18), 4px 6px 6px rgba(0,0,0,0.1), inset 0 1px 0 var(--wt-widget-highlight)`
             : isActive
-            ? `0 5px 0 rgba(0,0,0,0.14), var(--wt-shadow-md)`
-            : `0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm)`,
+            ? `0 5px 0 rgba(0,0,0,0.14), var(--wt-shadow-md), inset 0 1px 0 var(--wt-widget-highlight)`
+            : `0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm), inset 0 1px 0 var(--wt-widget-highlight)`,
         }}
       >
         <div

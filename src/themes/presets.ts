@@ -15,6 +15,8 @@ export interface ThemeVars {
   widgetBg:           string
   widgetBorder:       string
   widgetBorderActive: string
+  widgetHighlight:    string
+  widgetRestBorder:   string
   shadowSm:           string
   shadowMd:           string
   shadowLg:           string
@@ -249,6 +251,8 @@ export const CSS_VAR_MAP: Record<keyof ThemeVars, string> = {
   widgetBg:           '--wt-bg',
   widgetBorder:       '--wt-border',
   widgetBorderActive: '--wt-border-active',
+  widgetHighlight:    '--wt-widget-highlight',
+  widgetRestBorder:   '--wt-widget-rest-border',
   shadowSm:           '--wt-shadow-sm',
   shadowMd:           '--wt-shadow-md',
   shadowLg:           '--wt-shadow-lg',
