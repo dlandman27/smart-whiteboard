@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 import { useThemeStore } from '../store/theme'
-import { soundWidgetAdded, soundWidgetRemoved } from '../lib/sounds'
+import { soundWidgetRemoved } from '../lib/sounds'
 import { useBriefingStore } from '../store/briefing'
 import { useNotificationStore } from '../store/notifications'
 import { usePetsStore } from '../store/pets'
@@ -71,7 +71,6 @@ export function useCanvasSocket() {
         const { setTheme, setCustomTheme } = useThemeStore.getState()
 
         if (msg.type === 'create_widget') {
-          soundWidgetAdded()
           addWidget({
             id:            msg.id,
             type:          msg.widgetType,

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { soundWidgetDrop, soundWidgetPickup } from '../lib/sounds'
 import { Text } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useLayout } from '../hooks/useLayout'
@@ -64,7 +63,6 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
   }
 
   function handleDragEnd() {
-    soundWidgetDrop()
     setDraggingWidgetId(null)
     setHoveredSlotId(null)
     hoveredSlotRef.current = null
@@ -225,7 +223,6 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
             slotAssigned={!!slotRect}
             onDoubleTap={onWidgetDoubleTap}
             onDragStart={() => {
-              soundWidgetPickup()
               dragStartRef.current = { x, y, width, height, slotId: widget.slotId }
               setDraggingWidgetId(widget.id)
             }}
