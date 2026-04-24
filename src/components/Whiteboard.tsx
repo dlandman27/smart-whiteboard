@@ -105,7 +105,7 @@ export function Whiteboard() {
   }, [setCanvasSize])
 
   return (
-    <div className="flex w-screen h-screen" style={{ background: 'var(--wt-bg)' }}>
+    <div className="relative flex w-screen h-screen" style={{ background: 'var(--wt-bg)' }}>
       {screensaverMode && <Screensaver />}
       <Sidebar />
 
@@ -178,12 +178,6 @@ export function Whiteboard() {
                     onExternalPickerClose={() => setPickerOpen(false)}
                   />
               </>
-            )}
-
-            {!isSystemBoard && (
-              <div className="absolute bottom-4 left-4 z-[9990] select-none">
-                <WalliChatButton />
-              </div>
             )}
 
             {/* PetBar hidden for now */}

@@ -16,7 +16,14 @@ export function Sidebar() {
   const dragIndex   = useRef<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
 
-  const [collapsed, setCollapsed] = useState(false)
+  type SidebarMode = 'full' | 'icons' | 'hidden'
+  const [mode, setMode] = useState<SidebarMode>('full')
+  const collapsed = mode === 'icons'
+  const hidden    = mode === 'hidden'
+
+  function cycleMode() {
+    setMode((m) => m === 'full' ? 'icons' : m === 'icons' ? 'hidden' : 'full')
+  }
   const [addStep,   setAddStep]   = useState<AddStep>('idle')
   const [newName,   setNewName]   = useState('')
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
@@ -67,18 +74,21 @@ export function Sidebar() {
     setShowTemplatePicker(true)
   }
 
+  const sidebarWidth = mode === 'full' ? 200 : mode === 'icons' ? 56 : 0
+
   return (
-    <div
-      className="flex flex-col flex-shrink-0 h-full transition-[width] duration-200 overflow-hidden"
-      style={{
-        width:      collapsed ? 56 : 200,
-        background: 'var(--wt-bg)',
-      }}
-    >
+    <>
+      <div
+        className="flex flex-col flex-shrink-0 h-full transition-[width] duration-200 overflow-hidden"
+        style={{
+          width:      sidebarWidth,
+          background: 'var(--wt-bg)',
+        }}
+      >
       {/* Brand */}
       <button
-        onClick={() => setCollapsed((c) => !c)}
-        title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        onClick={cycleMode}
+        title={mode === 'full' ? 'Collapse sidebar' : 'Hide sidebar'}
         className={`flex items-center h-12 flex-shrink-0 hover:opacity-70 transition-opacity ${collapsed ? 'justify-center' : 'gap-2.5 px-4'}`}
       >
         <Logo size={20} />
@@ -308,6 +318,18 @@ export function Sidebar() {
         />
       )}
     </div>
+
+    {hidden && (
+      <button
+        onClick={cycleMode}
+        title="Show sidebar"
+        className="pop-in absolute top-5 left-5 z-50 flex items-center justify-center rounded-lg hover:opacity-70 transition-opacity"
+        style={{ width: 32, height: 32, background: 'var(--wt-bg)', border: '1px solid var(--wt-border)' }}
+      >
+        <Logo size={16} />
+      </button>
+    )}
+    </>
   )
 }
 
