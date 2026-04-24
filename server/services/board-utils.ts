@@ -38,17 +38,47 @@ export async function fetchBoardState(userId: string): Promise<{
 // ── Typed canvas operations (direct in-process, no HTTP round-trip) ───────────
 
 export const canvas = {
-  createWidget:  (body: Record<string, unknown>): { id: string } => {
+  createWidget: (body: Record<string, unknown>, userId?: string): { id: string } => {
     const id = crypto.randomUUID()
     broadcast({ type: 'create_widget', id, ...body })
+    if (userId) {
+      fetchBoardState(userId).then(({ activeBoardId }) => {
+        supabaseAdmin.from('widgets').upsert({
+          id,
+          board_id:       activeBoardId,
+          user_id:        userId,
+          type:           (body.widgetType as string)  ?? null,
+          variant_id:     (body.variantId  as string)  ?? null,
+          settings:       (body.settings   as object)  ?? {},
+          database_id:    (body.databaseId as string)  ?? null,
+          database_title: (body.label      as string)  ?? '',
+          x:              (body.x          as number)  ?? 100,
+          y:              (body.y          as number)  ?? 100,
+          width:          (body.width      as number)  ?? 300,
+          height:         (body.height     as number)  ?? 200,
+        }).then()
+      }).catch(() => {})
+    }
     return { id }
   },
 
-  updateWidget:  (id: string, body: Record<string, unknown>): void => {
+  updateWidget: (id: string, body: Record<string, unknown>): void => {
     broadcast({ type: 'update_widget', id, ...body })
+    const patch: Record<string, unknown> = {}
+    if (body.settings)       patch['settings']  = body.settings
+    if (body.x      != null) patch['x']         = body.x
+    if (body.y      != null) patch['y']         = body.y
+    if (body.width  != null) patch['width']      = body.width
+    if (body.height != null) patch['height']     = body.height
+    if (Object.keys(patch).length) {
+      supabaseAdmin.from('widgets').update(patch).eq('id', id).then()
+    }
   },
 
-  deleteWidget:  (id: string): void => { broadcast({ type: 'delete_widget', id }) },
+  deleteWidget: (id: string): void => {
+    broadcast({ type: 'delete_widget', id })
+    supabaseAdmin.from('widgets').delete().eq('id', id).then()
+  },
 
   focusWidget:   (id?: string): void => {
     if (id) broadcast({ type: 'focus_widget', id })

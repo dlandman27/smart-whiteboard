@@ -41,8 +41,8 @@ export const boardTools: VoiceTool[] = [
         required: ['widgetType'],
       },
     },
-    execute: async (input) => {
-      const { id } = canvas.createWidget(input)
+    execute: async (input, ctx) => {
+      const { id } = canvas.createWidget(input, ctx.userId)
       return `Created ${input.widgetType} widget (id: ${id})`
     },
   },
@@ -260,7 +260,7 @@ export const boardTools: VoiceTool[] = [
           widgetType: '@whiteboard/note',
           width: 360, height: 280,
           settings: { content: newContent, fontSize: 16, align: 'left' },
-        })
+        }, ctx.userId)
       }
       return mode === 'clear' ? 'Scratch pad cleared.' : 'Note updated.'
     },
@@ -311,7 +311,7 @@ export const boardTools: VoiceTool[] = [
         required: ['databaseId', 'template', 'fieldMap'],
       },
     },
-    execute: async (input) => {
+    execute: async (input, ctx) => {
       const { databaseId, template, title, fieldMap, options, x, y, width, height } = input
       const { id } = canvas.createWidget({
         widgetType: '@whiteboard/notion-view',
@@ -319,7 +319,7 @@ export const boardTools: VoiceTool[] = [
         width:    width  ?? 400,
         height:   height ?? 320,
         settings: { databaseId, template, title, fieldMap, options: options ?? {} },
-      })
+      }, ctx.userId)
       return `Created ${template} widget for database (id: ${id})`
     },
   },
@@ -338,7 +338,7 @@ export const boardTools: VoiceTool[] = [
         required: ['url'],
       },
     },
-    execute: async (input) => {
+    execute: async (input, ctx) => {
       const { url, title, widgetId } = input as { url: string; title?: string; widgetId?: string }
       const settings = { url, title: title ?? '' }
       if (widgetId) {
@@ -350,7 +350,7 @@ export const boardTools: VoiceTool[] = [
         width: 800, height: 540,
         label: title ?? 'Website',
         settings,
-      })
+      }, ctx.userId)
       return `Created website widget for ${url} (id: ${id})`
     },
   },

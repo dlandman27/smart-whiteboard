@@ -27,7 +27,7 @@ export const imageTools: VoiceTool[] = [
         required: ['prompt'],
       },
     },
-    async execute(input) {
+    async execute(input, ctx) {
       const apiKey = process.env.OPENAI_API_KEY
       if (!apiKey) return 'OPENAI_API_KEY is not set — add it to your .env file'
 
@@ -41,7 +41,7 @@ export const imageTools: VoiceTool[] = [
         width: widgetW,
         height: widgetH,
         settings: { url: '', prompt: input.prompt as string, loading: true },
-      })
+      }, ctx.userId)
 
       const openai = new OpenAI({ apiKey })
       openai.images.generate({
