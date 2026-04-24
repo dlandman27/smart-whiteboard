@@ -1,5 +1,6 @@
 import { EventEmitter } from 'events'
 import type { Agent, AgentContext, AgentRun } from './types.js'
+import { fetchBoardState } from '../services/board-utils.js'
 import type { AgentTrigger } from './dynamic-runner.js'
 import { getAgentState, setAgentState } from '../services/agent-state.js'
 import db from '../services/db.js'
@@ -247,12 +248,16 @@ export class AgentScheduler {
     const gcal       = (gcalResult as any)?.client ?? gcalResult
     const userId     = (gcalResult as any)?.userId ?? this.ctx.userId
 
+    const { boards, activeBoardId } = await fetchBoardState(userId).catch(() => ({ boards: [], activeBoardId: '' }))
+
     const spokenLines: string[] = []
     const originalSpeak = this.ctx.speak.bind(this.ctx)
     const patchedCtx: typeof this.ctx = {
       ...this.ctx,
       gcal,
       userId,
+      boards,
+      activeBoardId,
       speak: (text: string) => {
         originalSpeak(text)
         spokenLines.push(text)

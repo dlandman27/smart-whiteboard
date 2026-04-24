@@ -1,16 +1,43 @@
-import { broadcast, getWidgets, getCanvas, getBoards, getActiveBoardId } from '../ws.js'
+import { broadcast, getActiveBoardId } from '../ws.js'
+import { supabaseAdmin } from '../lib/supabase.js'
 import { loadMemory, saveMemory } from './memory.js'
 import { log } from '../lib/logger.js'
 
-// ── Typed canvas operations (direct in-process, no HTTP round-trip) ────────────
+// ── Supabase board state ──────────────────────────────────────────────────────
+
+export async function fetchBoardState(userId: string): Promise<{
+  boards: any[]
+  activeBoardId: string
+}> {
+  const { data } = await supabaseAdmin
+    .from('boards')
+    .select('id, name, widgets:widgets(id, type, variant_id, settings, database_id, database_title, x, y, width, height)')
+    .eq('user_id', userId)
+
+  const boards = (data ?? []).map((b: any) => ({
+    id:      b.id,
+    name:    b.name,
+    widgets: (b.widgets ?? []).map((w: any) => ({
+      id:            w.id,
+      type:          w.type,
+      settings:      w.settings ?? {},
+      databaseId:    w.database_id,
+      databaseTitle: w.database_title ?? '',
+      x: w.x, y: w.y, width: w.width, height: w.height,
+    })),
+  }))
+
+  const explicit      = getActiveBoardId()
+  const activeBoardId = (explicit && boards.find((b) => b.id === explicit))
+    ? explicit
+    : boards[0]?.id ?? ''
+
+  return { boards, activeBoardId }
+}
+
+// ── Typed canvas operations (direct in-process, no HTTP round-trip) ───────────
 
 export const canvas = {
-  getWidgets:    (): { widgets: unknown[]; canvas: { width: number; height: number } } =>
-    ({ widgets: getWidgets(), canvas: getCanvas() }),
-
-  getBoards:     (): { boards: unknown[]; activeBoardId: string } =>
-    ({ boards: getBoards(), activeBoardId: getActiveBoardId() }),
-
   createWidget:  (body: Record<string, unknown>): { id: string } => {
     const id = crypto.randomUUID()
     broadcast({ type: 'create_widget', id, ...body })
@@ -41,16 +68,16 @@ export const canvas = {
   deleteBoard:   (id: string): void => { broadcast({ type: 'delete_board', id }) },
 }
 
-// ── Board snapshot helpers ─────────────────────────────────────────────────────
+// ── Board snapshot helpers ────────────────────────────────────────────────────
 
-export function autoSaveDatabases() {
-  const boards = getBoards()
+export async function autoSaveDatabases(userId: string): Promise<void> {
+  const { boards } = await fetchBoardState(userId)
   if (!boards.length) return
-  const mem = loadMemory()
+  const mem      = loadMemory()
   const knownIds = new Set(Object.values(mem.databases))
-  let changed = false
+  let changed    = false
   for (const board of boards) {
-    for (const w of (board.widgets ?? []) as any[]) {
+    for (const w of board.widgets) {
       const dbId = w.settings?.databaseId as string | undefined
       if (!dbId || knownIds.has(dbId)) continue
       const label: string = w.databaseTitle ?? w.settings?.title ?? w.settings?.label ?? w.type ?? dbId
@@ -63,13 +90,12 @@ export function autoSaveDatabases() {
   if (changed) saveMemory(mem)
 }
 
-export function getBoardSnapshot(): string {
-  autoSaveDatabases()
-  const boards        = getBoards()
-  const activeBoardId = getActiveBoardId()
-  const board = (boards ?? []).find((b: any) => b.id === activeBoardId)
+export async function getBoardSnapshot(userId: string): Promise<string> {
+  await autoSaveDatabases(userId)
+  const { boards, activeBoardId } = await fetchBoardState(userId)
+  const board = boards.find((b) => b.id === activeBoardId)
   if (!board) return ''
-  const widgets = (board.widgets ?? []).map((w: any) =>
+  const widgets = board.widgets.map((w: any) =>
     `  - id:${w.id} type:${w.type}${w.settings?.databaseId ? ` databaseId:${w.settings.databaseId}` : ''}${w.settings?.title ? ` title:"${w.settings.title}"` : ''}${w.databaseTitle ? ` label:"${w.databaseTitle}"` : ''}`
   ).join('\n')
   return `\nCurrent board: "${board.name}" (id:${board.id})\nWidgets on board:\n${widgets || '  (none)'}`

@@ -115,7 +115,7 @@ export function buildDynamicAgent(def: UserAgentDef): Agent {
           model:      'claude-haiku-4-5-20251001',
           max_tokens: 1024,
           system: [
-            `You are Walli, a background agent running inside a smart whiteboard.${memoryToPrompt(loadMemory())}${getBoardSnapshot()}`,
+            `You are Walli, a background agent running inside a smart whiteboard.${memoryToPrompt(loadMemory())}${await getBoardSnapshot(ctx.userId)}`,
             `The user configured you with this description: "${def.description}"`,
             'ALWAYS start by calling get_all_agent_state to see what you remember from previous runs.',
             'Use your tools to fetch real data and act on it. Only speak or notify if there is genuinely something worth reporting — do not make things up.',

@@ -1,4 +1,4 @@
-import { canvas } from '../board-utils.js'
+import { canvas, fetchBoardState } from '../board-utils.js'
 import { broadcast } from '../../ws.js'
 import type { VoiceTool } from './_types.js'
 
@@ -11,15 +11,15 @@ export const boardTools: VoiceTool[] = [
       description: 'Get all widgets on the active board plus all boards. Always call this first when the user references a widget, list, or board by name.',
       input_schema: { type: 'object' as const, properties: {} },
     },
-    execute: async () => {
-      const { widgets, canvas: canvasSize } = canvas.getWidgets()
-      const { boards, activeBoardId }       = canvas.getBoards()
+    execute: async (_input, ctx) => {
+      const { boards, activeBoardId } = await fetchBoardState(ctx.userId)
+      const activeBoard = boards.find((b) => b.id === activeBoardId)
       return JSON.stringify({
         activeBoardId,
-        activeBoardName: (boards as any[]).find((b) => b.id === activeBoardId)?.name ?? 'Unknown',
-        boards:          (boards as any[]).map((b) => ({ id: b.id, name: b.name })),
-        canvas:          canvasSize,
-        widgets,
+        activeBoardName: activeBoard?.name ?? 'Unknown',
+        boards:          boards.map((b) => ({ id: b.id, name: b.name })),
+        canvas:          { width: 1920, height: 1080 },
+        widgets:         activeBoard?.widgets ?? [],
       })
     },
   },
@@ -143,8 +143,8 @@ export const boardTools: VoiceTool[] = [
       description: 'List all boards and which one is active.',
       input_schema: { type: 'object' as const, properties: {} },
     },
-    execute: async () => {
-      return JSON.stringify(canvas.getBoards())
+    execute: async (_input, ctx) => {
+      return JSON.stringify(await fetchBoardState(ctx.userId))
     },
   },
 
@@ -234,12 +234,12 @@ export const boardTools: VoiceTool[] = [
         required: [],
       },
     },
-    execute: async (input) => {
+    execute: async (input, ctx) => {
       const mode = (input.mode as string) ?? 'append'
       const text = (input.text as string) ?? ''
 
-      const { boards, activeBoardId } = canvas.getBoards()
-      const state      = (boards as any[]).find((b) => b.id === activeBoardId)
+      const { boards, activeBoardId } = await fetchBoardState(ctx.userId)
+      const state      = boards.find((b) => b.id === activeBoardId)
       const noteWidget = (state?.widgets ?? []).find((w: any) => w.type === '@whiteboard/note')
 
       let newContent = ''

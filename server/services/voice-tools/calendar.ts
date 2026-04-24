@@ -1,5 +1,5 @@
 import { google } from 'googleapis'
-import { getBoards } from '../../ws.js'
+import { fetchBoardState } from '../board-utils.js'
 import { parseICS } from '../../routes/ical.js'
 import type { VoiceTool } from './_types.js'
 
@@ -17,7 +17,8 @@ export const calendarTools: VoiceTool[] = [
         },
       },
     },
-    execute: async (input, { gcal }) => {
+    execute: async (input, ctx) => {
+      const { gcal } = ctx
       const { date, days = 1, calendarId = 'primary' } = input as {
         date?: string; days?: number; calendarId?: string
       }
@@ -59,7 +60,7 @@ export const calendarTools: VoiceTool[] = [
       }
 
       // ── iCal feeds from board widgets ────────────────────────────────────
-      const boards: any[] = getBoards() ?? []
+      const { boards } = await fetchBoardState(ctx.userId)
       const icalFeeds: { url: string; name?: string }[] = []
       for (const board of boards) {
         for (const w of board.widgets ?? []) {
