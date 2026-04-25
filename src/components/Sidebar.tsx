@@ -11,7 +11,7 @@ type AddStep = 'idle' | 'name-board'
 export function Sidebar() {
   const { boards, activeBoardId, setActiveBoardManual, addBoard, removeBoard, reorderBoards } = useWhiteboardStore()
   const setActiveBoard = setActiveBoardManual
-  const toggleDisplayMode = useUIStore((s) => s.toggleDisplayMode)
+  const { toggleDisplayMode, setSidebarMode } = useUIStore()
 
   const dragIndex   = useRef<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
@@ -22,7 +22,11 @@ export function Sidebar() {
   const hidden    = mode === 'hidden'
 
   function cycleMode() {
-    setMode((m) => m === 'full' ? 'icons' : m === 'icons' ? 'hidden' : 'full')
+    setMode((m) => {
+      const next = m === 'full' ? 'icons' : m === 'icons' ? 'hidden' : 'full'
+      setSidebarMode(next)
+      return next
+    })
   }
   const [addStep,   setAddStep]   = useState<AddStep>('idle')
   const [newName,   setNewName]   = useState('')

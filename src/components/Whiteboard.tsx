@@ -33,7 +33,8 @@ export function Whiteboard() {
   useCanvasSocket()
   useScheduleEngine()
   useHashRouter()
-  const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize, displayMode, setDisplayMode, toggleDisplayMode, screensaverMode } = useUIStore()
+  const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize, displayMode, setDisplayMode, toggleDisplayMode, screensaverMode, sidebarMode } = useUIStore()
+  const sidebarHidden = sidebarMode === 'hidden'
   const { boards, activeBoardId } = useWhiteboardStore()
   const activeBoard        = boards.find(b => b.id === activeBoardId)
   const boardType          = (activeBoard as any)?.boardType as string | undefined
@@ -110,11 +111,11 @@ export function Whiteboard() {
       <Sidebar />
 
       {/* Inset board */}
-      <div className="flex-1 p-2 min-w-0">
+      <div className={`flex-1 min-w-0 ${sidebarHidden ? '' : 'p-2'}`}>
         <div
           ref={boardRef}
-          className="relative w-full h-full overflow-hidden rounded-2xl"
-          style={{ border: '1px solid var(--wt-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08)' }}
+          className={`relative w-full h-full overflow-hidden ${sidebarHidden ? '' : 'rounded-2xl'}`}
+          style={sidebarHidden ? {} : { border: '1px solid var(--wt-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08)' }}
         >
           <WhiteboardBackground background={boardBackground}>
 

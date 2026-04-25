@@ -1,8 +1,11 @@
 import { create } from 'zustand'
 
 type WidgetCmd = 'fullscreen' | 'settings' | 'delete' | 'split'
+export type SidebarMode = 'full' | 'icons' | 'hidden'
 
 interface UIStore {
+  sidebarMode:      SidebarMode
+  setSidebarMode:   (mode: SidebarMode) => void
   focusedWidgetId:     string | null
   setFocusedWidget:    (id: string | null) => void
   flashingWidgetId:    string | null
@@ -41,4 +44,6 @@ export const useUIStore = create<UIStore>()((set) => ({
   toggleDisplayMode:   () => set((s) => ({ displayMode: !s.displayMode })),
   screensaverMode:     false,
   setScreensaverMode:  (on) => set({ screensaverMode: on }),
+  sidebarMode:         'full',
+  setSidebarMode:      (mode) => set({ sidebarMode: mode }),
 }))
