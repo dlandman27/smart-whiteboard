@@ -111,11 +111,10 @@ export function Whiteboard() {
       <Sidebar />
 
       {/* Inset board */}
-      <div className={`flex-1 min-w-0 ${sidebarHidden ? '' : 'p-2'}`}>
+      <div className="flex-1 min-w-0">
         <div
           ref={boardRef}
-          className={`relative w-full h-full overflow-hidden ${sidebarHidden ? '' : 'rounded-2xl'}`}
-          style={sidebarHidden ? {} : { border: '1px solid var(--wt-border)', boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 2px 6px rgba(0,0,0,0.08)' }}
+          className="relative w-full h-full overflow-hidden"
         >
           <WhiteboardBackground background={boardBackground}>
 
