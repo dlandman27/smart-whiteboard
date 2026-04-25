@@ -60,7 +60,7 @@ interface Props {
 
 export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, onDoubleTap, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
   const { updateLayout, removeWidget, splitWidget } = useWhiteboardStore()
-  const { focusedWidgetId, setFocusedWidget, flashingWidgetId, widgetCommand, clearWidgetCommand, setFullscreenWidget } = useUIStore()
+  const { focusedWidgetId, setFocusedWidget, flashingWidgetId, widgetCommand, clearWidgetCommand, setFullscreenWidget, editMode } = useUIStore()
   const isFlashing = flashingWidgetId === id
 
   const hasPrefs    = !!(preferences && preferences.length > 0)
@@ -354,7 +354,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         setPos({ x, y })
         posRef.current = { x, y }
       }
-    } else {
+    } else if (!editMode) {
       // Tap — single-tap selects, double-tap opens context menu, triple-tap toggles fullscreen
       tapCount.current += 1
       if (tapTimer.current) clearTimeout(tapTimer.current)
@@ -428,6 +428,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   return (
     <div
       ref={containerRef}
+      data-widget="true"
       style={fsStyle}
       onClick={(e) => e.stopPropagation()}
       onPointerDown={onBodyDown}
@@ -444,9 +445,43 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
       onTouchMove={onContainerTouchMove}
       onTouchEnd={onContainerTouchEnd}
     >
+      {/* Edit mode delete button */}
+      {editMode && !fullscreen && (
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            soundWidgetRemoved()
+            setRemoving(true)
+            setTimeout(() => removeWidget(id), 150)
+          }}
+          style={{
+            position:   'absolute',
+            top:        -10,
+            left:       -10,
+            zIndex:     9999,
+            width:      28,
+            height:     28,
+            borderRadius: '50%',
+            background: '#ff3b30',
+            border:     '2px solid #fff',
+            color:      '#fff',
+            fontSize:   16,
+            fontWeight: 700,
+            lineHeight: 1,
+            cursor:     'pointer',
+            display:    'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          ×
+        </button>
+      )}
+
       {/* Widget frame — content fills the entire frame, no overlapping header */}
       <div
-        className={`wt-widget-frame w-full h-full overflow-hidden${(widgetStyle === 'borderless' || widgetStyle === 'none') ? ' wt-widget-frame--borderless' : ' border'}${frameAnim === 'entrance' ? ' wt-widget-entrance' : frameAnim === 'settle' ? ' wt-widget-settle' : ''}`}
+        className={`wt-widget-frame w-full h-full overflow-hidden${(widgetStyle === 'borderless' || widgetStyle === 'none') ? ' wt-widget-frame--borderless' : ' border'}${frameAnim === 'entrance' ? ' wt-widget-entrance' : frameAnim === 'settle' ? ' wt-widget-settle' : ''}${editMode && !fullscreen ? ' widget-wiggle' : ''}`}
         style={{
           borderRadius:    fullscreen && fsExpanded ? 0 : '3rem',
           transition:      `border-radius 0.3s ${FS_EASE}, border-color 0.15s, box-shadow 0.15s, background-color 0.2s`,

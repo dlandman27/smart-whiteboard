@@ -70,6 +70,14 @@ body {
 }
 
 
+/* ── Edit mode ───────────────────────────────────────────────────────────────── */
+@keyframes wiggle {
+  0%   { transform: rotate(-1.2deg); }
+  50%  { transform: rotate(1.2deg);  }
+  100% { transform: rotate(-1.2deg); }
+}
+.widget-wiggle { animation: wiggle 0.25s ease-in-out infinite; }
+
 /* ── Toolbar ─────────────────────────────────────────────────────────────────── */
 @keyframes toolbar-drop-in {
   0%   { opacity: 0; transform: translateY(-16px) scale(0.82); }
