@@ -15,7 +15,7 @@ export interface Background {
 export const BACKGROUNDS: Background[] = [
   // ── Dot grid ────────────────────────────────────────────────────────────────
   { label: 'Parchment',   bg: '#f5f0eb', dot: '#c9bfb5' },
-  { label: 'White',       bg: '#f9f9f9', dot: '#e2e2e2' },
+  { label: 'White',       bg: '#f9f8f7', dot: '#e4e0db' },
   { label: 'Cream',       bg: '#faf8f5', dot: '#e0d8cc' },
   { label: 'Slate',       bg: '#f1f5f9', dot: '#cbd5e1' },
   { label: 'Sand',        bg: '#fdf6e3', dot: '#d4c5a9' },

@@ -152,8 +152,8 @@ export const THEMES: Theme[] = [
       info: '#2d5a6a' }),
 
   theme('slate', 'Slate', '▣',
-    { label: 'Slate', bg: '#f9f9f9', dot: '#e2e2e2' },
-    ['#f9f9f9', '#e2e2e2', '#3b82f6', '#191919'],
+    { label: 'Slate', bg: '#f9f8f7', dot: '#e4e0db' },
+    ['#f9f8f7', '#e4e0db', '#3b82f6', '#191919'],
     { primaryHue: 215, primarySat: 30, complementaryHue: 35, complementarySat: 20, dark: false,
       accent: '#3b82f6', accentText: '#ffffff' }),
 
