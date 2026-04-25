@@ -152,16 +152,16 @@ export const THEMES: Theme[] = [
       info: '#2d5a6a' }),
 
   theme('slate', 'Slate', '▣',
-    { label: 'Slate', bg: '#f1f5f9', dot: '#cbd5e1' },
-    ['#f8fafc', '#cbd5e1', '#3b82f6', '#0f172a'],
+    { label: 'Slate', bg: '#f9f9f9', dot: '#e2e2e2' },
+    ['#f9f9f9', '#e2e2e2', '#3b82f6', '#191919'],
     { primaryHue: 215, primarySat: 30, complementaryHue: 35, complementarySat: 20, dark: false,
       accent: '#3b82f6', accentText: '#ffffff' }),
 
   theme('slate-dark', 'Slate Dark', '▣',
-    { label: 'Dark Slate', bg: '#1e293b', dot: '#334155' },
-    ['#1e293b', '#334155', '#60a5fa', '#f1f5f9'],
+    { label: 'Dark Slate', bg: '#191919', dot: '#2a2a2a' },
+    ['#191919', '#2a2a2a', '#60a5fa', '#f9f9f9'],
     { primaryHue: 215, primarySat: 27, complementaryHue: 35, complementarySat: 15, dark: true,
-      accent: '#60a5fa', accentText: '#0f172a' }),
+      accent: '#60a5fa', accentText: '#191919' }),
 
   theme('lavender', 'Lavender', '🪻',
     { label: 'Soft Lilac', bg: '#f3f0f8', dot: '#d8d0e8' },
