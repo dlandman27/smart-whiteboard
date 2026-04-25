@@ -276,20 +276,6 @@ export function Sidebar() {
       {/* Bottom nav — Connectors + Settings */}
       <div className="px-2 pt-1.5 pb-2 flex flex-col gap-0.5" style={{ borderTop: '1px solid var(--wt-border)' }}>
         <NavBtn
-          icon="Robot"
-          label="Agents"
-          collapsed={collapsed}
-          active={isAgentsActive}
-          onClick={() => setActiveBoard(agentsId)}
-        />
-        <NavBtn
-          icon="Megaphone"
-          label="Feedback"
-          collapsed={collapsed}
-          active={isFeedbackActive}
-          onClick={() => setActiveBoard(feedbackId)}
-        />
-        <NavBtn
           icon="Plugs"
           label="Connectors"
           collapsed={collapsed}
