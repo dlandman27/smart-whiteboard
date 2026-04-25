@@ -18,11 +18,11 @@ export const LIGHT: ThemeVars = {
   surfaceHover:  '#ede9e4',
   surfaceDanger: '#fef2f2',
 
-  accent:     '#3b82f6',
+  accent:     '#4a7c59',
   accentText: '#ffffff',
   danger:     '#ef4444',
   success:    '#22c55e',
-  info:       '#3b82f6',
+  info:       '#4a7c59',
 
   actionBg:     '#ffffff',
   actionBorder: '#e8e5e1',
@@ -62,11 +62,11 @@ export const DARK: ThemeVars = {
   surfaceHover:  '#2a2a2a',
   surfaceDanger: '#3a1a1a',
 
-  accent:     '#60a5fa',
+  accent:     '#6aab80',
   accentText: '#191919',
   danger:     '#f87171',
   success:    '#4ade80',
-  info:       '#60a5fa',
+  info:       '#6aab80',
 
   actionBg:     '#242424',
   actionBorder: '#2d2d2d',
