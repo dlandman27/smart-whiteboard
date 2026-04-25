@@ -105,7 +105,7 @@ export function Whiteboard() {
   }, [setCanvasSize])
 
   return (
-    <div className="relative flex w-screen h-screen" style={{ background: 'var(--wt-bg)' }}>
+    <div className="relative flex w-screen" style={{ background: 'var(--wt-bg)', height: '100dvh' }}>
       {screensaverMode && <Screensaver />}
       <Sidebar />
 
