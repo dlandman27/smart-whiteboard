@@ -448,7 +448,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
       <div
         className={`wt-widget-frame w-full h-full overflow-hidden${(widgetStyle === 'borderless' || widgetStyle === 'none') ? ' wt-widget-frame--borderless' : ' border'}${frameAnim === 'entrance' ? ' wt-widget-entrance' : frameAnim === 'settle' ? ' wt-widget-settle' : ''}`}
         style={{
-          borderRadius:    fullscreen && fsExpanded ? 0 : '1.25rem',
+          borderRadius:    fullscreen && fsExpanded ? 0 : '1.75rem',
           transition:      `border-radius 0.3s ${FS_EASE}, border-color 0.15s, box-shadow 0.15s, background-color 0.2s`,
           backgroundColor:
             widgetStyle === 'glass'       ? 'color-mix(in srgb, var(--wt-bg) 55%, transparent)' :
