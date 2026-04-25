@@ -11,9 +11,9 @@ export function startThemeSync(userId: string) {
     if (debounceTimer) clearTimeout(debounceTimer)
     debounceTimer = setTimeout(() => {
       upsertTheme(userId, {
-        activeThemeId:   state.activeThemeId,
-        customOverrides: state.customOverrides as Record<string, string>,
-        customTheme:     state.customTheme as Record<string, string> | null,
+        activeThemeId:   state.mode,
+        customOverrides: {},
+        customTheme:     null,
         background:      state.background,
         petsEnabled:     state.petsEnabled,
       })

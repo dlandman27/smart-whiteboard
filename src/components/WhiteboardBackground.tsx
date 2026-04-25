@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import type { Background } from '../constants/backgrounds'
 import { useThemeStore } from '../store/theme'
-import { THEME_MAP } from '../themes/presets'
+import { LIGHT_BG, DARK_BG } from '../themes/colors'
 import { apiFetch } from '../lib/apiFetch'
 
 interface Props {
@@ -206,8 +206,8 @@ function PhotosSlideshow({ albumId, interval, dim }: { albumId?: string; interva
 // ── Main component ──────────────────────────────────────────────────────────
 
 export function WhiteboardBackground({ background, children }: Props) {
-  const activeThemeId = useThemeStore((s) => s.activeThemeId)
-  const themeBg = THEME_MAP[activeThemeId]?.background ?? background
+  const mode    = useThemeStore((s) => s.mode)
+  const themeBg = { ...background, ...(mode === 'dark' ? DARK_BG : LIGHT_BG) }
   const pattern = background.pattern ?? 'dots'
   const dim = (pattern === 'image' || pattern === 'photos') ? (background.imageDim ?? 0) : 0
 

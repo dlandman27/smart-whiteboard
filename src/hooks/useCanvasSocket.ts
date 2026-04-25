@@ -68,7 +68,7 @@ export function useCanvasSocket() {
           addBoard, renameBoard, removeBoard, setActiveBoard, setCustomLayout,
         } = useWhiteboardStore.getState()
         const { setFocusedWidget } = useUIStore.getState()
-        const { setTheme, setCustomTheme } = useThemeStore.getState()
+        const { setMode } = useThemeStore.getState()
 
         if (msg.type === 'create_widget') {
           addWidget({
@@ -112,10 +112,7 @@ export function useCanvasSocket() {
         } else if (msg.type === 'unfocus_widget') {
           setFocusedWidget(null)
         } else if (msg.type === 'set_theme') {
-          setTheme(msg.themeId)
-        } else if (msg.type === 'set_custom_theme') {
-          const { __baseTheme, ...vars } = msg.vars ?? {}
-          setCustomTheme(vars, msg.background, __baseTheme)
+          setMode(msg.themeId === 'dark' || msg.themeId?.includes('dark') ? 'dark' : 'light')
         } else if (msg.type === 'set_custom_layout') {
           const boardId = useWhiteboardStore.getState().activeBoardId
           setCustomLayout(boardId, msg.slots ?? [])

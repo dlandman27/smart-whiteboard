@@ -1,33 +1,25 @@
 import { useThemeStore } from '../store/theme'
-import { THEME_MAP } from '../themes/presets'
-
-const LIGHT_ID = 'slate'
-const DARK_ID  = 'slate-dark'
 
 export function ThemePicker() {
-  const { activeThemeId, setTheme } = useThemeStore()
-  const isDark = THEME_MAP[activeThemeId]?.dark ?? false
+  const { mode, setMode } = useThemeStore()
 
   return (
     <div
       className="flex rounded-lg p-0.5 gap-0.5"
       style={{ backgroundColor: 'var(--wt-surface)' }}
     >
-      {([
-        { label: 'Light', id: LIGHT_ID, dark: false },
-        { label: 'Dark',  id: DARK_ID,  dark: true  },
-      ] as const).map(({ label, id, dark }) => (
+      {(['light', 'dark'] as const).map((m) => (
         <button
-          key={id}
-          onClick={() => setTheme(id)}
+          key={m}
+          onClick={() => setMode(m)}
           className="flex-1 text-[11px] font-medium py-1.5 rounded-md transition-all capitalize"
           style={{
-            backgroundColor: isDark === dark ? 'var(--wt-bg)' : 'transparent',
-            color:           isDark === dark ? 'var(--wt-text)' : 'var(--wt-text-muted)',
-            boxShadow:       isDark === dark ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+            backgroundColor: mode === m ? 'var(--wt-bg)' : 'transparent',
+            color:           mode === m ? 'var(--wt-text)' : 'var(--wt-text-muted)',
+            boxShadow:       mode === m ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
           }}
         >
-          {label}
+          {m}
         </button>
       ))}
     </div>

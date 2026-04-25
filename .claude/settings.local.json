@@ -90,7 +90,18 @@
       "Bash(npm init *)",
       "Bash(echo \"EXIT:$?\")",
       "Bash(xargs -I{} basename {} .tsx)",
-      "mcp__whiteboard__delete_widget"
+      "mcp__whiteboard__delete_widget",
+      "mcp__whiteboard__list_goals",
+      "mcp__whiteboard__complete_routine",
+      "mcp__whiteboard__list_routine_completions",
+      "Bash(git -C C:/Users/dylan/Documents/projects/wiigit-whiteboard log --oneline --all -- \"app/**\")",
+      "Bash(git -C C:/Users/dylan/Documents/projects/wiigit-whiteboard/app log --oneline)",
+      "mcp__whiteboard__create_task",
+      "Bash(npx expo *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":808\")",
+      "Bash(git remote *)",
+      "WebFetch(domain:docs.magicmirror.builders)"
     ]
   },
   "enableAllProjectMcpServers": true,
