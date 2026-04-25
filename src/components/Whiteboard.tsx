@@ -114,7 +114,7 @@ export function Whiteboard() {
       <div className="flex-1 min-w-0">
         <div
           ref={boardRef}
-          className="relative w-full h-full overflow-hidden"
+          className={`relative w-full h-full overflow-hidden ${sidebarHidden ? '' : 'rounded-r-2xl'}`}
         >
           <WhiteboardBackground background={boardBackground}>
 
