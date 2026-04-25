@@ -11,19 +11,13 @@ type AddStep = 'idle' | 'name-board'
 export function Sidebar() {
   const { boards, activeBoardId, setActiveBoardManual, addBoard, removeBoard, reorderBoards } = useWhiteboardStore()
   const setActiveBoard = setActiveBoardManual
-  const toggleDisplayMode = useUIStore((s) => s.toggleDisplayMode)
+  const { toggleDisplayMode, sidebarMode: mode, cycleSidebarMode } = useUIStore()
 
   const dragIndex   = useRef<number | null>(null)
   const [dragOver, setDragOver] = useState<number | null>(null)
 
-  type SidebarMode = 'full' | 'icons' | 'hidden'
-  const [mode, setMode] = useState<SidebarMode>('full')
   const collapsed = mode === 'icons'
   const hidden    = mode === 'hidden'
-
-  function cycleMode() {
-    setMode((m) => m === 'full' ? 'icons' : m === 'icons' ? 'hidden' : 'full')
-  }
   const [addStep,   setAddStep]   = useState<AddStep>('idle')
   const [newName,   setNewName]   = useState('')
   const [showTemplatePicker, setShowTemplatePicker] = useState(false)
@@ -74,20 +68,27 @@ export function Sidebar() {
     setShowTemplatePicker(true)
   }
 
-  const sidebarWidth = mode === 'full' ? 200 : mode === 'icons' ? 56 : 0
-
   return (
     <>
+      {/* Outer: absolutely positioned, GPU-composited transform for show/hide animation.
+          Width changes are instant (position:absolute = no parent layout reflow). */}
       <div
-        className="flex flex-col flex-shrink-0 h-full transition-[width] duration-200 overflow-hidden"
         style={{
-          width:      sidebarWidth,
+          position:   'absolute',
+          left: 0, top: 0, bottom: 0,
+          width:      mode === 'full' ? 200 : 56,
+          overflow:   'hidden',
           background: 'var(--wt-bg)',
+          transform:  mode === 'hidden' ? 'translateX(-56px)' : 'translateX(0)',
+          transition: 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+          zIndex:     10,
         }}
       >
+      {/* Inner: always full 200px wide so layout of content is stable */}
+      <div className="flex flex-col h-full" style={{ width: 200 }}>
       {/* Brand */}
       <button
-        onClick={cycleMode}
+        onClick={cycleSidebarMode}
         title={mode === 'full' ? 'Collapse sidebar' : 'Hide sidebar'}
         className={`flex items-center h-12 flex-shrink-0 hover:opacity-70 transition-opacity ${collapsed ? 'justify-center' : 'gap-2.5 px-4'}`}
       >
@@ -317,11 +318,12 @@ export function Sidebar() {
           }}
         />
       )}
-    </div>
+      </div>{/* end inner */}
+    </div>{/* end outer */}
 
     {hidden && (
       <button
-        onClick={cycleMode}
+        onClick={cycleSidebarMode}
         title="Show sidebar"
         className="pop-in absolute top-5 left-5 z-50 flex items-center justify-center rounded-lg hover:opacity-70 transition-opacity"
         style={{ width: 32, height: 32, background: 'var(--wt-bg)', border: '1px solid var(--wt-border)' }}

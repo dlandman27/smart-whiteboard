@@ -33,7 +33,7 @@ export function Whiteboard() {
   useCanvasSocket()
   useScheduleEngine()
   useHashRouter()
-  const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize, displayMode, setDisplayMode, toggleDisplayMode, screensaverMode } = useUIStore()
+  const { focusedWidgetId, setFocusedWidget, setCanvasSize, canvasSize, displayMode, setDisplayMode, toggleDisplayMode, screensaverMode, sidebarWidth } = useUIStore()
   const { boards, activeBoardId } = useWhiteboardStore()
   const activeBoard        = boards.find(b => b.id === activeBoardId)
   const boardType          = (activeBoard as any)?.boardType as string | undefined
@@ -108,6 +108,8 @@ export function Whiteboard() {
     <div className="relative flex w-screen" style={{ background: 'var(--wt-bg)', height: '100dvh' }}>
       {screensaverMode && <Screensaver />}
       <Sidebar />
+      {/* Spacer: reserves sidebar space in the flex layout so the board doesn't slide under the absolute sidebar */}
+      <div style={{ flexShrink: 0, width: sidebarWidth }} />
 
       {/* Inset board */}
       <div className="flex-1 p-2 min-w-0">
