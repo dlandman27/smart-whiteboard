@@ -157,6 +157,12 @@ export const THEMES: Theme[] = [
     { primaryHue: 215, primarySat: 30, complementaryHue: 35, complementarySat: 20, dark: false,
       accent: '#3b82f6', accentText: '#ffffff' }),
 
+  theme('slate-dark', 'Slate Dark', '▣',
+    { label: 'Dark Slate', bg: '#1e293b', dot: '#334155' },
+    ['#1e293b', '#334155', '#60a5fa', '#f1f5f9'],
+    { primaryHue: 215, primarySat: 27, complementaryHue: 35, complementarySat: 15, dark: true,
+      accent: '#60a5fa', accentText: '#0f172a' }),
+
   theme('lavender', 'Lavender', '🪻',
     { label: 'Soft Lilac', bg: '#f3f0f8', dot: '#d8d0e8' },
     ['#f7f6f8', '#d1c8da', '#7c3aed', '#2d1a4a'],
