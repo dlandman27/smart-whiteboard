@@ -312,26 +312,6 @@ export function Whiteboard() {
             </button>
           )}
 
-          {/* ── System board back button ───────────────────────────────────── */}
-          {isSystemBoard && (
-            <button
-              onClick={() => {
-                const first = userBoards[0]
-                if (first) setActiveBoardManual(first.id)
-              }}
-              className="absolute top-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium"
-              style={{
-                background: 'color-mix(in srgb, var(--wt-text) 10%, transparent)',
-                color:      'var(--wt-text)',
-                border:     '1px solid var(--wt-border)',
-                cursor:     'pointer',
-                backdropFilter: 'blur(8px)',
-              }}
-            >
-              <Icon icon="ArrowLeft" size={14} />
-              Boards
-            </button>
-          )}
 
         </div>
       </div>
