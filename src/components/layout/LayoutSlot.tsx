@@ -19,32 +19,41 @@ export function LayoutSlot({ x, y, width, height, mode, isHovered, onClick }: Pr
   const isSwap = mode === 'swap'
 
   const borderColor = isSwap
-    ? (isHovered ? '#f97316' : '#fb923c')   // orange for swap
-    : (isHovered ? 'var(--wt-accent)' : 'var(--wt-accent)')
+    ? (isHovered ? '#f97316' : 'rgba(251,146,60,0.45)')
+    : (isHovered ? 'var(--wt-accent)' : 'color-mix(in srgb, var(--wt-accent) 45%, transparent)')
 
   const bgColor = isSwap
-    ? (isHovered ? 'color-mix(in srgb, #f97316 18%, transparent)' : 'color-mix(in srgb, #fb923c 8%, transparent)')
-    : (isHovered ? 'color-mix(in srgb, var(--wt-accent) 18%, transparent)' : 'color-mix(in srgb, var(--wt-accent) 8%, transparent)')
+    ? (isHovered ? 'color-mix(in srgb, #f97316 22%, transparent)' : 'color-mix(in srgb, #fb923c 7%, transparent)')
+    : (isHovered ? 'color-mix(in srgb, var(--wt-accent) 18%, transparent)' : 'color-mix(in srgb, var(--wt-accent) 6%, transparent)')
 
   return (
     <div
       className="absolute"
-      style={{ left: x, top: y, width, height, zIndex: 5 }}
+      style={{ left: x, top: y, width, height, zIndex: 5, padding: 6, animation: 'slot-appear 0.18s ease-out' }}
       onClick={(e) => { e.stopPropagation(); onClick?.() }}
     >
       <div
-        className={`w-full h-full rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-150 flex items-center justify-center ${!isHovered ? 'animate-pulse' : ''}`}
-        style={{ borderColor, backgroundColor: bgColor }}
+        className="w-full h-full rounded-2xl flex items-center justify-center transition-all duration-150 cursor-pointer"
+        style={{
+          border:         `1.5px solid ${borderColor}`,
+          background:     bgColor,
+          backdropFilter: 'blur(2px)',
+          transform:      isHovered ? 'scale(0.985)' : 'scale(1)',
+        }}
       >
-        {isSwap && isHovered && (
-          <div
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium"
-            style={{ backgroundColor: '#f97316', color: '#fff' }}
-          >
-            <Icon icon="ArrowsLeftRight" size={12} />
-            Swap
-          </div>
-        )}
+        <div
+          className="flex items-center gap-2 transition-all duration-150"
+          style={{ opacity: isHovered ? 1 : 0.3 }}
+        >
+          <Icon
+            icon={isSwap ? 'ArrowsLeftRight' : 'Plus'}
+            size={isHovered ? 22 : 18}
+            style={{ color: isSwap ? (isHovered ? '#f97316' : '#fb923c') : 'var(--wt-accent)' }}
+          />
+          {isSwap && isHovered && (
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#f97316' }}>Swap</span>
+          )}
+        </div>
       </div>
     </div>
   )

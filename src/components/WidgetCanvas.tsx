@@ -50,8 +50,10 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
   }, [])
 
   // Track which widget is being dragged and which slot is hovered
-  const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null)
-  const [hoveredSlotId,    setHoveredSlotId]    = useState<string | null>(null)
+  const [draggingWidgetId,  setDraggingWidgetId]  = useState<string | null>(null)
+  const [hoveredSlotId,     setHoveredSlotId]     = useState<string | null>(null)
+  const [swappingWidgetIds, setSwappingWidgetIds] = useState<Set<string>>(new Set())
+  const swapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hoveredSlotRef   = useRef<string | null>(null)
   // Capture widget's original rect+slot before drag so we can snap back on miss
   const dragStartRef = useRef<{ x: number; y: number; width: number; height: number; slotId?: string } | null>(null)
@@ -262,14 +264,14 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
       {/* Trash drop zone — slides up from bottom while dragging */}
       <div
         style={{
-          position:   'absolute',
-          bottom:     draggingWidgetId ? 32 : -80,
-          left:       '50%',
-          transform:  'translateX(-50%)',
-          zIndex:     9998,
-          transition: 'bottom 0.25s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.2s',
-          opacity:    draggingWidgetId ? 1 : 0,
-          pointerEvents: draggingWidgetId ? 'none' : 'none',
+          position:      'absolute',
+          bottom:        draggingWidgetId ? 28 : -72,
+          left:          '50%',
+          transform:     'translateX(-50%)',
+          zIndex:        9998,
+          transition:    'bottom 0.28s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.2s',
+          opacity:       draggingWidgetId ? 1 : 0,
+          pointerEvents: 'none',
         }}
       >
         <div
@@ -277,24 +279,32 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
           style={{
             display:        'flex',
             alignItems:     'center',
-            gap:            10,
-            padding:        '12px 28px',
-            borderRadius:   '9999px',
-            background:     overTrash
-              ? 'color-mix(in srgb, #ef4444 90%, black)'
-              : 'color-mix(in srgb, var(--wt-bg) 92%, transparent)',
-            border:         `1.5px solid ${overTrash ? '#ef4444' : 'var(--wt-border)'}`,
+            gap:            overTrash ? 8 : 0,
+            padding:        overTrash ? '10px 20px' : '10px 14px',
+            borderRadius:   9999,
+            background:     overTrash ? 'rgba(239,68,68,0.92)' : 'color-mix(in srgb, var(--wt-bg) 88%, transparent)',
+            border:         `1.5px solid ${overTrash ? 'rgba(239,68,68,0.6)' : 'var(--wt-border)'}`,
             boxShadow:      overTrash
-              ? '0 0 0 4px rgba(239,68,68,0.18), 0 8px 24px rgba(0,0,0,0.25)'
-              : '0 8px 24px rgba(0,0,0,0.18)',
+              ? '0 0 0 5px rgba(239,68,68,0.18), 0 6px 20px rgba(0,0,0,0.2)'
+              : '0 4px 16px rgba(0,0,0,0.14)',
+            backdropFilter: 'blur(8px)',
             color:          overTrash ? '#fff' : 'var(--wt-text-muted)',
-            transition:     'background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s',
-            transform:      overTrash ? 'scale(1.08)' : 'scale(1)',
+            transform:      overTrash ? 'scale(1.06)' : 'scale(1)',
+            transition:     'all 0.18s ease',
+            overflow:       'hidden',
+            whiteSpace:     'nowrap',
           }}
         >
-          <Icon icon="Trash" size={18} />
-          <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '0.01em' }}>
-            {overTrash ? 'Release to delete' : 'Drag here to delete'}
+          <Icon icon="Trash" size={15} />
+          <span style={{
+            fontSize:   13,
+            fontWeight: 600,
+            maxWidth:   overTrash ? 140 : 0,
+            opacity:    overTrash ? 1 : 0,
+            overflow:   'hidden',
+            transition: 'max-width 0.18s ease, opacity 0.15s ease',
+          }}>
+            Release to delete
           </span>
         </div>
       </div>

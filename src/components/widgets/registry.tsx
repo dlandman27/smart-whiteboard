@@ -34,7 +34,6 @@ import { NoteWidget, NoteSettings } from './NoteWidget'
 import { PomodoroWidget, PomodoroSettings } from './PomodoroWidget'
 
 import { YouTubeWidget, YouTubeSettings } from './YouTubeWidget'
-import { SpotifyWidget, SpotifySettings } from './SpotifyWidget'
 import { NotionViewWidget, NotionViewSettingsPanel } from './notion-view'
 import { UrlWidget, UrlSettings } from './UrlWidget'
 import { RoutinesWidget, RoutinesSettings } from './RoutinesWidget'
@@ -528,22 +527,6 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       shape:             WIDGET_SHAPES['tall-rect'],
       component:         RoutinesWidget,
       settingsComponent: RoutinesSettings,
-    }],
-  },
-  {
-    typeId:      '@whiteboard/spotify',
-    label:       'Spotify',
-    Icon:        'MusicNote',
-    iconColor:   '#16a34a',
-    keywords:    ['spotify', 'music', 'now playing', 'player', 'audio'],
-    description: 'Now playing and music controls',
-    variants: [{
-      variantId:         'default',
-      label:             'Spotify',
-      description:       'Now playing and music controls',
-      shape:             WIDGET_SHAPES['tall-rect'],
-      component:         SpotifyWidget,
-      settingsComponent: SpotifySettings,
     }],
   },
   {

@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import { Panel, PanelHeader, Input, Button, Text } from '@whiteboard/ui-kit'
 import { useQueryClient } from '@tanstack/react-query'
 import { useGCalStatus, startGCalAuth, disconnectGCal } from '../hooks/useGCal'
-import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
-import { useSpotifyCredentials } from '../store/spotify'
 
 interface Props {
   onClose: () => void
@@ -163,43 +161,6 @@ function GCalSection() {
   )
 }
 
-// ── Spotify setup ─────────────────────────────────────────────────────────────
-
-function SpotifySection() {
-  const creds  = useSpotifyCredentials()
-  const status = useSpotifyStatus()
-  const [expanded, setExpanded] = useState(!creds.clientId)
-  const connected  = !!status.data?.connected
-  const configured = !!(creds.clientId && creds.clientSecret)
-
-  async function connect() {
-    const url = await startSpotifyAuth(creds.clientId, creds.clientSecret, creds.redirectUri)
-    window.open(url, '_blank', 'width=500,height=700')
-  }
-
-  return (
-    <ConnectionRow name="Spotify" connected={connected} configured={configured} onSetup={() => setExpanded((e) => !e)}>
-      {expanded && (
-        <div className="flex flex-col gap-2 pl-1">
-          <Text variant="body" size="small" color="muted">
-            Create a Spotify app at{' '}
-            <a href="https://developer.spotify.com/dashboard" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: 'var(--wt-accent)' }}>
-              developer.spotify.com
-            </a>{' '}
-            and add your redirect URI to the allowed list.
-          </Text>
-          <Input label="Client ID"     value={creds.clientId}     onChange={(e) => creds.set({ clientId:     e.target.value })} placeholder="ef32f0586e5340e2929a7c77c3521afa" />
-          <Input label="Client Secret" value={creds.clientSecret} onChange={(e) => creds.set({ clientSecret: e.target.value })} type="password" />
-          <Input label="Redirect URI"  value={creds.redirectUri}  onChange={(e) => creds.set({ redirectUri:  e.target.value })} placeholder="https://xxxx.ngrok-free.app/api/spotify/callback" />
-          <Button variant="accent" fullWidth disabled={!configured} onClick={connect}>
-            {connected ? 'Reconnect Spotify' : 'Connect Spotify'}
-          </Button>
-        </div>
-      )}
-    </ConnectionRow>
-  )
-}
-
 // ── Panel ─────────────────────────────────────────────────────────────────────
 
 type Tab = 'briefing' | 'connections'
@@ -245,7 +206,6 @@ export function ConfigPanel({ onClose }: Props) {
         {tab === 'connections' && (
           <div className="flex flex-col gap-4">
             <GCalSection />
-            <SpotifySection />
           </div>
         )}
       </div>
