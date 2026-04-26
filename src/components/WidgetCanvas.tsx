@@ -142,8 +142,6 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
     dragStartRef.current   = null
     overTrashRef.current   = false
     setOverTrash(false)
-    if (swapTimerRef.current) clearTimeout(swapTimerRef.current)
-    setSwappingWidgetIds(new Set())
   }
 
   // When a widget is dropped, snap to slot under cursor — or to the nearest slot if cursor missed.

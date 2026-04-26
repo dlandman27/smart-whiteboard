@@ -29,7 +29,7 @@ export function LayoutSlot({ x, y, width, height, mode, isHovered, onClick }: Pr
   return (
     <div
       className="absolute"
-      style={{ left: x, top: y, width, height, zIndex: 5, padding: 6, animation: 'slot-appear 0.18s ease-out' }}
+      style={{ left: x, top: y, width, height, zIndex: isSwap ? 200 : 50, padding: 6, animation: 'slot-appear 0.18s ease-out' }}
       onClick={(e) => { e.stopPropagation(); onClick?.() }}
     >
       <div

@@ -417,7 +417,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         top:        pos.y,
         width:      size.width,
         height:     size.height,
-        zIndex:     showSettings ? 10002 : zOrder + (dragging ? 3 : isActive ? 1 : 0),
+        zIndex:     showSettings ? 10002 : dragging ? 500 : zOrder + (isActive ? 1 : 0),
         touchAction: 'none',
         transform:   dragging ? `scale(${slotAssigned ? dragScale : 1.04})` : undefined,
         transformOrigin: dragging ? dragOrigin : 'center',
