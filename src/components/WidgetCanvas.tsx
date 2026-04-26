@@ -5,7 +5,6 @@ import { useUndoStore } from '../store/undo'
 import { useLayout } from '../hooks/useLayout'
 import { Widget } from './Widget'
 import { LayoutSlots } from './layout/LayoutSlots'
-import { DatabaseWidget } from './widgets/DatabaseWidget'
 import { CalendarWidget } from './widgets/CalendarWidget'
 import { getWidgetType, getWidgetVariant } from './widgets/registry'
 import { soundWidgetRemoved } from '../lib/sounds'
@@ -316,9 +315,7 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
 
         const content = Comp
           ? <Comp widgetId={widget.id} />
-          : widget.type === 'calendar'
-          ? <CalendarWidget widgetId={widget.id} />
-          : <DatabaseWidget widgetId={widget.id} />
+          : <CalendarWidget widgetId={widget.id} />
 
         return (
           <Widget

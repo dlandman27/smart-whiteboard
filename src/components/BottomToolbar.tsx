@@ -7,7 +7,6 @@ import { useVoiceStore } from '../store/voice'
 import { useUIStore } from '../store/ui'
 import { DrawingCanvas } from './DrawingCanvas'
 import type { DrawingCanvasHandle } from './DrawingCanvas'
-import { DatabasePicker } from './DatabasePicker'
 import { NotificationCenter, NotificationCenterButton } from './NotificationCenter'
 import { Pill } from './Pill'
 import type { PendingWidget } from '../types'
@@ -373,12 +372,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOp
       </button>
 
       {activePanel === 'notif' && <NotificationCenter onClose={() => setActivePanel(null)} />}
-      {activePanel === 'picker' && (
-        <DatabasePicker
-          onClose={() => setActivePanel(null)}
-          onWidgetSelected={(w) => { onWidgetSelected(w) }}
-        />
-      )}
     </>
   )
 }
