@@ -37,7 +37,7 @@ export function NotificationToast() {
   if (toasts.length === 0) return null
 
   return (
-    <div className="fixed bottom-6 right-6 z-[9998] flex flex-col-reverse gap-2 pointer-events-none select-none">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9998] flex flex-col-reverse gap-2 pointer-events-none select-none items-center">
       {toasts.map((n) => {
         const isError = n.type === 'error'
         return (
