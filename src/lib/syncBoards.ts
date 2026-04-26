@@ -143,8 +143,11 @@ function syncWidgets(prev: Board, next: Board, userId: string) {
     if (!prevW || widgetChanged(prevW, w)) {
       // Debounce position-only changes
       if (prevW && onlyPositionChanged(prevW, w)) {
-        scheduleDebouncedWidgetSync(w, next.id, userId)
+        scheduleDebouncedWidgetSync(w.id, next.id, userId)
       } else {
+        // Cancel any pending debounced sync — this immediate write is authoritative
+        const pending = pendingWidgetSyncs.get(w.id)
+        if (pending) { clearTimeout(pending); pendingWidgetSyncs.delete(w.id) }
         touchId(w.id)
         upsertWidget(w, next.id, userId)
       }
@@ -165,14 +168,18 @@ function onlyPositionChanged(a: any, b: any): boolean {
 
 const pendingWidgetSyncs = new Map<string, ReturnType<typeof setTimeout>>()
 
-function scheduleDebouncedWidgetSync(widget: any, boardId: string, userId: string) {
-  touchId(widget.id)
-  const existing = pendingWidgetSyncs.get(widget.id)
+function scheduleDebouncedWidgetSync(widgetId: string, boardId: string, userId: string) {
+  const existing = pendingWidgetSyncs.get(widgetId)
   if (existing) clearTimeout(existing)
-  pendingWidgetSyncs.set(widget.id, setTimeout(() => {
-    touchId(widget.id)
-    upsertWidget(widget, boardId, userId)
-    pendingWidgetSyncs.delete(widget.id)
+  pendingWidgetSyncs.set(widgetId, setTimeout(() => {
+    // Fetch latest state so stale closures never overwrite newer writes
+    const state = useWhiteboardStore.getState()
+    const widget = state.boards.find(b => b.id === boardId)?.widgets.find(w => w.id === widgetId)
+    if (widget) {
+      touchId(widget.id)
+      upsertWidget(widget, boardId, userId)
+    }
+    pendingWidgetSyncs.delete(widgetId)
   }, 300))
 }
 
