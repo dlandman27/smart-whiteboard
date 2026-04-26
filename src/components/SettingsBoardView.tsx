@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { FlexRow, FlexCol, Box, Text, Icon, ScrollArea, Button } from '@whiteboard/ui-kit'
 import { supabase } from '../lib/supabase'
 import { ThemePicker } from './ThemePicker'
@@ -305,6 +305,16 @@ function AccountSection() {
   )
 }
 
+// ── Shared widget-frame style ─────────────────────────────────────────────────
+
+const WIDGET_FRAME: React.CSSProperties = {
+  background:   'var(--wt-bg)',
+  borderRadius: '3rem',
+  border:       '1px solid var(--wt-widget-rest-border)',
+  boxShadow:    '0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm), inset 0 1px 0 var(--wt-widget-highlight)',
+  overflow:     'hidden',
+}
+
 // ── Main view ────────────────────────────────────────────────────────────────
 
 export function SettingsBoardView() {
@@ -312,97 +322,82 @@ export function SettingsBoardView() {
 
   return (
     <div
-      className="absolute inset-0 flex flex-col"
-      style={{ background: 'var(--wt-bg)' }}
+      className="absolute inset-0 flex gap-3"
+      style={{ background: 'var(--wt-bg)', padding: 16 }}
     >
-      {/* Header */}
+      {/* Sidebar widget */}
       <div
-        className="flex-shrink-0 flex items-center px-6 gap-3"
-        style={{
-          height:       64,
-          borderBottom: '1px solid var(--wt-border)',
-        }}
+        className="flex-shrink-0 flex flex-col"
+        style={{ ...WIDGET_FRAME, width: 210 }}
       >
-        <Icon icon="Gear" size={22} style={{ color: 'var(--wt-accent)', flexShrink: 0 }} />
-        <div>
-          <Text variant="label" size="medium" style={{ fontWeight: 700, color: 'var(--wt-text)', lineHeight: 1.2 }}>
+        {/* Title */}
+        <div
+          className="flex items-center gap-3 flex-shrink-0"
+          style={{ padding: '24px 20px 16px' }}
+        >
+          <Icon icon="Gear" size={20} style={{ color: 'var(--wt-accent)', flexShrink: 0 }} />
+          <Text variant="label" size="medium" style={{ fontWeight: 700, color: 'var(--wt-text)' }}>
             Settings
           </Text>
-          <Text variant="body" size="small" color="muted" style={{ lineHeight: 1.4 }}>
-            Customize your whiteboard
-          </Text>
         </div>
-      </div>
 
-      {/* Body: left nav + content */}
-      <FlexRow style={{ flex: 1, minHeight: 0, overflow: 'hidden' }}>
-        {/* Left nav */}
-        <div
-          className="flex-shrink-0 flex flex-col pt-5 pb-4 px-2 gap-0.5"
-          style={{
-            width:       220,
-            borderRight: '1px solid var(--wt-border)',
-          }}
-        >
+        {/* Nav */}
+        <div className="flex flex-col px-2 gap-0.5">
           {SECTIONS.map((sec) => {
             const isActive = sec.id === activeSection
             return (
               <button
                 key={sec.id}
                 onClick={() => setActiveSection(sec.id)}
-                className="flex items-center gap-2.5 px-3 rounded-lg text-left transition-all"
+                className="flex items-center gap-2.5 px-3 rounded-2xl text-left"
                 style={{
-                  position:   'relative',
+                  position:      'relative',
                   paddingTop:    10,
                   paddingBottom: 10,
-                  background: isActive ? 'color-mix(in srgb, var(--wt-accent) 12%, transparent)' : 'transparent',
-                  color:      isActive ? 'var(--wt-text)' : 'color-mix(in srgb, var(--wt-text) 65%, transparent)',
-                  border:     'none',
-                  cursor:     'pointer',
-                  fontWeight: isActive ? 500 : 400,
-                  fontSize:   14,
+                  background:    isActive ? 'color-mix(in srgb, var(--wt-accent) 12%, transparent)' : 'transparent',
+                  color:         isActive ? 'var(--wt-text)' : 'color-mix(in srgb, var(--wt-text) 65%, transparent)',
+                  border:        'none',
+                  cursor:        'pointer',
+                  fontWeight:    isActive ? 500 : 400,
+                  fontSize:      14,
+                  transition:    'background 0.15s ease, color 0.15s ease',
                 }}
               >
-                {/* Active indicator dot */}
                 {isActive && (
                   <span
                     style={{
-                      position:    'absolute',
-                      left:        0,
-                      top:         '50%',
-                      transform:   'translateY(-50%)',
-                      width:       3,
-                      height:      16,
+                      position:     'absolute',
+                      left:         0,
+                      top:          '50%',
+                      transform:    'translateY(-50%)',
+                      width:        3,
+                      height:       16,
                       borderRadius: 99,
-                      background:  'var(--wt-accent)',
+                      background:   'var(--wt-accent)',
                     }}
                   />
                 )}
                 <Icon
                   icon={sec.icon as any}
                   size={16}
-                  style={{
-                    color:      isActive ? 'var(--wt-accent)' : undefined,
-                    opacity:    isActive ? 1 : 0.6,
-                    flexShrink: 0,
-                  }}
+                  style={{ color: isActive ? 'var(--wt-accent)' : undefined, opacity: isActive ? 1 : 0.6, flexShrink: 0 }}
                 />
                 {sec.label}
               </button>
             )
           })}
         </div>
+      </div>
 
-        {/* Content */}
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
-          <div style={{ maxWidth: 720, padding: '32px 40px' }}>
-            {activeSection === 'appearance' && <AppearanceSection />}
-            {activeSection === 'general'    && <GeneralSection />}
-            {activeSection === 'agents'     && <AgentsSection />}
-            {activeSection === 'account'    && <AccountSection />}
-          </div>
+      {/* Content widget */}
+      <div className="flex-1 min-w-0" style={{ ...WIDGET_FRAME, overflowY: 'auto' }}>
+        <div style={{ maxWidth: 720, padding: '36px 44px' }}>
+          {activeSection === 'appearance' && <AppearanceSection />}
+          {activeSection === 'general'    && <GeneralSection />}
+          {activeSection === 'agents'     && <AgentsSection />}
+          {activeSection === 'account'    && <AccountSection />}
         </div>
-      </FlexRow>
+      </div>
     </div>
   )
 }
