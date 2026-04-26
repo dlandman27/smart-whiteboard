@@ -14,7 +14,7 @@ export interface Board {
   id: string
   name: string
   layoutId: string
-  boardType?: 'calendar' | 'settings' | 'connectors' | 'today' | 'todo' | 'feedback' | 'agents' | 'routines' | 'goals'
+  boardType?: 'calendar' | 'settings' | 'today' | 'todo' | 'feedback' | 'agents' | 'routines' | 'goals'
   calendarId?: string
   widgets: WidgetLayout[]
   slotGap?: number
@@ -63,7 +63,6 @@ interface WhiteboardStore {
 const DEFAULT_ID                   = '00000000-0000-4000-8000-000000000001'
 const DEFAULT_CAL_ID               = '00000000-0000-4000-8000-000000000002'
 export const DEFAULT_SETTINGS_ID   = '00000000-0000-4000-8000-000000000003'
-export const DEFAULT_CONNECTORS_ID = '00000000-0000-4000-8000-000000000004'
 export const DEFAULT_TODAY_ID      = '00000000-0000-4000-8000-000000000005'
 export const DEFAULT_TODO_ID       = '00000000-0000-4000-8000-000000000006'
 export const DEFAULT_FEEDBACK_ID   = '00000000-0000-4000-8000-000000000007'
@@ -91,9 +90,6 @@ export function ensureSystemBoards(boards: Board[]): Board[] {
   let result = migrateLegacyLayouts(ensureCalendarBoard(boards))
   if (!result.some((b) => b.boardType === 'settings')) {
     result = [...result, { id: DEFAULT_SETTINGS_ID, name: 'Settings', layoutId: DEFAULT_LAYOUT_ID, boardType: 'settings', widgets: [] }]
-  }
-  if (!result.some((b) => b.boardType === 'connectors')) {
-    result = [...result, { id: DEFAULT_CONNECTORS_ID, name: 'Connectors', layoutId: DEFAULT_LAYOUT_ID, boardType: 'connectors', widgets: [] }]
   }
   if (!result.some((b) => b.boardType === 'today')) {
     result = [...result, { id: DEFAULT_TODAY_ID, name: 'Today', layoutId: DEFAULT_LAYOUT_ID, boardType: 'today', widgets: [] }]

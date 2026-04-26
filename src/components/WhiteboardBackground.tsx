@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import type { Background } from '../constants/backgrounds'
-import { useThemeStore } from '../store/theme'
+import { useThemeStore, effectiveDark } from '../store/theme'
 import { LIGHT_BG, DARK_BG } from '../themes/colors'
 import { apiFetch } from '../lib/apiFetch'
 
@@ -206,8 +206,19 @@ function PhotosSlideshow({ albumId, interval, dim }: { albumId?: string; interva
 // ── Main component ──────────────────────────────────────────────────────────
 
 export function WhiteboardBackground({ background, children }: Props) {
-  const mode    = useThemeStore((s) => s.mode)
-  const themeBg = { ...background, ...(mode === 'dark' ? DARK_BG : LIGHT_BG) }
+  const mode = useThemeStore((s) => s.mode)
+
+  // Force re-render when OS pref changes while in 'system' mode
+  const [, forceUpdate] = useState(0)
+  useEffect(() => {
+    if (mode !== 'system') return
+    const mql = window.matchMedia('(prefers-color-scheme: dark)')
+    const handler = () => forceUpdate((n) => n + 1)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [mode])
+
+  const themeBg = { ...background, ...(effectiveDark(mode) ? DARK_BG : LIGHT_BG) }
   const pattern = background.pattern ?? 'dots'
   const dim = (pattern === 'image' || pattern === 'photos') ? (background.imageDim ?? 0) : 0
 

@@ -63,9 +63,6 @@ vi.mock('../CalendarBoardView', () => ({
 vi.mock('../SettingsBoardView', () => ({
   SettingsBoardView: () => <div data-testid="settings-board-view" />,
 }))
-vi.mock('../ConnectorsBoardView', () => ({
-  ConnectorsBoardView: () => <div data-testid="connectors-board-view" />,
-}))
 vi.mock('../TodayBoardView', () => ({
   TodayBoardView: () => <div data-testid="today-board-view" />,
 }))

@@ -7,7 +7,6 @@ import { BottomToolbar } from './BottomToolbar'
 import { WidgetCanvas } from './WidgetCanvas'
 import { CalendarBoardView } from './CalendarBoardView'
 import { SettingsBoardView } from './SettingsBoardView'
-import { ConnectorsBoardView } from './ConnectorsBoardView'
 import { TodayBoardView } from './TodayBoardView'
 import { TodoBoardView } from './TodoBoardView'
 import { FeedbackBoardView } from './FeedbackBoardView'
@@ -36,7 +35,6 @@ const SYSTEM_BOARDS = [
   { type: 'routines',   label: 'Routines',  icon: 'Repeat'       },
   { type: 'goals',      label: 'Goals',     icon: 'Target'       },
   { type: 'todo',       label: 'Todo',      icon: 'CheckSquare'  },
-  { type: 'connectors', label: 'Connectors',icon: 'Plugs'        },
   { type: 'settings',   label: 'Settings',  icon: 'Gear'         },
 ] as const
 
@@ -55,14 +53,13 @@ export function Whiteboard() {
   const boardType         = (activeBoard as any)?.boardType as string | undefined
   const isCalendarBoard   = boardType === 'calendar'
   const isSettingsBoard   = boardType === 'settings'
-  const isConnectorsBoard = boardType === 'connectors'
   const isTodayBoard      = boardType === 'today'
   const isTodoBoard       = boardType === 'todo'
   const isFeedbackBoard   = boardType === 'feedback'
   const isAgentsBoard     = boardType === 'agents'
   const isRoutinesBoard   = boardType === 'routines'
   const isGoalsBoard      = boardType === 'goals'
-  const isSystemBoard     = isCalendarBoard || isSettingsBoard || isConnectorsBoard || isTodayBoard
+  const isSystemBoard     = isCalendarBoard || isSettingsBoard || isTodayBoard
     || isTodoBoard || isFeedbackBoard || isAgentsBoard || isRoutinesBoard || isGoalsBoard
 
   const [activeTool,      setActiveTool]      = useState('pointer')
@@ -210,8 +207,6 @@ export function Whiteboard() {
               <CalendarBoardView />
             ) : isSettingsBoard ? (
               <SettingsBoardView />
-            ) : isConnectorsBoard ? (
-              <ConnectorsBoardView />
             ) : isTodayBoard ? (
               <TodayBoardView />
             ) : isTodoBoard ? (
@@ -258,12 +253,14 @@ export function Whiteboard() {
                   <BoardSettingsPanel onClose={() => setBoardSettingsOpen(false)} />
                 )}
 
-                <BottomToolbar
-                  onToolChange={setActiveTool}
-                  onWidgetSelected={(w) => { setPendingWidget(w); setActiveTool('pointer') }}
-                  externalPickerOpen={pickerOpen}
-                  onExternalPickerClose={() => setPickerOpen(false)}
-                />
+                {sidebarHidden && (
+                  <BottomToolbar
+                    onToolChange={setActiveTool}
+                    onWidgetSelected={(w) => { setPendingWidget(w); setActiveTool('pointer') }}
+                    externalPickerOpen={pickerOpen}
+                    onExternalPickerClose={() => setPickerOpen(false)}
+                  />
+                )}
               </>
             )}
 
@@ -317,7 +314,7 @@ export function Whiteboard() {
       </div>
 
       {/* ── Floating nav button ────────────────────────────────────────────── */}
-      {!editMode && (
+      {sidebarHidden && !editMode && (
         <button
           onClick={() => setNavOpen(v => !v)}
           className="absolute z-50 flex items-center justify-center rounded-2xl transition-opacity hover:opacity-80"
@@ -337,7 +334,7 @@ export function Whiteboard() {
       )}
 
       {/* ── Nav sheet ─────────────────────────────────────────────────────── */}
-      {navOpen && (
+      {sidebarHidden && navOpen && (
         <>
           <div
             className="absolute inset-0 z-40"

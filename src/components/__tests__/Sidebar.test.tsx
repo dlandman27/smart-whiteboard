@@ -25,7 +25,6 @@ vi.mock('../../store/whiteboard', () => ({
     return state
   }),
   DEFAULT_SETTINGS_ID: 'settings-id',
-  DEFAULT_CONNECTORS_ID: 'connectors-id',
   DEFAULT_TODAY_ID: 'today-id',
   DEFAULT_TODO_ID: 'todo-id',
   DEFAULT_FEEDBACK_ID: 'feedback-id',

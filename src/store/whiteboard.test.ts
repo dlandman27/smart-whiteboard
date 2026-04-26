@@ -6,7 +6,7 @@ vi.mock('../lib/db', () => ({
   loadSchedule: vi.fn().mockResolvedValue(null),
 }))
 
-import { useWhiteboardStore, DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID } from './whiteboard'
+import { useWhiteboardStore, DEFAULT_SETTINGS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID } from './whiteboard'
 import { loadBoards, loadSchedule } from '../lib/db'
 
 const mockLoadBoards = loadBoards as ReturnType<typeof vi.fn>
@@ -24,14 +24,13 @@ beforeEach(() => {
 describe('initial state', () => {
   it('has at least one user board plus system boards', () => {
     const boards = store().boards
-    expect(boards.length).toBeGreaterThanOrEqual(6) // Main + Calendar + Settings + Connectors + Today + Todo
+    expect(boards.length).toBeGreaterThanOrEqual(5) // Main + Calendar + Settings + Today + Todo
   })
 
   it('has system boards of each type', () => {
     const types = store().boards.map((b) => b.boardType).filter(Boolean)
     expect(types).toContain('calendar')
     expect(types).toContain('settings')
-    expect(types).toContain('connectors')
     expect(types).toContain('today')
     expect(types).toContain('todo')
   })

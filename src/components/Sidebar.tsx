@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
-import { DEFAULT_SETTINGS_ID, DEFAULT_CONNECTORS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID, DEFAULT_FEEDBACK_ID, DEFAULT_AGENTS_ID, DEFAULT_ROUTINES_ID, DEFAULT_GOALS_ID } from '../store/whiteboard'
+import { DEFAULT_SETTINGS_ID, DEFAULT_TODAY_ID, DEFAULT_TODO_ID, DEFAULT_FEEDBACK_ID, DEFAULT_AGENTS_ID, DEFAULT_ROUTINES_ID, DEFAULT_GOALS_ID } from '../store/whiteboard'
 import { Logo } from './Logo'
 import { TemplatePicker } from './TemplatePicker'
 
@@ -35,7 +35,6 @@ export function Sidebar() {
 
   // System boards
   const settingsBoard   = boards.find((b) => b.boardType === 'settings')
-  const connectorsBoard = boards.find((b) => b.boardType === 'connectors')
   const todayBoard      = boards.find((b) => b.boardType === 'today')
   const calendarBoard   = boards.find((b) => b.boardType === 'calendar')
   const todoBoard       = boards.find((b) => b.boardType === 'todo')
@@ -45,7 +44,6 @@ export function Sidebar() {
   const goalsBoard      = boards.find((b) => b.boardType === 'goals')
 
   const settingsId   = settingsBoard?.id   ?? DEFAULT_SETTINGS_ID
-  const connectorsId = connectorsBoard?.id ?? DEFAULT_CONNECTORS_ID
   const todayId      = todayBoard?.id      ?? DEFAULT_TODAY_ID
   const calendarId   = calendarBoard?.id   ?? ''
   const todoId       = todoBoard?.id       ?? DEFAULT_TODO_ID
@@ -55,7 +53,6 @@ export function Sidebar() {
   const goalsId      = goalsBoard?.id      ?? DEFAULT_GOALS_ID
 
   const isSettingsActive   = activeBoardId === settingsId
-  const isConnectorsActive = activeBoardId === connectorsId
   const isTodayActive      = activeBoardId === todayId
   const isCalendarActive   = activeBoardId === calendarId
   const isTodoActive       = activeBoardId === todoId
@@ -273,15 +270,8 @@ export function Sidebar() {
         )}
       </div>
 
-      {/* Bottom nav — Connectors + Settings */}
+      {/* Bottom nav — Settings */}
       <div className="px-2 pt-1.5 pb-2 flex flex-col gap-0.5" style={{ borderTop: '1px solid var(--wt-border)' }}>
-        <NavBtn
-          icon="Plugs"
-          label="Connectors"
-          collapsed={collapsed}
-          active={isConnectorsActive}
-          onClick={() => setActiveBoard(connectorsId)}
-        />
         <NavBtn
           icon="Gear"
           label="Settings"
