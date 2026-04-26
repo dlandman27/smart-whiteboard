@@ -46,7 +46,7 @@ export function HtmlWidget({ widgetId }: { widgetId: string }) {
   if (!settings.html) {
     return (
       <Center fullHeight>
-        <Text variant="caption" color="muted">No HTML set — ask Claude to generate this widget's content</Text>
+        <Text variant="caption" color="muted">No HTML set — ask Claude to generate this Wiigit's content</Text>
       </Center>
     )
   }
@@ -56,7 +56,7 @@ export function HtmlWidget({ widgetId }: { widgetId: string }) {
       srcDoc={wrapHtml(settings.html)}
       sandbox="allow-scripts allow-same-origin"
       style={{ width: '100%', height: '100%', border: 'none', borderRadius: 'inherit', display: 'block' }}
-      title={settings.title ?? 'Custom widget'}
+      title={settings.title ?? 'Custom Wiigit'}
     />
   )
 }

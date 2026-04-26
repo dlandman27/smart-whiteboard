@@ -173,7 +173,7 @@ export function NotionViewSettingsPanel({ widgetId }: { widgetId: string }) {
       </SettingsSection>
 
       {/* Title */}
-      <SettingsSection label="Widget title (optional)">
+      <SettingsSection label="Wiigit title (optional)">
         <input
           style={inputStyle}
           placeholder="e.g. My Tasks"

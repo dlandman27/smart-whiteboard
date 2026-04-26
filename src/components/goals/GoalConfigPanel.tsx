@@ -28,7 +28,7 @@ export function GoalConfigPanel({ widgetId, onClose }: GoalConfigPanelProps) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Configure Goals widget"
+      aria-label="Configure Goals Wiigit"
       onPointerDown={(e) => e.stopPropagation()}
       style={{
         position: 'fixed', inset: 0, zIndex: 9999,

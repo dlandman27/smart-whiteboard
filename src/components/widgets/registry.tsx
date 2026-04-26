@@ -42,8 +42,8 @@ import { RoutinesWidget, RoutinesSettings } from './RoutinesWidget'
 import { TimersWidget } from './TimersWidget'
 import { CalendarWidget } from './CalendarWidget'
 import { DatabaseWidget } from './DatabaseWidget'
-import { SplitWidget } from './SplitWidget'
-import { SplitSettings } from './SplitSettings'
+// import { SplitWidget } from './SplitWidget'
+// import { SplitSettings } from './SplitSettings'
 import { GooglePhotosWidget } from './GooglePhotosWidget'
 import { GooglePhotosSettings } from './GooglePhotosSettings'
 import { RSSWidget } from './RSSWidget'
@@ -686,23 +686,24 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       settingsComponent: StockTickerSettings,
     }],
   },
-  {
-    typeId:      '@whiteboard/split',
-    label:       'Split Container',
-    Icon:        'SquareSplitHorizontal',
-    iconColor:   '#6366f1',
-    keywords:    ['split', 'container', 'layout', 'two', 'dual', 'pane', 'side by side'],
-    description: 'Split a widget into two panes',
-    variants: [{
-      variantId:         'default',
-      label:             'Split Container',
-      description:       'Two resizable panes, each holding a widget',
-      shape:             WIDGET_SHAPES['large-wide'],
-      constraints:       { minWidth: 320, minHeight: 200, maxWidth: 1400, maxHeight: 900 },
-      component:         SplitWidget,
-      settingsComponent: SplitSettings,
-    }],
-  },
+  // @whiteboard/split hidden — not ready for public
+  // {
+  //   typeId:      '@whiteboard/split',
+  //   label:       'Split Container',
+  //   Icon:        'SquareSplitHorizontal',
+  //   iconColor:   '#6366f1',
+  //   keywords:    ['split', 'container', 'layout', 'two', 'dual', 'pane', 'side by side'],
+  //   description: 'Split a widget into two panes',
+  //   variants: [{
+  //     variantId:         'default',
+  //     label:             'Split Container',
+  //     description:       'Two resizable panes, each holding a widget',
+  //     shape:             WIDGET_SHAPES['large-wide'],
+  //     constraints:       { minWidth: 320, minHeight: 200, maxWidth: 1400, maxHeight: 900 },
+  //     component:         SplitWidget,
+  //     settingsComponent: SplitSettings,
+  //   }],
+  // },
   {
     typeId:      '@whiteboard/task-list',
     label:       'Task List',

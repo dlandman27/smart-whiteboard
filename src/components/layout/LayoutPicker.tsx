@@ -92,7 +92,7 @@ export function LayoutPicker({ onClose }: Props) {
 
       <div className="px-4 pb-4 space-y-3" style={{ borderTop: '1px solid var(--wt-settings-divider)', paddingTop: 12 }}>
         <Slider
-          label="Widget gap"
+          label="Wiigit gap"
           value={slotGap}
           min={0}
           max={48}

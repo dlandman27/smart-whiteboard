@@ -235,7 +235,7 @@ function VariantCarousel({
           iconLeft={<Icon icon="Plus" size={16} />}
           onClick={() => onSelect(variant)}
         >
-          Add Widget
+          Add Wiigit
         </Button>
       </div>
     </div>
@@ -306,7 +306,7 @@ export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
     })
 
     if (regularTypes.length > 0) {
-      if (!q) list.push({ kind: 'header', id: 'h-util', label: 'Widgets' })
+      if (!q) list.push({ kind: 'header', id: 'h-util', label: 'Wiigits' })
       for (const t of regularTypes) list.push(mkItem(t))
     }
 
@@ -360,7 +360,7 @@ export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
           })
         }
       } else if (!gcalConnected && !q) {
-        list.push({ kind: 'notice', id: 'gcal-notice', label: 'Connect Google Calendar in Settings to add calendar widgets.' })
+        list.push({ kind: 'notice', id: 'gcal-notice', label: 'Connect Google Calendar in Settings to add calendar Wiigits.' })
       }
     }
 
@@ -376,7 +376,7 @@ export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
           onAdd: () => selectWidget({ type: 'spotify-now-playing', databaseTitle: 'Now Playing', width: 320, height: 180 }),
         })
       } else if (!q) {
-        list.push({ kind: 'notice', id: 'spotify-notice', label: 'Connect Spotify in Settings to add music widgets.' })
+        list.push({ kind: 'notice', id: 'spotify-notice', label: 'Connect Spotify in Settings to add music Wiigits.' })
       }
     }
 
@@ -438,7 +438,7 @@ export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
             ref={inputRef}
             autoFocus
             type="text"
-            placeholder="Search widgets…"
+            placeholder="Search Wiigits…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1 bg-transparent outline-none text-sm"

@@ -98,23 +98,23 @@ export function BoardContextMenu({ x, y, canvasW, canvasH, onClose, onAddWidget,
     if (key === 'settings')   { dismiss(() => sendWidgetCommand(widgetCtx.id, 'settings')) }
     if (key === 'fullscreen') { dismiss(() => sendWidgetCommand(widgetCtx.id, 'fullscreen')) }
     if (key === 'style')      { setStyleOpen(o => !o); return }
-    if (key === 'split')      { dismiss(() => sendWidgetCommand(widgetCtx.id, 'split')) }
+    // if (key === 'split')      { dismiss(() => sendWidgetCommand(widgetCtx.id, 'split')) }
     if (key === 'delete')     { dismiss(() => sendWidgetCommand(widgetCtx.id, 'delete')) }
   }
 
   const boardItems = [
-    { icon: 'Plus',        label: 'Add widget',     key: 'add'      },
+    { icon: 'Plus',        label: 'Add Wiigit',     key: 'add'      },
     { icon: 'SquaresFour', label: 'Change layout',  key: 'layout'   },
     { icon: 'Gear',        label: 'Board settings', key: 'settings' },
   ]
 
   const widgetItems = widgetCtx ? [
-    ...(widgetCtx.hasSettings ? [{ icon: 'GearSix',       label: 'Widget settings',                               key: 'settings',   danger: false }] : []),
+    ...(widgetCtx.hasSettings ? [{ icon: 'GearSix',       label: 'Wiigit settings',                               key: 'settings',   danger: false }] : []),
     { icon: isWidgetFullscreen ? 'ArrowsInSimple' : 'ArrowsOutSimple',
                                                           label: isWidgetFullscreen ? 'Exit fullscreen' : 'Fullscreen', key: 'fullscreen', danger: false },
-    { icon: 'PaintBrush',   label: 'Widget style',  key: 'style',    danger: false },
-    { icon: 'SquareSplitHorizontal', label: 'Split widget', key: 'split', danger: false },
-    { icon: 'Trash',        label: 'Delete widget', key: 'delete',   danger: true  },
+    { icon: 'PaintBrush',   label: 'Wiigit style',  key: 'style',    danger: false },
+    // { icon: 'SquareSplitHorizontal', label: 'Split widget', key: 'split', danger: false },
+    { icon: 'Trash',        label: 'Delete Wiigit', key: 'delete',   danger: true  },
   ] : []
 
   return (

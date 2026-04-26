@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
-import { LAYOUT_PRESETS, getLayoutPreset } from '../layouts/presets'
+import { LAYOUT_PRESETS } from '../layouts/presets'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 import { computeSlotRect, DEFAULT_SLOT_GAP, DEFAULT_SLOT_PAD } from '../hooks/useLayout'
@@ -225,7 +225,7 @@ function AssignStep({ layout, widgets, onBack, onApply, onClose }: AssignStepPro
             <Icon icon="ArrowLeft" size={15} />
           </button>
           <Icon icon="ArrowsLeftRight" size={18} style={{ color: 'var(--wt-accent)' }} />
-          <span className="text-sm font-semibold" style={{ color: 'var(--wt-text)' }}>Assign Widgets</span>
+          <span className="text-sm font-semibold" style={{ color: 'var(--wt-text)' }}>Assign Wiigits</span>
         </div>
         <CloseBtn onClick={onClose} />
       </div>
@@ -357,7 +357,7 @@ function AssignStep({ layout, widgets, onBack, onApply, onClose }: AssignStepPro
           >
             <Icon icon="Warning" size={15} style={{ color: 'var(--wt-danger)', flexShrink: 0, marginTop: 1 }} />
             <span className="text-xs" style={{ color: 'var(--wt-danger)' }}>
-              <strong>{unassigned.length} widget{unassigned.length > 1 ? 's' : ''} will be removed:</strong>{' '}
+              <strong>{unassigned.length} Wiigit{unassigned.length > 1 ? 's' : ''} will be removed:</strong>{' '}
               {unassigned.map((w) => widgetLabel(w)).join(', ')}
             </span>
           </div>
@@ -414,12 +414,8 @@ export function LayoutPicker({ onClose }: Props) {
   function handleLayoutSelect(layout: Layout) {
     if (!activeBoard) return
 
+    // Bento-only: 0-slot layouts (legacy freeform / unconfigured custom) are no longer selectable.
     if (layout.slots.length === 0) {
-      // Freeform — strip slot assignments, keep positions
-      const widgetUpdates = (activeBoard.widgets ?? []).map((w) => ({
-        id: w.id, slotId: null, x: w.x, y: w.y, width: w.width, height: w.height,
-      }))
-      setLayout(activeBoardId, layout.id, widgetUpdates)
       onClose()
       return
     }

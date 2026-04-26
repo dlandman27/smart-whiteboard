@@ -50,7 +50,7 @@ interface WhiteboardStore {
   removeWidget:     (id: string) => void
   clearWidgets:     () => void
   assignSlot:       (widgetId: string, slotId: string | null) => void
-  splitWidget:      (widgetId: string) => void
+  // splitWidget:      (widgetId: string) => void
   setLayoutSpacing:    (boardId: string, gap: number, pad: number) => void
   reorderBoards:       (fromIndex: number, toIndex: number) => void
   setBoardBackground:  (boardId: string, background: Background) => void
@@ -76,8 +76,19 @@ function ensureCalendarBoard(boards: Board[]): Board[] {
   return [...boards, { id: DEFAULT_CAL_ID, name: 'Calendar', layoutId: DEFAULT_LAYOUT_ID, boardType: 'calendar', calendarId: 'primary', widgets: [] }]
 }
 
+function migrateLegacyLayouts(boards: Board[]): Board[] {
+  // Bento-only: any board still on 'freeform' (or 'custom' without customSlots) maps to the default dashboard layout.
+  return boards.map((b) => {
+    if (b.layoutId === 'freeform') return { ...b, layoutId: DEFAULT_LAYOUT_ID }
+    if (b.layoutId === 'custom' && (!b.customSlots || b.customSlots.length === 0)) {
+      return { ...b, layoutId: DEFAULT_LAYOUT_ID }
+    }
+    return b
+  })
+}
+
 export function ensureSystemBoards(boards: Board[]): Board[] {
-  let result = ensureCalendarBoard(boards)
+  let result = migrateLegacyLayouts(ensureCalendarBoard(boards))
   if (!result.some((b) => b.boardType === 'settings')) {
     result = [...result, { id: DEFAULT_SETTINGS_ID, name: 'Settings', layoutId: DEFAULT_LAYOUT_ID, boardType: 'settings', widgets: [] }]
   }
@@ -268,39 +279,40 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
         ),
       })),
 
-    splitWidget: (widgetId) =>
-      set((s) => ({
-        boards: s.boards.map((b) => {
-          if (b.id !== s.activeBoardId) return b
-          const w = b.widgets.find((w) => w.id === widgetId)
-          if (!w) return b
-          const paneA = {
-            type:      w.type ?? '',
-            variantId: w.variantId ?? 'default',
-            settings:  w.settings ?? {},
-          }
-          return {
-            ...b,
-            widgets: b.widgets.map((ww) =>
-              ww.id === widgetId
-                ? {
-                    ...ww,
-                    type:      '@whiteboard/split',
-                    variantId: 'default',
-                    settings:  {
-                      orientation: 'horizontal',
-                      split:       50,
-                      paneA,
-                      paneB:       null,
-                    },
-                    width:  Math.max(ww.width,  480),
-                    height: Math.max(ww.height, 280),
-                  }
-                : ww
-            ),
-          }
-        }),
-      })),
+    // splitWidget hidden — not ready for public
+    // splitWidget: (widgetId) =>
+    //   set((s) => ({
+    //     boards: s.boards.map((b) => {
+    //       if (b.id !== s.activeBoardId) return b
+    //       const w = b.widgets.find((w) => w.id === widgetId)
+    //       if (!w) return b
+    //       const paneA = {
+    //         type:      w.type ?? '',
+    //         variantId: w.variantId ?? 'default',
+    //         settings:  w.settings ?? {},
+    //       }
+    //       return {
+    //         ...b,
+    //         widgets: b.widgets.map((ww) =>
+    //           ww.id === widgetId
+    //             ? {
+    //                 ...ww,
+    //                 type:      '@whiteboard/split',
+    //                 variantId: 'default',
+    //                 settings:  {
+    //                   orientation: 'horizontal',
+    //                   split:       50,
+    //                   paneA,
+    //                   paneB:       null,
+    //                 },
+    //                 width:  Math.max(ww.width,  480),
+    //                 height: Math.max(ww.height, 280),
+    //               }
+    //             : ww
+    //         ),
+    //       }
+    //     }),
+    //   })),
 
     setLayoutSpacing: (boardId, gap, pad) =>
       set((s) => ({

@@ -70,7 +70,7 @@ function LayoutSection() {
         })}
       </div>
       <div className="flex flex-col gap-2.5 pt-1">
-        <Slider label="Widget gap"    value={slotGap} min={0} max={48} onChange={(v) => setLayoutSpacing(activeBoardId, v, slotPad)} />
+        <Slider label="Wiigit gap"    value={slotGap} min={0} max={48} onChange={(v) => setLayoutSpacing(activeBoardId, v, slotPad)} />
         <Slider label="Edge padding"  value={slotPad} min={0} max={64} onChange={(v) => setLayoutSpacing(activeBoardId, slotGap, v)} />
       </div>
     </div>

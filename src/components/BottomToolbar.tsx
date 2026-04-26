@@ -330,7 +330,7 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOp
             size="xl"
             variant={activePanel === 'picker' ? 'active' : 'default'}
             onClick={() => { selectTool('pointer'); togglePanel('picker') }}
-            title="Add Widget"
+            title="Add Wiigit"
           />
         </div>
 

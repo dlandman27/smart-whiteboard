@@ -39,7 +39,7 @@ function triggerLabel(t: AgentTrigger): string {
     case 'cron':          return `cron: ${t.expression}`
     case 'calendar_soon': return `${t.minutesBefore}m before meetings`
     case 'board_opened':  return t.boardType ? `when ${t.boardType} opens` : 'when board opens'
-    case 'widget_added':  return t.widgetType ? `when ${t.widgetType} added` : 'when widget added'
+    case 'widget_added':  return t.widgetType ? `when ${t.widgetType} added` : 'when Wiigit added'
     case 'reminder_fired': return 'when reminder fires'
   }
 }
@@ -276,7 +276,7 @@ const TRIGGER_TYPES = [
   { type: 'calendar_soon', label: 'Before meetings',         icon: '📅' },
   { type: 'reminder_fired',label: 'When reminder fires',     icon: '🔔' },
   { type: 'board_opened',  label: 'When board opens',        icon: '🖥️' },
-  { type: 'widget_added',  label: 'When widget added',       icon: '➕' },
+  { type: 'widget_added',  label: 'When Wiigit added',       icon: '➕' },
   { type: 'cron',          label: 'Cron expression',         icon: '⚙️' },
 ] as const
 

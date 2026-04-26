@@ -59,7 +59,7 @@ interface Props {
 }
 
 export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, onDoubleTap, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
-  const { updateLayout, removeWidget, splitWidget } = useWhiteboardStore()
+  const { updateLayout, removeWidget } = useWhiteboardStore()
   const { focusedWidgetId, setFocusedWidget, flashingWidgetId, widgetCommand, clearWidgetCommand, setFullscreenWidget, editMode } = useUIStore()
   const isFlashing = flashingWidgetId === id
 
@@ -162,8 +162,9 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
     } else if (cmd === 'fullscreen') {
       if (fullscreen) { exitFullscreen(() => { setFocusedWidget(null); setFullscreenWidget(null) }) }
       else { enterFullscreen(); setFocusedWidget(id); setFullscreenWidget(id) }
-    } else if (cmd === 'split') {
-      splitWidget(id)
+    // split hidden — not ready for public
+    // } else if (cmd === 'split') {
+    //   splitWidget(id)
     } else if (cmd === 'delete') {
       const state    = useWhiteboardStore.getState()
       const snapshot = state.boards.find((b) => b.id === state.activeBoardId)?.widgets.find((w) => w.id === id)
