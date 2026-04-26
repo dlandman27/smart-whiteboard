@@ -195,8 +195,13 @@ export const useWhiteboardStore = create<WhiteboardStore>()(
           const widgets = widgetUpdates
             ? b.widgets.map((w) => {
                 const upd = widgetUpdates.find((u) => u.id === w.id)
-                if (!upd) return w
-                return { ...w, slotId: upd.slotId ?? undefined, x: upd.x, y: upd.y, width: upd.width, height: upd.height }
+                if (upd) {
+                  // Widget is assigned to a slot — update position and clear hidden
+                  return { ...w, slotId: upd.slotId ?? undefined, x: upd.x, y: upd.y, width: upd.width, height: upd.height, hidden: false }
+                } else {
+                  // Widget not assigned — hide it non-destructively, clear its slot
+                  return { ...w, hidden: true, slotId: undefined }
+                }
               })
             : b.widgets
           return { ...b, layoutId, widgets }

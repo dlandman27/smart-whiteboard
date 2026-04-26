@@ -56,6 +56,7 @@ function rowToWidget(w: any): WidgetLayout {
     width:         w.width,
     height:        w.height,
     slotId:        w.slot_id ?? undefined,
+    hidden:        w.is_hidden ? true : undefined,
   }
 }
 
@@ -122,6 +123,7 @@ export async function upsertWidget(widget: WidgetLayout, boardId: string, userId
     width:          Math.round(widget.width),
     height:         Math.round(widget.height),
     slot_id:        widget.slotId ?? null,
+    is_hidden:      widget.hidden ?? false,
   })
   if (error) notifyError('upsertWidget', error)
 }

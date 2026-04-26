@@ -41,24 +41,25 @@ let zCounter = 10
 
 
 interface Props {
-  id:               string
-  x:                number
-  y:                number
-  width:            number
-  height:           number
-  children:         React.ReactNode
-  settingsContent?: React.ReactNode
-  preferences?:     PluginPreference[]
-  refSize?:         { width: number; height: number }
-  slotAssigned?:    boolean
-  onDoubleTap?:     (widgetId: string, x: number, y: number, hasSettings: boolean) => void
-  onDropped?:       (rect: { x: number; y: number; width: number; height: number }, cursorPt: { x: number; y: number }) => void
-  onDragStart?:     () => void
-  onDragMove?:      (cx: number, cy: number) => void
-  onDragEnd?:       () => void
+  id:                   string
+  x:                    number
+  y:                    number
+  width:                number
+  height:               number
+  children:             React.ReactNode
+  settingsContent?:     React.ReactNode
+  preferences?:         PluginPreference[]
+  refSize?:             { width: number; height: number }
+  slotAssigned?:        boolean
+  layoutTransitioning?: boolean  // enables CSS transition on position/size during layout switch
+  onDoubleTap?:         (widgetId: string, x: number, y: number, hasSettings: boolean) => void
+  onDropped?:           (rect: { x: number; y: number; width: number; height: number }, cursorPt: { x: number; y: number }) => void
+  onDragStart?:         () => void
+  onDragMove?:          (cx: number, cy: number) => void
+  onDragEnd?:           () => void
 }
 
-export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, onDoubleTap, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
+export function Widget({ id, x, y, width, height, children, settingsContent, preferences, refSize, slotAssigned, layoutTransitioning, onDoubleTap, onDropped, onDragStart, onDragMove, onDragEnd }: Props) {
   const { updateLayout, removeWidget } = useWhiteboardStore()
   const { focusedWidgetId, setFocusedWidget, flashingWidgetId, widgetCommand, clearWidgetCommand, setFullscreenWidget, editMode } = useUIStore()
   const isFlashing = flashingWidgetId === id
@@ -420,7 +421,11 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         touchAction: 'none',
         transform:   dragging ? `scale(${slotAssigned ? dragScale : 1.04})` : undefined,
         transformOrigin: dragging ? dragOrigin : 'center',
-        transition:  dragging ? 'transform 0.15s ease' : 'transform 0.2s ease',
+        transition:  dragging
+          ? 'transform 0.15s ease'
+          : layoutTransitioning
+          ? 'left 0.3s ease-in-out, top 0.3s ease-in-out, width 0.3s ease-in-out, height 0.3s ease-in-out, transform 0.2s ease'
+          : 'transform 0.2s ease',
         opacity:     dragging ? 0.92 : 1,
         backdropFilter: (widgetStyle === 'glass' || widgetStyle === 'glass-dark' || widgetStyle === 'glass-light') ? 'blur(20px) saturate(1.6)' : undefined,
         animation:   removing ? 'wt-remove 0.15s cubic-bezier(0.4, 0, 1, 1) forwards' : undefined,

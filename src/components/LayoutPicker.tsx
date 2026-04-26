@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
-import { LAYOUT_PRESETS } from '../layouts/presets'
+import { LAYOUT_PRESETS, LAYOUT_SECTIONS } from '../layouts/presets'
 import { useWhiteboardStore } from '../store/whiteboard'
 import { useUIStore } from '../store/ui'
 import { computeSlotRect, DEFAULT_SLOT_GAP, DEFAULT_SLOT_PAD } from '../hooks/useLayout'
@@ -29,6 +29,36 @@ function widgetIcon(w: WidgetLayout): string {
   return 'SquaresFour'
 }
 
+/**
+ * Greedy aspect-ratio matcher: pairs widgets to slots by closest aspect ratio.
+ * Returns a map of slotId -> widgetId.
+ * Slots with no matching widget are omitted from the result.
+ */
+function matchWidgetsToSlots(
+  slots: LayoutSlot[],
+  widgets: WidgetLayout[],
+): Record<string, string> {
+  const slotsSorted   = [...slots].sort((a, b) => (a.width / a.height) - (b.width / b.height))
+  const widgetsSorted = [...widgets].sort((a, b) => (a.width / a.height) - (b.width / b.height))
+  const result: Record<string, string> = {}
+  const usedWidgets   = new Set<string>()
+
+  for (const slot of slotsSorted) {
+    let bestWidget: WidgetLayout | null = null
+    let bestDiff = Infinity
+    for (const w of widgetsSorted) {
+      if (usedWidgets.has(w.id)) continue
+      const diff = Math.abs((w.width / w.height) - (slot.width / slot.height))
+      if (diff < bestDiff) { bestDiff = diff; bestWidget = w }
+    }
+    if (bestWidget) {
+      result[slot.id] = bestWidget.id
+      usedWidgets.add(bestWidget.id)
+    }
+  }
+  return result
+}
+
 // ── Step 1: layout grid ───────────────────────────────────────────────────────
 
 function SlotPreview({ slots }: { slots: LayoutSlot[] }) {
@@ -55,6 +85,7 @@ interface LayoutGridProps {
 
 function LayoutGrid({ currentLayoutId, onSelect, onClose }: LayoutGridProps) {
   const visiblePresets = LAYOUT_PRESETS.filter((l) => l.id !== 'custom')
+
   return (
     <>
       <div className="flex items-center justify-between px-5 flex-shrink-0" style={{ height: 56, borderBottom: '1px solid var(--wt-border)' }}>
@@ -64,32 +95,55 @@ function LayoutGrid({ currentLayoutId, onSelect, onClose }: LayoutGridProps) {
         </div>
         <CloseBtn onClick={onClose} />
       </div>
-      <div className="overflow-y-auto p-4" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-        {visiblePresets.map((layout) => {
-          const isActive = currentLayoutId === layout.id
+      <div className="overflow-y-auto p-4 flex flex-col gap-3">
+        {LAYOUT_SECTIONS.map((section) => {
+          const sectionPresets = visiblePresets.filter((l) => l.category === section.category)
+          if (sectionPresets.length === 0) return null
           return (
-            <button
-              key={layout.id}
-              onClick={() => onSelect(layout)}
-              className="flex flex-col gap-2 rounded-xl p-3 text-left"
-              style={{
-                background: isActive ? 'color-mix(in srgb, var(--wt-accent) 14%, transparent)' : 'var(--wt-surface)',
-                border: isActive ? '1.5px solid var(--wt-accent)' : '1.5px solid var(--wt-border)',
-                cursor: 'pointer',
-              }}
-              onPointerEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--wt-surface-hover)' }}
-              onPointerLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--wt-surface)' }}
-            >
-              <div className="w-full rounded-lg overflow-hidden relative" style={{ aspectRatio: '16/9', background: 'var(--wt-bg)', border: '1px solid var(--wt-border)' }}>
-                {layout.slots.length === 0
-                  ? <div className="absolute inset-0 flex items-center justify-center"><Icon icon="DotsSixVertical" size={18} style={{ opacity: 0.25 }} /></div>
-                  : <SlotPreview slots={layout.slots} />}
+            <div key={section.category}>
+              {/* Section header — non-interactive */}
+              <div
+                className="px-1 pb-2"
+                style={{ pointerEvents: 'none' }}
+              >
+                <span
+                  className="text-[10px] font-semibold tracking-widest uppercase"
+                  style={{ color: 'var(--wt-text-muted)', opacity: 0.5 }}
+                >
+                  {section.label}
+                </span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium" style={{ color: isActive ? 'var(--wt-accent)' : 'var(--wt-text)' }}>{layout.name}</span>
-                {isActive && <Icon icon="CheckCircle" size={13} style={{ color: 'var(--wt-accent)', flexShrink: 0 }} />}
+              {/* Section grid — 3 columns */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {sectionPresets.map((layout) => {
+                  const isActive = currentLayoutId === layout.id
+                  return (
+                    <button
+                      key={layout.id}
+                      onClick={() => onSelect(layout)}
+                      className="flex flex-col gap-2 rounded-xl p-3 text-left"
+                      style={{
+                        background: isActive ? 'color-mix(in srgb, var(--wt-accent) 14%, transparent)' : 'var(--wt-surface)',
+                        border: isActive ? '1.5px solid var(--wt-accent)' : '1.5px solid var(--wt-border)',
+                        cursor: 'pointer',
+                      }}
+                      onPointerEnter={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--wt-surface-hover)' }}
+                      onPointerLeave={(e) => { if (!isActive) e.currentTarget.style.background = 'var(--wt-surface)' }}
+                    >
+                      <div className="w-full rounded-lg overflow-hidden relative" style={{ aspectRatio: '16/9', background: 'var(--wt-bg)', border: '1px solid var(--wt-border)' }}>
+                        {layout.slots.length === 0
+                          ? <div className="absolute inset-0 flex items-center justify-center"><Icon icon="DotsSixVertical" size={18} style={{ opacity: 0.25 }} /></div>
+                          : <SlotPreview slots={layout.slots} />}
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium" style={{ color: isActive ? 'var(--wt-accent)' : 'var(--wt-text)' }}>{layout.name}</span>
+                        {isActive && <Icon icon="CheckCircle" size={13} style={{ color: 'var(--wt-accent)', flexShrink: 0 }} />}
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
-            </button>
+            </div>
           )
         })}
       </div>
@@ -154,9 +208,11 @@ function WidgetChip({
 
 function AssignStep({ layout, widgets, onBack, onApply, onClose }: AssignStepProps) {
   // slotId → widgetId ('' = empty)
+  // Use aspect-ratio matcher for initial assignment instead of positional index
   const [assignments, setAssignments] = useState<Record<string, string>>(() => {
+    const matched = matchWidgetsToSlots(layout.slots, widgets)
     const init: Record<string, string> = {}
-    layout.slots.forEach((slot, i) => { init[slot.id] = widgets[i]?.id ?? '' })
+    layout.slots.forEach((slot) => { init[slot.id] = matched[slot.id] ?? '' })
     return init
   })
   const [draggingId,  setDraggingId]  = useState<string | null>(null)
@@ -303,7 +359,7 @@ function AssignStep({ layout, widgets, onBack, onApply, onClose }: AssignStepPro
                     <div className="flex flex-col items-center gap-1 pointer-events-none select-none">
                       <Icon icon="Plus" size={14} style={{ opacity: 0.25 }} />
                       <span className="text-[10px] font-medium" style={{ color: 'var(--wt-text-muted)', opacity: 0.5 }}>
-                        drop here
+                        {slot.label ?? 'drop here'}
                       </span>
                     </div>
                   )}
@@ -346,7 +402,7 @@ function AssignStep({ layout, widgets, onBack, onApply, onClose }: AssignStepPro
           )}
         </div>
 
-        {/* Removal warning */}
+        {/* Hidden warning — changed from "will be removed" to "will be hidden" */}
         {unassigned.length > 0 && (
           <div
             className="rounded-xl px-4 py-3 flex items-start gap-3"
@@ -357,7 +413,7 @@ function AssignStep({ layout, widgets, onBack, onApply, onClose }: AssignStepPro
           >
             <Icon icon="Warning" size={15} style={{ color: 'var(--wt-danger)', flexShrink: 0, marginTop: 1 }} />
             <span className="text-xs" style={{ color: 'var(--wt-danger)' }}>
-              <strong>{unassigned.length} Wiigit{unassigned.length > 1 ? 's' : ''} will be removed:</strong>{' '}
+              <strong>{unassigned.length} Wiigit{unassigned.length > 1 ? 's' : ''} will be hidden:</strong>{' '}
               {unassigned.map((w) => widgetLabel(w)).join(', ')}
             </span>
           </div>
@@ -396,7 +452,7 @@ function AssignStep({ layout, widgets, onBack, onApply, onClose }: AssignStepPro
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export function LayoutPicker({ onClose }: Props) {
-  const { activeBoardId, boards, setLayout, removeWidget } = useWhiteboardStore()
+  const { activeBoardId, boards, setLayout } = useWhiteboardStore()
   const { canvasSize } = useUIStore()
   const activeBoard = boards.find((b) => b.id === activeBoardId)
   const overlayRef  = useRef<HTMLDivElement>(null)
@@ -420,12 +476,54 @@ export function LayoutPicker({ onClose }: Props) {
       return
     }
 
-    if (!activeBoard.widgets?.length) {
+    // Non-hidden widgets are what we count for threshold and for assignment.
+    const allWidgets      = activeBoard.widgets ?? []
+    const nonHiddenWidgets = allWidgets.filter((w) => !w.hidden)
+
+    // Empty board — apply instantly
+    if (nonHiddenWidgets.length === 0 && allWidgets.every((w) => w.hidden)) {
       setLayout(activeBoardId, layout.id)
       onClose()
       return
     }
 
+    if (nonHiddenWidgets.length === 0) {
+      setLayout(activeBoardId, layout.id)
+      onClose()
+      return
+    }
+
+    // Improvement 5: skip assignment step when layout has enough slots for all visible widgets.
+    // Also attempt to restore hidden widgets into remaining empty slots (greedy, up to slot count).
+    if (layout.slots.length >= nonHiddenWidgets.length) {
+      const slotGap = activeBoard.slotGap ?? DEFAULT_SLOT_GAP
+      const slotPad = activeBoard.slotPad ?? DEFAULT_SLOT_PAD
+
+      // Build the pool of eligible widgets: non-hidden first, then hidden (to fill spare slots)
+      const hiddenWidgets    = allWidgets.filter((w) => w.hidden)
+      const eligibleWidgets  = [...nonHiddenWidgets, ...hiddenWidgets].slice(0, layout.slots.length)
+
+      const matched = matchWidgetsToSlots(layout.slots, eligibleWidgets)
+
+      const slotRects = Object.fromEntries(
+        layout.slots.map((s) => [s.id, computeSlotRect(s, canvasSize.w, canvasSize.h, slotGap, slotPad)])
+      )
+
+      const widgetUpdates = Object.entries(matched).map(([slotId, widgetId]) => {
+        const rect = slotRects[slotId]
+        return {
+          id: widgetId, slotId,
+          x: rect.x, y: rect.y,
+          width: rect.width, height: rect.height,
+        }
+      })
+
+      setLayout(activeBoardId, layout.id, widgetUpdates)
+      onClose()
+      return
+    }
+
+    // Fewer slots than visible widgets — show assignment canvas (pre-populated by aspect-ratio matcher)
     setSelectedLayout(layout)
   }
 
@@ -454,8 +552,9 @@ export function LayoutPicker({ onClose }: Props) {
         }
       })
 
+    // Non-destructive: setLayout hides unassigned widgets instead of deleting them.
+    // Do NOT call removeWidget — hidden widgets are retained in the store.
     setLayout(activeBoardId, selectedLayout.id, widgetUpdates)
-    widgets.filter((w) => !assignedIds.has(w.id)).forEach((w) => removeWidget(w.id))
     onClose()
   }
 
@@ -478,7 +577,7 @@ export function LayoutPicker({ onClose }: Props) {
         {selectedLayout ? (
           <AssignStep
             layout={selectedLayout}
-            widgets={activeBoard?.widgets ?? []}
+            widgets={activeBoard?.widgets?.filter((w) => !w.hidden) ?? []}
             onBack={() => setSelectedLayout(null)}
             onApply={handleApply}
             onClose={onClose}

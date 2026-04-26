@@ -25,7 +25,30 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
 
   const activeIndex = boards.findIndex((b) => b.id === activeBoardId)
   const rawWidgets  = boards[activeIndex]?.widgets ?? []
-  const widgets     = [...new Map(rawWidgets.map((w) => [w.id, w])).values()]
+  // Deduplicate and filter out hidden widgets — hidden widgets are retained in the
+  // store for non-destructive layout switching but must not render on the canvas.
+  const widgets     = [...new Map(rawWidgets.map((w) => [w.id, w])).values()].filter((w) => !w.hidden)
+
+  // Layout transition animation: detect layoutId changes and briefly enable CSS
+  // transitions on widget position/size. This must NOT fire during drag/resize.
+  const currentLayoutId = boards[activeIndex]?.layoutId
+  const prevLayoutIdRef = useRef<string | undefined>(undefined)
+  const [layoutTransitioning, setLayoutTransitioning] = useState(false)
+  const transitionTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    if (prevLayoutIdRef.current !== undefined && prevLayoutIdRef.current !== currentLayoutId) {
+      setLayoutTransitioning(true)
+      if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current)
+      transitionTimerRef.current = setTimeout(() => setLayoutTransitioning(false), 350)
+    }
+    prevLayoutIdRef.current = currentLayoutId
+  }, [currentLayoutId])
+
+  // Cleanup transition timer on unmount
+  useEffect(() => () => {
+    if (transitionTimerRef.current) clearTimeout(transitionTimerRef.current)
+  }, [])
 
   // Track which widget is being dragged and which slot is hovered
   const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null)
@@ -43,15 +66,18 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
 
   // Auto-assign any slotless widgets (legacy freeform leftovers, or new widgets added without a slot)
   // to the next empty slot in the active layout.
+  // Hidden widgets are excluded — they must not be auto-restored here; restoration
+  // happens deliberately via the layout picker's aspect-ratio matcher.
   useEffect(() => {
-    const slotless = widgets.filter((w) => !w.slotId || !slotMap[w.slotId])
+    const allNonHidden = (boards[activeIndex]?.widgets ?? []).filter((w) => !w.hidden)
+    const slotless = allNonHidden.filter((w) => !w.slotId || !slotMap[w.slotId])
     if (slotless.length === 0) return
-    const occupied      = new Set(widgets.filter((w) => w.slotId && slotMap[w.slotId]).map((w) => w.slotId!))
+    const occupied      = new Set(allNonHidden.filter((w) => w.slotId && slotMap[w.slotId]).map((w) => w.slotId!))
     const emptySlotIds  = Object.keys(slotMap).filter((id) => !occupied.has(id))
     for (let i = 0; i < slotless.length && i < emptySlotIds.length; i++) {
       assignSlot(slotless[i].id, emptySlotIds[i])
     }
-  }, [activeBoardId, widgets.length, slotMap, assignSlot])
+  }, [activeBoardId, boards, slotMap, assignSlot, activeIndex])
 
   // Cancel pending placement on Escape
   useEffect(() => {
@@ -306,6 +332,7 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
             preferences={variant?.preferences}
             refSize={variant?.scalable !== false ? (variant ? { width: variant.shape.width, height: variant.shape.height } : undefined) : undefined}
             slotAssigned={!!slotRect}
+            layoutTransitioning={layoutTransitioning}
             onDoubleTap={onWidgetDoubleTap}
             onDragStart={() => {
               dragStartRef.current = { x, y, width, height, slotId: widget.slotId }

@@ -7,10 +7,13 @@ export interface LayoutSlot {
   label?: string
 }
 
+export type LayoutCategory = 'simple' | 'grid' | 'asymmetric'
+
 export interface Layout {
   id: string
   name: string
   slots: LayoutSlot[]
+  category?: LayoutCategory
 }
 
 export interface WidgetLayout {
@@ -27,6 +30,7 @@ export interface WidgetLayout {
   variantId?: string                    // widget variant id (defaults to 'default')
   widgetStyle?: import('../store/whiteboard').WidgetStyle  // per-widget style override
   slotId?: string                      // assigned layout slot id, if any
+  hidden?: boolean                     // widget is off-canvas (non-destructive layout switch)
 }
 
 /** A widget config waiting to be placed (slot selection or free-floating fallback) */
