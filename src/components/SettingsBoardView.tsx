@@ -6,7 +6,9 @@ import { BackgroundPicker } from './BackgroundPicker'
 import { SchedulePanel } from './SchedulePanel'
 import { AgentManager } from './AgentManager'
 import { useThemeStore } from '../store/theme'
+import { useWhiteboardStore } from '../store/whiteboard'
 import { DEFAULT_BACKGROUND } from '../constants/backgrounds'
+import { WhiteboardBackground } from './WhiteboardBackground'
 import { SPRITES, PX, PixelSprite } from './PetBar'
 
 // ── SectionLabel helper ───────────────────────────────────────────────────────
@@ -319,11 +321,15 @@ const WIDGET_FRAME: React.CSSProperties = {
 
 export function SettingsBoardView() {
   const [activeSection, setActiveSection] = useState<Section>('appearance')
+  const { background: themeBackground } = useThemeStore()
+  const activeBoard    = useWhiteboardStore((s) => s.boards.find((b) => b.id === s.activeBoardId))
+  const boardBackground = activeBoard?.background ?? themeBackground
 
   return (
+    <WhiteboardBackground background={boardBackground}>
     <div
       className="absolute inset-0 flex gap-3"
-      style={{ background: 'var(--wt-bg)', padding: 16 }}
+      style={{ padding: 16 }}
     >
       {/* Sidebar widget */}
       <div
@@ -399,5 +405,6 @@ export function SettingsBoardView() {
         </div>
       </div>
     </div>
+    </WhiteboardBackground>
   )
 }
