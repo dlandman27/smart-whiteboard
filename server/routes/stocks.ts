@@ -1,116 +1,117 @@
 import { Router } from 'express'
 import { AppError, asyncRoute } from '../middleware/error.js'
+// @ts-ignore
+import _yf from 'yahoo-finance2'
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const yahooFinance = new (_yf as any)({ suppressNotices: ['yahooSurvey'] })
 
-// ── In-memory cache (2-min TTL) ─────────────────────────────────────────────
+// ── Cache (2-min TTL) ────────────────────────────────────────────────────────
 
 interface CacheEntry { data: any; expiry: number }
-const quoteCache = new Map<string, CacheEntry>()
+const cache = new Map<string, CacheEntry>()
 const CACHE_TTL = 2 * 60_000
 
 function getCached(key: string): any | null {
-  const entry = quoteCache.get(key)
+  const entry = cache.get(key)
   if (!entry) return null
-  if (Date.now() > entry.expiry) { quoteCache.delete(key); return null }
+  if (Date.now() > entry.expiry) { cache.delete(key); return null }
   return entry.data
 }
 
 function setCache(key: string, data: any) {
-  quoteCache.set(key, { data, expiry: Date.now() + CACHE_TTL })
+  cache.set(key, { data, expiry: Date.now() + CACHE_TTL })
 }
 
-// ── Types ───────────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
-interface StockQuote {
+export interface StockQuote {
   symbol:        string
   name:          string
   price:         number
   change:        number
   changePercent: number
+  open:          number
+  high:          number
+  low:           number
+  volume:        number
+  marketCap:     number | null
+  peRatio:       number | null
   marketState:   string
+  points:        number[]   // intraday close prices for sparkline
 }
 
-// ── Yahoo Finance fetch ─────────────────────────────────────────────────────
+// ── Fetch ────────────────────────────────────────────────────────────────────
 
-async function fetchQuotes(symbols: string[]): Promise<StockQuote[]> {
-  // Yahoo v7 quote API is blocked (401). Use v8 chart API directly.
-  console.log('[stocks] fetching quotes for:', symbols.join(', '))
-  const quotes = await fetchQuotesViaChart(symbols)
-  console.log('[stocks] got', quotes.length, 'quotes:', quotes.map(q => `${q.symbol}=$${q.price}`).join(', '))
-  return quotes
+async function fetchQuote(symbol: string): Promise<StockQuote | null> {
+  try {
+    const [q, chart] = await Promise.all([
+      yahooFinance.quote(symbol, {}, { validateResult: false }),
+      yahooFinance.chart(symbol, { range: '1d', interval: '5m' }, { validateResult: false }).catch(() => null),
+    ])
+    if (!q) return null
+
+    const price     = q.regularMarketPrice ?? 0
+    const prevClose = q.regularMarketPreviousClose ?? price
+    const change    = q.regularMarketChange ?? (price - prevClose)
+    const pct       = q.regularMarketChangePercent ?? (prevClose !== 0 ? (change / prevClose) * 100 : 0)
+
+    // Extract closing prices for sparkline — filter nulls
+    const quotes = chart?.chart?.result?.[0]?.indicators?.quote?.[0]
+    const closes: number[] = quotes?.close?.filter((v: any) => v != null) ?? []
+
+    return {
+      symbol:        q.symbol ?? symbol,
+      name:          q.shortName || q.longName || symbol,
+      price,
+      change,
+      changePercent: pct,
+      open:          q.regularMarketOpen ?? price,
+      high:          q.regularMarketDayHigh ?? price,
+      low:           q.regularMarketDayLow ?? price,
+      volume:        q.regularMarketVolume ?? 0,
+      marketCap:     q.marketCap ?? null,
+      peRatio:       q.trailingPE ?? null,
+      marketState:   (q.marketState ?? 'CLOSED').toLowerCase(),
+      points:        closes,
+    }
+  } catch (e: any) {
+    console.error('[stocks] error for', symbol, e?.message)
+    return null
+  }
 }
 
-async function fetchQuotesViaChart(symbols: string[]): Promise<StockQuote[]> {
-  const results = await Promise.allSettled(
-    symbols.map(async (symbol) => {
-      // Alternate between query1 and query2 to reduce rate limiting
-      const host = Math.random() > 0.5 ? 'query1' : 'query2'
-      const url = `https://${host}.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=1d&interval=5m`
-      const res = await fetch(url, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          Accept: 'application/json',
-        },
-        signal: AbortSignal.timeout(10_000),
-      })
-
-      if (!res.ok) {
-        console.log(`[stocks] ${symbol} failed: HTTP ${res.status}`, await res.text().catch(() => ''))
-        return null
-      }
-
-      const json = await res.json() as any
-      const meta = json?.chart?.result?.[0]?.meta
-      if (!meta) return null
-
-      const price     = meta.regularMarketPrice ?? 0
-      const prevClose = meta.chartPreviousClose ?? meta.previousClose ?? price
-      const change    = price - prevClose
-      const pct       = prevClose !== 0 ? (change / prevClose) * 100 : 0
-
-      return {
-        symbol:        meta.symbol ?? symbol,
-        name:          meta.shortName || meta.longName || symbol,
-        price,
-        change,
-        changePercent: pct,
-        marketState:   (meta.marketState ?? 'CLOSED').toLowerCase().replace('_', '-'),
-      } as StockQuote
-    })
-  )
-
-  return results
-    .filter((r): r is PromiseFulfilledResult<StockQuote | null> => r.status === 'fulfilled')
-    .map((r) => r.value)
-    .filter((q): q is StockQuote => q !== null)
+function formatVolume(n: number): string {
+  if (n >= 1e12) return (n / 1e12).toFixed(2) + 'T'
+  if (n >= 1e9)  return (n / 1e9).toFixed(2) + 'B'
+  if (n >= 1e6)  return (n / 1e6).toFixed(2) + 'M'
+  if (n >= 1e3)  return (n / 1e3).toFixed(1) + 'K'
+  return String(n)
 }
 
-// ── Router ──────────────────────────────────────────────────────────────────
+// ── Router ───────────────────────────────────────────────────────────────────
 
 export function stocksRouter(): Router {
   const router = Router()
 
   router.get('/stocks/quote', asyncRoute(async (req, res) => {
     const raw = req.query.symbols as string
-    if (!raw) throw new AppError(400, 'Missing required query parameter: symbols')
+    if (!raw) throw new AppError(400, 'Missing symbols')
 
-    const symbols = raw
-      .split(',')
-      .map((s) => s.trim().toUpperCase())
-      .filter(Boolean)
-      .slice(0, 20) // max 20 symbols
-
-    if (symbols.length === 0) throw new AppError(400, 'No valid symbols provided')
+    const symbols = raw.split(',').map((s) => s.trim().toUpperCase()).filter(Boolean).slice(0, 10)
+    if (!symbols.length) throw new AppError(400, 'No valid symbols')
 
     const cacheKey = symbols.join(',')
     const cached = getCached(cacheKey)
     if (cached) return res.json(cached)
 
-    const quotes = await fetchQuotes(symbols)
+    const results = await Promise.allSettled(symbols.map(fetchQuote))
+    const quotes  = results
+      .filter((r): r is PromiseFulfilledResult<StockQuote | null> => r.status === 'fulfilled')
+      .map((r) => r.value)
+      .filter((q): q is StockQuote => q !== null)
 
     const result = { quotes, fetchedAt: new Date().toISOString() }
-    // Only cache if we got data — don't cache empty results from rate limits
     if (quotes.length > 0) setCache(cacheKey, result)
-
     res.json(result)
   }))
 

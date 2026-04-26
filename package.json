@@ -50,6 +50,7 @@
     "rss-parser": "^3.13.0",
     "simple-icons": "^16.16.0",
     "ws": "^8.20.0",
+    "yahoo-finance2": "^3.14.0",
     "zod": "^3.25.76",
     "zustand": "^5.0.0"
   },
