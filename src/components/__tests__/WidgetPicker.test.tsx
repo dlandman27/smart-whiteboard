@@ -99,9 +99,9 @@ vi.mock('@whiteboard/ui-kit', () => ({
   WidgetSizeContext: { Provider: ({ children }: any) => <>{children}</> },
 }))
 
-import { DatabasePicker } from '../DatabasePicker'
+import { WidgetPicker } from '../WidgetPicker'
 
-describe('DatabasePicker', () => {
+describe('WidgetPicker', () => {
   const onClose = vi.fn()
 
   beforeEach(() => {
@@ -109,23 +109,23 @@ describe('DatabasePicker', () => {
   })
 
   it('renders the panel', () => {
-    render(<DatabasePicker onClose={onClose} />)
+    render(<WidgetPicker onClose={onClose} />)
     expect(screen.getByTestId('panel')).toBeInTheDocument()
   })
 
   it('renders search input', () => {
-    render(<DatabasePicker onClose={onClose} />)
+    render(<WidgetPicker onClose={onClose} />)
     expect(screen.getByPlaceholderText('Search widgets…')).toBeInTheDocument()
   })
 
   it('renders widget items', () => {
-    render(<DatabasePicker onClose={onClose} />)
+    render(<WidgetPicker onClose={onClose} />)
     expect(screen.getByTestId('menu-item-Clock')).toBeInTheDocument()
     expect(screen.getByTestId('menu-item-Weather')).toBeInTheDocument()
   })
 
   it('filters items on search input', () => {
-    render(<DatabasePicker onClose={onClose} />)
+    render(<WidgetPicker onClose={onClose} />)
     const input = screen.getByPlaceholderText('Search widgets…')
     fireEvent.change(input, { target: { value: 'clock' } })
     expect(screen.getByTestId('menu-item-Clock')).toBeInTheDocument()
@@ -133,25 +133,25 @@ describe('DatabasePicker', () => {
   })
 
   it('shows no results message when search matches nothing', () => {
-    render(<DatabasePicker onClose={onClose} />)
+    render(<WidgetPicker onClose={onClose} />)
     const input = screen.getByPlaceholderText('Search widgets…')
     fireEvent.change(input, { target: { value: 'zzznomatch' } })
     expect(screen.getByText(/No results for/)).toBeInTheDocument()
   })
 
   it('shows Notion notice when not configured', () => {
-    render(<DatabasePicker onClose={onClose} />)
+    render(<WidgetPicker onClose={onClose} />)
     // gcal notice should appear since not connected
     expect(screen.getByText(/Connect Google Calendar/)).toBeInTheDocument()
   })
 
   it('shows Spotify notice when not connected', () => {
-    render(<DatabasePicker onClose={onClose} />)
+    render(<WidgetPicker onClose={onClose} />)
     expect(screen.getByText(/Connect Spotify/)).toBeInTheDocument()
   })
 
   it('navigates to variant carousel on widget click', () => {
-    render(<DatabasePicker onClose={onClose} />)
+    render(<WidgetPicker onClose={onClose} />)
     const clockItem = screen.getByTestId('menu-item-Clock')
     fireEvent.click(clockItem)
     // Should show variant carousel with "Add Widget" button
@@ -159,7 +159,7 @@ describe('DatabasePicker', () => {
   })
 
   it('calls onClose when close button is clicked', () => {
-    render(<DatabasePicker onClose={onClose} />)
+    render(<WidgetPicker onClose={onClose} />)
     // Panel mock renders with onClose - find the Close button from PanelHeader in carousel view
     // First navigate to carousel to see a Close button
     const clockItem = screen.getByTestId('menu-item-Clock')

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { useWhiteboardStore } from '../store/whiteboard'
@@ -9,72 +9,78 @@ import { startRealtimeSync, stopRealtimeSync } from '../lib/realtimeSync'
 import { LoginScreen } from './LoginScreen'
 import { TemplatePicker } from './TemplatePicker'
 import { analytics } from '../lib/analytics'
+import { Logo } from './Logo'
 
 interface Props {
   children: React.ReactNode
 }
 
-// Skeleton that mimics the app layout: sidebar + board area
-function LoadingSkeleton() {
-  const shimmer = `
-    @keyframes shimmer {
-      0% { background-position: -400px 0; }
-      100% { background-position: 400px 0; }
-    }
-  `
-  const skeletonBar = (w: string | number, h: number, mb = 0): React.CSSProperties => ({
-    width: w, height: h, borderRadius: 8, marginBottom: mb,
-    background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%)',
-    backgroundSize: '800px 100%',
-    animation: 'shimmer 1.5s ease-in-out infinite',
-  })
+const QUOTES = [
+  { text: "The secret of getting ahead is getting started.",                                    author: "Mark Twain"           },
+  { text: "Focus is a matter of deciding what things you're not going to do.",                  author: "John Carmack"         },
+  { text: "The key is not to prioritize what's on your schedule, but to schedule your priorities.", author: "Stephen Covey"   },
+  { text: "Done is better than perfect.",                                                        author: "Sheryl Sandberg"     },
+  { text: "Concentrate all your thoughts upon the work at hand. The sun's rays do not burn until brought to a focus.", author: "Alexander Graham Bell" },
+  { text: "You don't have to see the whole staircase, just take the first step.",               author: "Martin Luther King Jr." },
+  { text: "Small daily improvements are the key to staggering long-term results.",              author: ""                     },
+  { text: "It's not about having time. It's about making time.",                                author: ""                     },
+  { text: "Clarity about what matters provides clarity about what does not.",                   author: "Cal Newport"          },
+  { text: "The most productive people work on the right things.",                               author: ""                     },
+]
+
+function LoadingScreen() {
+  const quote = useMemo(() => QUOTES[Math.floor(Math.random() * QUOTES.length)], [])
 
   return (
-    <div style={{ position: 'fixed', inset: 0, display: 'flex', background: '#1a1b1e' }}>
-      <style>{shimmer}</style>
+    <div style={{
+      position: 'fixed', inset: 0,
+      background: '#0f1011',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 40,
+      fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+    }}>
+      <style>{`
+        @keyframes loading-in {
+          from { opacity: 0; transform: translateY(10px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes logo-shine {
+          0%   { transform: translateX(-140%) skewX(-18deg); }
+          100% { transform: translateX(260%)  skewX(-18deg); }
+        }
+      `}</style>
 
-      {/* Skeleton sidebar */}
-      <div style={{
-        width: 200, flexShrink: 0, display: 'flex', flexDirection: 'column',
-        padding: '16px 12px', gap: 8, borderRight: '1px solid rgba(255,255,255,0.06)',
-      }}>
-        {/* Logo area */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, height: 48, paddingLeft: 4 }}>
-          <div style={skeletonBar(20, 20)} />
-          <div style={skeletonBar(70, 14)} />
+      {/* Logo + wordmark */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 18, animation: 'loading-in 0.55s ease-out both' }}>
+        {/* Logo with shine sweep */}
+        <div style={{ position: 'relative', overflow: 'hidden', padding: '6px 8px', '--wt-text': 'rgba(255,255,255,0.92)' } as React.CSSProperties}>
+          <Logo size={68} />
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: 'linear-gradient(110deg, transparent 35%, rgba(255,255,255,0.55) 50%, transparent 65%)',
+            animation: 'logo-shine 2.8s ease-in-out infinite',
+            animationDelay: '0.6s',
+          }} />
         </div>
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
-
-        {/* Nav items */}
-        <div style={skeletonBar('100%', 36, 4)} />
-        <div style={skeletonBar('100%', 36, 4)} />
-        <div style={skeletonBar('100%', 36, 4)} />
-
-        <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '8px 0' }} />
-
-        {/* Board items */}
-        <div style={{ ...skeletonBar(60, 10), marginBottom: 8 }} />
-        <div style={skeletonBar('100%', 34, 4)} />
-        <div style={skeletonBar('100%', 34, 4)} />
-        <div style={skeletonBar('100%', 34, 4)} />
+        <span style={{ color: 'rgba(255,255,255,0.88)', fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px' }}>
+          wiigit
+        </span>
       </div>
 
-      {/* Skeleton board area */}
-      <div style={{ flex: 1, padding: 8 }}>
-        <div style={{
-          width: '100%', height: '100%', borderRadius: 16,
-          border: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', flexDirection: 'column', alignItems: 'center',
-          justifyContent: 'center', gap: 12,
-        }}>
-          {/* Widget skeletons */}
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', maxWidth: 600 }}>
-            <div style={skeletonBar(260, 160)} />
-            <div style={skeletonBar(260, 160)} />
-            <div style={skeletonBar(260, 120)} />
-            <div style={skeletonBar(180, 120)} />
-          </div>
-        </div>
+      {/* Quote */}
+      <div style={{
+        maxWidth: 380, textAlign: 'center',
+        display: 'flex', flexDirection: 'column', gap: 10,
+        animation: 'loading-in 0.55s ease-out 0.25s both',
+      }}>
+        <p style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14, lineHeight: 1.65, margin: 0, fontStyle: 'italic' }}>
+          "{quote.text}"
+        </p>
+        {quote.author && (
+          <span style={{ color: 'rgba(255,255,255,0.22)', fontSize: 12, fontWeight: 500 }}>
+            — {quote.author}
+          </span>
+        )}
       </div>
     </div>
   )
@@ -148,9 +154,9 @@ export function AuthGuard({ children }: Props) {
     }
   }, [isLoading, session, boards, templatePickerDismissed])
 
-  if (session === undefined) return <LoadingSkeleton />
+  if (session === undefined) return <LoadingScreen />
   if (!session) return <LoginScreen />
-  if (isLoading) return <LoadingSkeleton />
+  if (isLoading) return <LoadingScreen />
 
   if (showTemplatePicker) {
     return (

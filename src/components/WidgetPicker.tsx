@@ -244,7 +244,7 @@ function VariantCarousel({
 
 // ── Main component (Level 1 + Level 2) ──────────────────────────────────────
 
-export function DatabasePicker({ onClose, onWidgetSelected }: Props) {
+export function WidgetPicker({ onClose, onWidgetSelected }: Props) {
   const [query,          setQuery]         = useState('')
   const [selectedIdx,    setSelected]      = useState(0)
   const [activeType,     setActiveType]    = useState<WidgetTypeDef | null>(null)

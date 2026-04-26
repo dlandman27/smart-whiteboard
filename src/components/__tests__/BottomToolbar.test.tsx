@@ -44,8 +44,8 @@ vi.mock('../DrawingCanvas', () => ({
   ),
 }))
 
-vi.mock('../DatabasePicker', () => ({
-  DatabasePicker: ({ onClose, onWidgetSelected }: any) => (
+vi.mock('../WidgetPicker', () => ({
+  WidgetPicker: ({ onClose, onWidgetSelected }: any) => (
     <div data-testid="database-picker">
       <button onClick={onClose}>Close picker</button>
     </div>
@@ -154,7 +154,7 @@ describe('BottomToolbar', () => {
     expect(screen.getByTestId('icon-CaretUp')).toBeInTheDocument()
   })
 
-  it('opens DatabasePicker when Plus button clicked', async () => {
+  it('opens WidgetPicker when Plus button clicked', async () => {
     renderToolbar()
     const plusBtn = screen.getByTestId('icon-btn-Plus')
     fireEvent.click(plusBtn)
@@ -163,7 +163,7 @@ describe('BottomToolbar', () => {
     })
   })
 
-  it('closes DatabasePicker when close is clicked inside it', async () => {
+  it('closes WidgetPicker when close is clicked inside it', async () => {
     renderToolbar()
     fireEvent.click(screen.getByTestId('icon-btn-Plus'))
     await waitFor(() => screen.getByTestId('database-picker'))
@@ -204,7 +204,7 @@ describe('BottomToolbar', () => {
     expect(mockSetScreensaverMode).toHaveBeenCalledWith(true)
   })
 
-  it('opens DatabasePicker when externalPickerOpen is true', async () => {
+  it('opens WidgetPicker when externalPickerOpen is true', async () => {
     const { rerender } = renderToolbar({ externalPickerOpen: false })
     rerender(
       <BottomToolbar
