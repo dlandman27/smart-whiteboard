@@ -26,9 +26,9 @@ export const DEFAULT_WEATHER_SETTINGS: WeatherWidgetSettings = {
 interface WeatherInfo { label: string; icon: string; color: string }
 
 function getWeatherInfo(code: number): WeatherInfo {
-  if (code === 0)  return { label: 'Clear',          icon: 'Sun',            color: 'var(--wt-success)' }
-  if (code === 1)  return { label: 'Mainly Clear',   icon: 'SunDim',         color: 'var(--wt-success)' }
-  if (code === 2)  return { label: 'Partly Cloudy',  icon: 'CloudSun',       color: 'var(--wt-text-muted)' }
+  if (code === 0)  return { label: 'Clear',          icon: 'Sun',            color: '#f97316' }
+  if (code === 1)  return { label: 'Mainly Clear',   icon: 'SunDim',         color: '#f97316' }
+  if (code === 2)  return { label: 'Partly Cloudy',  icon: 'CloudSun',       color: '#fb923c' }
   if (code === 3)  return { label: 'Overcast',       icon: 'Cloud',          color: 'var(--wt-text-muted)' }
   if (code <= 48)  return { label: 'Foggy',          icon: 'CloudFog',       color: 'var(--wt-text-muted)' }
   if (code <= 55)  return { label: 'Drizzle',        icon: 'CloudDrizzle',   color: 'var(--wt-info)' }
