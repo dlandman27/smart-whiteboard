@@ -142,6 +142,8 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
     dragStartRef.current   = null
     overTrashRef.current   = false
     setOverTrash(false)
+    if (swapTimerRef.current) clearTimeout(swapTimerRef.current)
+    setSwappingWidgetIds(new Set())
   }
 
   // When a widget is dropped, snap to slot under cursor — or to the nearest slot if cursor missed.
@@ -179,6 +181,10 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
       const draggedSlotRect = slotMap[draggedSlotId]
       updateLayout(occupant.id, { x: draggedSlotRect.x, y: draggedSlotRect.y, width: draggedSlotRect.width, height: draggedSlotRect.height })
       assignSlot(occupant.id, draggedSlotId)
+      // Animate both widgets sliding into their new slots
+      if (swapTimerRef.current) clearTimeout(swapTimerRef.current)
+      setSwappingWidgetIds(new Set([widgetId, occupant.id]))
+      swapTimerRef.current = setTimeout(() => setSwappingWidgetIds(new Set()), 350)
     }
 
     updateLayout(widgetId, { x: targetSlotRect.x, y: targetSlotRect.y, width: targetSlotRect.width, height: targetSlotRect.height })
@@ -339,7 +345,7 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
             preferences={variant?.preferences}
             refSize={variant?.scalable !== false ? (variant ? { width: variant.shape.width, height: variant.shape.height } : undefined) : undefined}
             slotAssigned={!!slotRect}
-            layoutTransitioning={layoutTransitioning}
+            layoutTransitioning={layoutTransitioning || swappingWidgetIds.has(widget.id)}
             onDoubleTap={onWidgetDoubleTap}
             onDragStart={() => {
               dragStartRef.current = { x, y, width, height, slotId: widget.slotId }

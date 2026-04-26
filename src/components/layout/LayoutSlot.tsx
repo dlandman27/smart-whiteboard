@@ -33,8 +33,9 @@ export function LayoutSlot({ x, y, width, height, mode, isHovered, onClick }: Pr
       onClick={(e) => { e.stopPropagation(); onClick?.() }}
     >
       <div
-        className="w-full h-full rounded-2xl flex items-center justify-center transition-all duration-150 cursor-pointer"
+        className="w-full h-full flex items-center justify-center transition-all duration-150 cursor-pointer"
         style={{
+          borderRadius:   '3rem',
           border:         `1.5px solid ${borderColor}`,
           background:     bgColor,
           backdropFilter: 'blur(2px)',
