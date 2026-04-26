@@ -53,7 +53,6 @@ import { StockTickerSettings } from './StockTickerSettings'
 import { ICalWidget } from './ICalWidget'
 import { ICalSettings } from './ICalSettings'
 import { TaskListWidget, TaskListSettings } from './TaskListWidget'
-import { AppleHealthWidget } from './AppleHealthWidget'
 import { GoalsWidget, GoalsSettings } from './GoalsWidget'
 import { GifWidget, GifSettings } from './GifWidget'
 
@@ -736,23 +735,6 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       constraints:       { minWidth: 240, minHeight: 260, maxWidth: 540, maxHeight: 800 },
       component:         GoalsWidget,
       settingsComponent: GoalsSettings,
-    }],
-  },
-  {
-    typeId:      '@whiteboard/apple-health',
-    label:       'Apple Health',
-    Icon:        'HeartStraight',
-    iconColor:   '#FF375F',
-    keywords:    ['health', 'apple', 'steps', 'fitness', 'weight', 'rings', 'activity', 'heart'],
-    description: 'Live stats from Apple Health — steps, activity rings, weight, and more',
-    variants: [{
-      variantId:   'default',
-      label:       'Apple Health',
-      description: 'Steps, activity rings, weight and health stats',
-      shape:       WIDGET_SHAPES['tall-rect'],
-      scalable:    true,
-      constraints: { minWidth: 200, minHeight: 280, maxWidth: 420, maxHeight: 800 },
-      component:   AppleHealthWidget,
     }],
   },
   {
