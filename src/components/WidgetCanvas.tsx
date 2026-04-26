@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { Text } from '@whiteboard/ui-kit'
+import { Text, Icon } from '@whiteboard/ui-kit'
 import { useWhiteboardStore } from '../store/whiteboard'
+import { useUndoStore } from '../store/undo'
 import { useLayout } from '../hooks/useLayout'
 import { Widget } from './Widget'
 import { LayoutSlots } from './layout/LayoutSlots'
 import { DatabaseWidget } from './widgets/DatabaseWidget'
 import { CalendarWidget } from './widgets/CalendarWidget'
 import { getWidgetType, getWidgetVariant } from './widgets/registry'
+import { soundWidgetRemoved } from '../lib/sounds'
 import type { PendingWidget } from '../types'
 
 interface Props {
@@ -18,13 +20,12 @@ interface Props {
 }
 
 export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoubleTap, onWidgetDoubleTap }: Props) {
-  const { boards, activeBoardId, addWidget, updateLayout, assignSlot } = useWhiteboardStore()
-  const { slotMap, layout } = useLayout()
+  const { boards, activeBoardId, addWidget, updateLayout, assignSlot, removeWidget } = useWhiteboardStore()
+  const { slotMap } = useLayout()
 
   const activeIndex = boards.findIndex((b) => b.id === activeBoardId)
   const rawWidgets  = boards[activeIndex]?.widgets ?? []
   const widgets     = [...new Map(rawWidgets.map((w) => [w.id, w])).values()]
-  const isFreeform  = layout.slots.length === 0
 
   // Track which widget is being dragged and which slot is hovered
   const [draggingWidgetId, setDraggingWidgetId] = useState<string | null>(null)
@@ -34,6 +35,23 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
   const dragStartRef = useRef<{ x: number; y: number; width: number; height: number; slotId?: string } | null>(null)
   // Double-tap detection
   const lastTapRef = useRef<{ x: number; y: number; time: number } | null>(null)
+
+  // Trash zone
+  const [overTrash,   setOverTrash]   = useState(false)
+  const overTrashRef  = useRef(false)
+  const trashZoneRef  = useRef<HTMLDivElement>(null)
+
+  // Auto-assign any slotless widgets (legacy freeform leftovers, or new widgets added without a slot)
+  // to the next empty slot in the active layout.
+  useEffect(() => {
+    const slotless = widgets.filter((w) => !w.slotId || !slotMap[w.slotId])
+    if (slotless.length === 0) return
+    const occupied      = new Set(widgets.filter((w) => w.slotId && slotMap[w.slotId]).map((w) => w.slotId!))
+    const emptySlotIds  = Object.keys(slotMap).filter((id) => !occupied.has(id))
+    for (let i = 0; i < slotless.length && i < emptySlotIds.length; i++) {
+      assignSlot(slotless[i].id, emptySlotIds[i])
+    }
+  }, [activeBoardId, widgets.length, slotMap, assignSlot])
 
   // Cancel pending placement on Escape
   useEffect(() => {
@@ -54,11 +72,39 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
     return null
   }
 
+  function findNearestSlot(cx: number, cy: number, opts?: { emptyOnly?: boolean; excludeWidgetId?: string }): string | null {
+    let bestId: string | null = null
+    let bestDist = Infinity
+    for (const slot of Object.values(slotMap)) {
+      if (opts?.emptyOnly && widgets.some((w) => w.id !== opts.excludeWidgetId && w.slotId === slot.id)) continue
+      const sx = slot.x + slot.width  / 2
+      const sy = slot.y + slot.height / 2
+      const d  = (cx - sx) ** 2 + (cy - sy) ** 2
+      if (d < bestDist) { bestDist = d; bestId = slot.id }
+    }
+    return bestId
+  }
+
   function handleDragMove(cx: number, cy: number) {
     const slotId = findSlotAtCenter(cx, cy)
     if (slotId !== hoveredSlotRef.current) {
       hoveredSlotRef.current = slotId
       setHoveredSlotId(slotId)
+    }
+
+    // Check trash zone — use canvas-relative coords vs the trash zone element's position
+    const trashEl    = trashZoneRef.current
+    const canvasEl   = trashEl?.closest('.widget-canvas-root') as HTMLElement | null
+    const trashRect  = trashEl?.getBoundingClientRect()
+    const canvasRect = canvasEl?.getBoundingClientRect()
+    const isOver = !!(trashRect && canvasRect &&
+      cx >= trashRect.left - canvasRect.left &&
+      cx <= trashRect.right - canvasRect.left &&
+      cy >= trashRect.top  - canvasRect.top  &&
+      cy <= trashRect.bottom - canvasRect.top)
+    if (isOver !== overTrashRef.current) {
+      overTrashRef.current = isOver
+      setOverTrash(isOver)
     }
   }
 
@@ -67,42 +113,45 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
     setHoveredSlotId(null)
     hoveredSlotRef.current = null
     dragStartRef.current   = null
+    overTrashRef.current   = false
+    setOverTrash(false)
   }
 
-  // When a widget is dropped, snap to slot or swap with occupant
-  function handleDropped(widgetId: string, rect: { x: number; y: number; width: number; height: number }, cursorPt: { x: number; y: number }) {
-    const targetSlotId = findSlotAtCenter(cursorPt.x, cursorPt.y)
-
-    if (!targetSlotId) {
-      if (isFreeform) return  // position already updated by Widget on drag end
-      // Missed all slots — snap back to where the drag started
-      const origin = dragStartRef.current
-      if (origin) {
-        updateLayout(widgetId, { x: origin.x, y: origin.y, width: origin.width, height: origin.height })
-        if (origin.slotId) assignSlot(widgetId, origin.slotId)
-      }
+  // When a widget is dropped, snap to slot under cursor — or to the nearest slot if cursor missed.
+  // Bento-only: every widget always lands in a slot.
+  function handleDropped(widgetId: string, _rect: { x: number; y: number; width: number; height: number }, cursorPt: { x: number; y: number }) {
+    if (overTrashRef.current) {
+      const state    = useWhiteboardStore.getState()
+      const snapshot = state.boards.find((b) => b.id === state.activeBoardId)?.widgets.find((w) => w.id === widgetId)
+      soundWidgetRemoved()
+      removeWidget(widgetId)
+      if (snapshot) useUndoStore.getState().push('Widget removed', snapshot)
+      overTrashRef.current = false
+      setOverTrash(false)
       return
     }
+
+    const targetSlotId = findSlotAtCenter(cursorPt.x, cursorPt.y) ?? findNearestSlot(cursorPt.x, cursorPt.y)
+    if (!targetSlotId) return  // No slots in layout (shouldn't happen post-bento-migration)
 
     const targetSlotRect = slotMap[targetSlotId]
     if (!targetSlotRect) return
 
-    // Check if another widget occupies the target slot
-    const occupant = widgets.find((w) => w.id !== widgetId && w.slotId === targetSlotId)
     const draggedWidget = widgets.find((w) => w.id === widgetId)
+    const draggedSlotId = draggedWidget?.slotId
 
-    if (occupant) {
-      // Swap: occupant gets dragged widget's old slot (or goes free)
-      const draggedSlotId = draggedWidget?.slotId ?? null
-      if (draggedSlotId && slotMap[draggedSlotId]) {
-        const draggedSlotRect = slotMap[draggedSlotId]
-        updateLayout(occupant.id, { x: draggedSlotRect.x, y: draggedSlotRect.y, width: draggedSlotRect.width, height: draggedSlotRect.height })
-        assignSlot(occupant.id, draggedSlotId)
-      } else {
-        // Dragged was free-floating — occupant becomes free at current rect position
-        updateLayout(occupant.id, rect)
-        assignSlot(occupant.id, null)
-      }
+    // No-op if dropped on its own slot
+    if (draggedSlotId === targetSlotId) {
+      updateLayout(widgetId, { x: targetSlotRect.x, y: targetSlotRect.y, width: targetSlotRect.width, height: targetSlotRect.height })
+      return
+    }
+
+    // Swap with occupant if any
+    const occupant = widgets.find((w) => w.id !== widgetId && w.slotId === targetSlotId)
+    if (occupant && draggedSlotId && slotMap[draggedSlotId]) {
+      const draggedSlotRect = slotMap[draggedSlotId]
+      updateLayout(occupant.id, { x: draggedSlotRect.x, y: draggedSlotRect.y, width: draggedSlotRect.width, height: draggedSlotRect.height })
+      assignSlot(occupant.id, draggedSlotId)
     }
 
     updateLayout(widgetId, { x: targetSlotRect.x, y: targetSlotRect.y, width: targetSlotRect.width, height: targetSlotRect.height })
@@ -114,13 +163,7 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
     const rect = slotMap[slotId]
     if (!rect) return
 
-    // If slot is occupied, displace the occupant to free-floating
-    const occupant = widgets.find((w) => w.slotId === slotId)
-    if (occupant) {
-      updateLayout(occupant.id, { x: rect.x + 40, y: rect.y + 40, width: occupant.width, height: occupant.height })
-      assignSlot(occupant.id, null)
-    }
-
+    // Bento-only: only empty slots are clickable when adding (LayoutSlots gates this).
     addWidget({ ...pendingWidget, slotId, x: rect.x, y: rect.y, width: rect.width, height: rect.height })
     onClearPending()
   }
@@ -141,17 +184,19 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
 
     lastTapRef.current = { x: cx, y: cy, time: now }
 
-    if (!pendingWidget || !isFreeform) return
-    const x = Math.max(0, cx - pendingWidget.width  / 2)
-    const y = Math.max(0, cy - pendingWidget.height / 2)
-    addWidget({ ...pendingWidget, x, y, slotId: undefined })
+    // Bento-only: clicking the canvas (outside any slot) while placing a widget routes it to the nearest empty slot.
+    if (!pendingWidget) return
+    const targetSlotId = findNearestSlot(cx, cy, { emptyOnly: true })
+    if (!targetSlotId) return  // No empty slot — keep pending so user can switch layouts or cancel
+    const targetRect = slotMap[targetSlotId]
+    addWidget({ ...pendingWidget, slotId: targetSlotId, x: targetRect.x, y: targetRect.y, width: targetRect.width, height: targetRect.height })
     onClearPending()
   }
 
   return (
     <div
       key={activeBoardId}
-      className="absolute inset-0 board-slide-right select-none"
+      className="widget-canvas-root absolute inset-0 board-slide-right select-none"
       onClick={handleCanvasClick}
       onMouseDown={(e) => { if (e.detail >= 2) e.preventDefault() }}
     >
@@ -177,7 +222,7 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
               pointerEvents:   'auto',
             }}
           >
-            <span>{isFreeform ? 'Click anywhere to place' : 'Click a slot to place'}</span>
+            <span>Click a slot to place</span>
             <button
               onClick={onClearPending}
               className="text-xs font-semibold px-2 py-0.5 rounded-lg transition-opacity hover:opacity-70"
@@ -188,6 +233,46 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
           </div>
         </div>
       )}
+
+      {/* Trash drop zone — slides up from bottom while dragging */}
+      <div
+        style={{
+          position:   'absolute',
+          bottom:     draggingWidgetId ? 32 : -80,
+          left:       '50%',
+          transform:  'translateX(-50%)',
+          zIndex:     9998,
+          transition: 'bottom 0.25s cubic-bezier(0.34, 1.2, 0.64, 1), opacity 0.2s',
+          opacity:    draggingWidgetId ? 1 : 0,
+          pointerEvents: draggingWidgetId ? 'none' : 'none',
+        }}
+      >
+        <div
+          ref={trashZoneRef}
+          style={{
+            display:        'flex',
+            alignItems:     'center',
+            gap:            10,
+            padding:        '12px 28px',
+            borderRadius:   '9999px',
+            background:     overTrash
+              ? 'color-mix(in srgb, #ef4444 90%, black)'
+              : 'color-mix(in srgb, var(--wt-bg) 92%, transparent)',
+            border:         `1.5px solid ${overTrash ? '#ef4444' : 'var(--wt-border)'}`,
+            boxShadow:      overTrash
+              ? '0 0 0 4px rgba(239,68,68,0.18), 0 8px 24px rgba(0,0,0,0.25)'
+              : '0 8px 24px rgba(0,0,0,0.18)',
+            color:          overTrash ? '#fff' : 'var(--wt-text-muted)',
+            transition:     'background 0.15s, border-color 0.15s, box-shadow 0.15s, color 0.15s',
+            transform:      overTrash ? 'scale(1.08)' : 'scale(1)',
+          }}
+        >
+          <Icon icon="Trash" size={18} />
+          <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: '0.01em' }}>
+            {overTrash ? 'Release to delete' : 'Drag here to delete'}
+          </span>
+        </div>
+      </div>
 
       {widgets.map((widget) => {
         const typeDef      = getWidgetType(widget.type ?? '')

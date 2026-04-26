@@ -18,11 +18,11 @@ export const LIGHT: ThemeVars = {
   surfaceHover:  '#ede9e4',
   surfaceDanger: '#fef2f2',
 
-  accent:     '#4a7c59',
+  accent:     '#e25822',
   accentText: '#ffffff',
   danger:     '#ef4444',
   success:    '#22c55e',
-  info:       '#4a7c59',
+  info:       '#e25822',
 
   actionBg:     '#ffffff',
   actionBorder: '#e8e5e1',
@@ -38,7 +38,7 @@ export const LIGHT: ThemeVars = {
   clockTickMajor:  '#a09890',
   clockTickMinor:  '#e8e5e1',
   clockHands:      '#1a1a1a',
-  clockSecond:     '#3b82f6',
+  clockSecond:     '#e25822',
   clockCenter:     '#1a1a1a',
 
   noteDefaultBg: '#fef9c3',
@@ -62,11 +62,11 @@ export const DARK: ThemeVars = {
   surfaceHover:  '#2a2a2a',
   surfaceDanger: '#3a1a1a',
 
-  accent:     '#6aab80',
-  accentText: '#191919',
+  accent:     '#e25822',
+  accentText: '#ffffff',
   danger:     '#f87171',
   success:    '#4ade80',
-  info:       '#6aab80',
+  info:       '#e25822',
 
   actionBg:     '#242424',
   actionBorder: '#2d2d2d',
@@ -82,7 +82,7 @@ export const DARK: ThemeVars = {
   clockTickMajor:  '#6b6866',
   clockTickMinor:  '#2d2d2d',
   clockHands:      '#f0eeeb',
-  clockSecond:     '#60a5fa',
+  clockSecond:     '#e25822',
   clockCenter:     '#f0eeeb',
 
   noteDefaultBg: '#2a2416',

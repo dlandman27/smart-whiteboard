@@ -59,6 +59,7 @@ const ALLOWED_ORIGINS = [
   'https://localhost',
   'http://localhost:3001',
   'https://smart-whiteboard-production.up.railway.app',
+  'https://walli.wiigit.com',
 ]
 app.use(cors({
   origin: (origin, callback) => {
