@@ -289,33 +289,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOp
 
         <Divider />
 
-        {/* ── Left group: drawing tools ── */}
-        <div key={`draw-${openKey}`} className="toolbar-drop-in flex items-center gap-1" style={{ animationDelay: '80ms' }}>
-          <IconButton
-            icon="PencilSimple"
-            size="xl"
-            variant={activeTool === 'marker' ? 'active' : 'default'}
-            onClick={() => selectTool(activeTool === 'marker' ? 'pointer' : 'marker')}
-            title="Draw"
-          />
-          <IconButton
-            icon="Eraser"
-            size="xl"
-            variant={activeTool === 'eraser' ? 'active' : 'default'}
-            onClick={() => selectTool(activeTool === 'eraser' ? 'pointer' : 'eraser')}
-            title="Eraser"
-          />
-          <IconButton
-            icon="Trash"
-            size="xl"
-            variant="default"
-            onClick={() => drawingRef.current?.clear()}
-            title="Clear drawing"
-          />
-        </div>
-
-        <Divider />
-
         {/* ── Center: voice ── */}
         <div key={`voice-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '120ms' }}>
           <VoiceButton state={voiceState} />
@@ -341,15 +314,6 @@ export function BottomToolbar({ onToolChange, onWidgetSelected, externalPickerOp
           />
         </div>
 
-        <div key={`ss-${openKey}`} className="toolbar-drop-in" style={{ animationDelay: '240ms' }}>
-          <IconButton
-            icon="Moon"
-            size="xl"
-            variant="default"
-            onClick={() => setScreensaverMode(true)}
-            title="Screensaver"
-          />
-        </div>
       </Pill>
 
       {/* ── Show handle (visible when toolbar is hidden) ──────��──── */}
