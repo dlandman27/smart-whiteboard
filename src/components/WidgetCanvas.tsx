@@ -179,11 +179,12 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
       const draggedSlotRect = slotMap[draggedSlotId]
       updateLayout(occupant.id, { x: draggedSlotRect.x, y: draggedSlotRect.y, width: draggedSlotRect.width, height: draggedSlotRect.height })
       assignSlot(occupant.id, draggedSlotId)
-      // Animate both widgets sliding into their new slots
-      if (swapTimerRef.current) clearTimeout(swapTimerRef.current)
-      setSwappingWidgetIds(new Set([widgetId, occupant.id]))
-      swapTimerRef.current = setTimeout(() => setSwappingWidgetIds(new Set()), 350)
     }
+
+    // Always animate the dropped widget (and its swap partner if any) into their new slots
+    if (swapTimerRef.current) clearTimeout(swapTimerRef.current)
+    setSwappingWidgetIds(new Set([widgetId, ...(occupant ? [occupant.id] : [])]))
+    swapTimerRef.current = setTimeout(() => setSwappingWidgetIds(new Set()), 350)
 
     updateLayout(widgetId, { x: targetSlotRect.x, y: targetSlotRect.y, width: targetSlotRect.width, height: targetSlotRect.height })
     assignSlot(widgetId, targetSlotId)
@@ -239,6 +240,39 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
         hoveredSlotId={hoveredSlotId}
         onSlotClick={handleSlotClick}
       />
+
+      {/* Landing ghost — shows exact target slot while dragging, morphs between slots */}
+      {draggingWidgetId && hoveredSlotId && slotMap[hoveredSlotId] && (() => {
+        const { x, y, width, height } = slotMap[hoveredSlotId]
+        const isOccupied = widgets.some((w) => w.id !== draggingWidgetId && w.slotId === hoveredSlotId)
+        return (
+          <div
+            style={{
+              position:       'absolute',
+              left:           x + 8,
+              top:            y + 8,
+              width:          width - 16,
+              height:         height - 16,
+              borderRadius:   '3rem',
+              border:         `2px solid ${isOccupied ? 'rgba(249,115,22,0.85)' : 'color-mix(in srgb, var(--wt-accent) 85%, transparent)'}`,
+              background:     isOccupied
+                ? 'color-mix(in srgb, #f97316 18%, transparent)'
+                : 'color-mix(in srgb, var(--wt-accent) 14%, transparent)',
+              backdropFilter: 'blur(4px)',
+              zIndex:         600,
+              pointerEvents:  'none',
+              transition:     [
+                'left 0.22s cubic-bezier(0.34,1.3,0.64,1)',
+                'top 0.22s cubic-bezier(0.34,1.3,0.64,1)',
+                'width 0.22s cubic-bezier(0.34,1.3,0.64,1)',
+                'height 0.22s cubic-bezier(0.34,1.3,0.64,1)',
+                'border-color 0.15s ease',
+                'background 0.15s ease',
+              ].join(', '),
+            }}
+          />
+        )
+      })()}
 
       {/* Pending placement hint */}
       {pendingWidget && (

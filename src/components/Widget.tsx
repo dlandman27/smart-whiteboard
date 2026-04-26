@@ -392,10 +392,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
   const renderH = fullscreen && fsExpanded ? canvasSize.h : size.height
   const isSplit     = renderW >= 520
   const scale = refSize ? Math.min(renderW / refSize.width, renderH / refSize.height) : 1
-  // When dragging a slot-assigned widget, shrink it to a target footprint for slot-swap UX
-  const DRAG_TARGET_W = 260
-  const DRAG_TARGET_H = 160
-  const dragScale = slotAssigned ? Math.min(DRAG_TARGET_W / size.width, DRAG_TARGET_H / size.height) : 1
+  const DRAG_SCALE = slotAssigned ? 0.62 : 1.05
 
   const FS_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)'
   const fsStyle: React.CSSProperties = fullscreen
@@ -419,14 +416,14 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
         height:     size.height,
         zIndex:     showSettings ? 10002 : dragging ? 500 : zOrder + (isActive ? 1 : 0),
         touchAction: 'none',
-        transform:   dragging ? `scale(${slotAssigned ? dragScale : 1.04})` : undefined,
+        transform:       dragging ? `scale(${DRAG_SCALE}) rotate(1.5deg)` : undefined,
         transformOrigin: dragging ? dragOrigin : 'center',
-        transition:  dragging
-          ? 'transform 0.15s ease'
+        transition:      dragging
+          ? 'transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1)'
           : layoutTransitioning
-          ? 'left 0.3s ease-in-out, top 0.3s ease-in-out, width 0.3s ease-in-out, height 0.3s ease-in-out, transform 0.2s ease'
-          : 'transform 0.2s ease',
-        opacity:     dragging ? 0.92 : 1,
+          ? 'left 0.3s ease-in-out, top 0.3s ease-in-out, width 0.3s ease-in-out, height 0.3s ease-in-out, transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1)'
+          : 'transform 0.22s cubic-bezier(0.34, 1.3, 0.64, 1)',
+        opacity:         dragging ? 0.88 : 1,
         backdropFilter: (widgetStyle === 'glass' || widgetStyle === 'glass-dark' || widgetStyle === 'glass-light') ? 'blur(20px) saturate(1.6)' : undefined,
         animation:   removing ? 'wt-remove 0.15s cubic-bezier(0.4, 0, 1, 1) forwards' : undefined,
       }
@@ -514,7 +511,7 @@ export function Widget({ id, x, y, width, height, children, settingsContent, pre
             : widgetStyle === 'glass-light'
             ? '0 8px 32px rgba(0,0,0,0.15)'
             : dragging
-            ? `16px 24px 32px rgba(0,0,0,0.28), 6px 10px 12px rgba(0,0,0,0.16), inset 0 1px 0 var(--wt-widget-highlight)`
+            ? `0 28px 56px rgba(0,0,0,0.38), 0 8px 16px rgba(0,0,0,0.22), inset 0 1px 0 var(--wt-widget-highlight)`
             : isActive
             ? `0 5px 0 rgba(0,0,0,0.14), var(--wt-shadow-md), inset 0 1px 0 var(--wt-widget-highlight)`
             : `0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm), inset 0 1px 0 var(--wt-widget-highlight)`,
