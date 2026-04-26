@@ -23,6 +23,7 @@ import { LayoutPicker } from './LayoutPicker'
 import { BoardSettingsPanel } from './BoardSettingsPanel'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
 import { useScheduleEngine } from '../hooks/useScheduleEngine'
+import { widgetDragState } from '../lib/dragState'
 import { useHashRouter } from '../hooks/useHashRouter'
 import { Screensaver } from './Screensaver'
 import { Icon } from '@whiteboard/ui-kit'
@@ -87,6 +88,7 @@ export function Whiteboard() {
 
   function onBoardTouchStart(e: React.TouchEvent) {
     if (editMode || isSystemBoard) return
+    if (widgetDragState.active) return
     const target = e.target as Element
     if (target.closest('[data-widget]')) return
     swipeStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, locked: false }
@@ -100,6 +102,7 @@ export function Whiteboard() {
 
   function onBoardTouchMove(e: React.TouchEvent) {
     if (editTimer.current) { clearTimeout(editTimer.current); editTimer.current = null }
+    if (widgetDragState.active) { swipeStart.current = null; return }
     if (!swipeStart.current) return
     const dx = e.touches[0].clientX - swipeStart.current.x
     const dy = e.touches[0].clientY - swipeStart.current.y

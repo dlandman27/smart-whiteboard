@@ -8,6 +8,7 @@ import { LayoutSlots } from './layout/LayoutSlots'
 import { CalendarWidget } from './widgets/CalendarWidget'
 import { getWidgetType, getWidgetVariant } from './widgets/registry'
 import { soundWidgetRemoved } from '../lib/sounds'
+import { widgetDragState } from '../lib/dragState'
 import type { PendingWidget } from '../types'
 
 interface Props {
@@ -382,9 +383,10 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
             onDragStart={() => {
               dragStartRef.current = { x, y, width, height, slotId: widget.slotId }
               setDraggingWidgetId(widget.id)
+              widgetDragState.start()
             }}
             onDragMove={(cx, cy) => handleDragMove(cx, cy)}
-            onDragEnd={handleDragEnd}
+            onDragEnd={() => { widgetDragState.end(); handleDragEnd() }}
             onDropped={(rect, cursorPt) => handleDropped(widget.id, rect, cursorPt)}
           >
             {content}
