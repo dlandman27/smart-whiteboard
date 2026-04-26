@@ -99,7 +99,7 @@ function LayoutGrid({ currentLayoutId, onSelect, onClose }: LayoutGridProps) {
         </div>
         <CloseBtn onClick={onClose} />
       </div>
-      <div className="overflow-y-auto p-4 flex flex-col gap-3">
+      <div className="thin-scrollbar overflow-y-auto p-4 flex flex-col gap-3">
         {LAYOUT_SECTIONS.map((section) => {
           const sectionPresets = visiblePresets.filter((l) => l.category === section.category)
           if (sectionPresets.length === 0) return null
@@ -291,7 +291,7 @@ function AssignStep({ layout, widgets, onBack, onApply, onClose }: AssignStepPro
       </div>
 
       {/* Body */}
-      <div className="p-5 flex flex-col gap-4 overflow-y-auto">
+      <div className="thin-scrollbar p-5 flex flex-col gap-4 overflow-y-auto">
 
         {/* Visual layout canvas */}
         <div
@@ -462,21 +462,28 @@ export function LayoutPicker({ onClose }: Props) {
   const overlayRef  = useRef<HTMLDivElement>(null)
 
   const [selectedLayout, setSelectedLayout] = useState<Layout | null>(null)
+  const [closing,        setClosing]        = useState(false)
+
+  function handleClose() {
+    if (closing) return
+    setClosing(true)
+    setTimeout(onClose, 150)
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') { selectedLayout ? setSelectedLayout(null) : onClose() }
+      if (e.key === 'Escape') { selectedLayout ? setSelectedLayout(null) : handleClose() }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [onClose, selectedLayout])
+  }, [selectedLayout, closing])
 
   function handleLayoutSelect(layout: Layout) {
     if (!activeBoard) return
 
     // Bento-only: 0-slot layouts (legacy freeform / unconfigured custom) are no longer selectable.
     if (layout.slots.length === 0) {
-      onClose()
+      handleClose()
       return
     }
 
@@ -487,17 +494,17 @@ export function LayoutPicker({ onClose }: Props) {
     // Empty board — apply instantly
     if (nonHiddenWidgets.length === 0 && allWidgets.every((w) => w.hidden)) {
       setLayout(activeBoardId, layout.id)
-      onClose()
+      handleClose()
       return
     }
 
     if (nonHiddenWidgets.length === 0) {
       setLayout(activeBoardId, layout.id)
-      onClose()
+      handleClose()
       return
     }
 
-    // Improvement 5: skip assignment step when layout has enough slots for all visible widgets.
+    // Skip assignment step when layout has enough slots for all visible widgets.
     // Also attempt to restore hidden widgets into remaining empty slots (greedy, up to slot count).
     if (layout.slots.length >= nonHiddenWidgets.length) {
       const slotGap = activeBoard.slotGap ?? DEFAULT_SLOT_GAP
@@ -523,7 +530,7 @@ export function LayoutPicker({ onClose }: Props) {
       })
 
       setLayout(activeBoardId, layout.id, widgetUpdates)
-      onClose()
+      handleClose()
       return
     }
 
@@ -559,23 +566,29 @@ export function LayoutPicker({ onClose }: Props) {
     // Non-destructive: setLayout hides unassigned widgets instead of deleting them.
     // Do NOT call removeWidget — hidden widgets are retained in the store.
     setLayout(activeBoardId, selectedLayout.id, widgetUpdates)
-    onClose()
+    handleClose()
   }
 
   return (
     <div
       ref={overlayRef}
       className="absolute inset-0 z-[10002] flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }}
-      onPointerDown={(e) => { if (e.target === overlayRef.current) onClose() }}
+      style={{
+        background:     'rgba(0,0,0,0.45)',
+        backdropFilter: 'blur(4px)',
+        animation:      closing ? 'panelFadeOut 0.15s ease-out forwards' : 'panelFadeIn 0.15s ease-out',
+      }}
+      onPointerDown={(e) => { if (e.target === overlayRef.current) handleClose() }}
     >
       <div
         className="flex flex-col rounded-2xl overflow-hidden"
         style={{
-          width: 560, maxHeight: '85vh',
+          width:           560,
+          maxHeight:       '85vh',
           backgroundColor: 'var(--wt-settings-bg)',
-          border: '1px solid var(--wt-settings-border)',
-          boxShadow: 'var(--wt-shadow-lg)',
+          border:          '1px solid var(--wt-settings-border)',
+          boxShadow:       'var(--wt-shadow-lg)',
+          animation:       closing ? 'modal-card-out 0.15s ease-out forwards' : 'modal-card-in 0.15s ease-out',
         }}
       >
         {selectedLayout ? (
@@ -584,13 +597,13 @@ export function LayoutPicker({ onClose }: Props) {
             widgets={activeBoard?.widgets?.filter((w) => !w.hidden) ?? []}
             onBack={() => setSelectedLayout(null)}
             onApply={handleApply}
-            onClose={onClose}
+            onClose={handleClose}
           />
         ) : (
           <LayoutGrid
             currentLayoutId={activeBoard?.layoutId}
             onSelect={handleLayoutSelect}
-            onClose={onClose}
+            onClose={handleClose}
           />
         )}
       </div>

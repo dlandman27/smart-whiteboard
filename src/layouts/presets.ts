@@ -220,6 +220,103 @@ export const LAYOUT_PRESETS: Layout[] = [
       { id: 'br',     label: 'Bottom Right',  x: 0.55, y: 0.55, width: 0.45, height: 0.45 },
     ],
   },
+
+  // ── More layouts ───────────────────────────────────────────────────────────
+
+  // Simple additions
+  {
+    id:       'ticker',
+    name:     'Ticker',
+    category: 'simple',
+    slots: [
+      { id: 'top',    label: 'Top',    x: 0, y: 0,    width: 1, height: 0.18 },
+      { id: 'main',   label: 'Main',   x: 0, y: 0.18, width: 1, height: 0.64 },
+      { id: 'bottom', label: 'Bottom', x: 0, y: 0.82, width: 1, height: 0.18 },
+    ],
+  },
+
+  // Grid additions
+  {
+    id:       'cols-5',
+    name:     '5 Columns',
+    category: 'grid',
+    slots: [
+      { id: 'col-1', label: 'Col 1', x: 0,   y: 0, width: 0.2, height: 1 },
+      { id: 'col-2', label: 'Col 2', x: 0.2, y: 0, width: 0.2, height: 1 },
+      { id: 'col-3', label: 'Col 3', x: 0.4, y: 0, width: 0.2, height: 1 },
+      { id: 'col-4', label: 'Col 4', x: 0.6, y: 0, width: 0.2, height: 1 },
+      { id: 'col-5', label: 'Col 5', x: 0.8, y: 0, width: 0.2, height: 1 },
+    ],
+  },
+
+  // Asymmetric additions
+  {
+    id:       'header-2',
+    name:     'Header + 2',
+    category: 'asymmetric',
+    slots: [
+      { id: 'header', label: 'Header', x: 0,   y: 0,    width: 1,   height: 0.36 },
+      { id: 'left',   label: 'Left',   x: 0,   y: 0.36, width: 0.5, height: 0.64 },
+      { id: 'right',  label: 'Right',  x: 0.5, y: 0.36, width: 0.5, height: 0.64 },
+    ],
+  },
+  {
+    id:       'news',
+    name:     'News',
+    category: 'asymmetric',
+    slots: [
+      { id: 'banner', label: 'Banner', x: 0,    y: 0,    width: 1,    height: 0.42 },
+      { id: 'tile-1', label: 'Tile 1', x: 0,    y: 0.42, width: 0.25, height: 0.58 },
+      { id: 'tile-2', label: 'Tile 2', x: 0.25, y: 0.42, width: 0.25, height: 0.58 },
+      { id: 'tile-3', label: 'Tile 3', x: 0.5,  y: 0.42, width: 0.25, height: 0.58 },
+      { id: 'tile-4', label: 'Tile 4', x: 0.75, y: 0.42, width: 0.25, height: 0.58 },
+    ],
+  },
+  {
+    id:       'bento',
+    name:     'Bento',
+    category: 'asymmetric',
+    slots: [
+      { id: 'feature', label: 'Feature',  x: 0,       y: 0,    width: 0.63,  height: 0.58 },
+      { id: 'side-t',  label: 'Top',      x: 0.63,    y: 0,    width: 0.37,  height: 0.29 },
+      { id: 'side-b',  label: 'Middle',   x: 0.63,    y: 0.29, width: 0.37,  height: 0.29 },
+      { id: 'bot-1',   label: 'Bottom 1', x: 0,       y: 0.58, width: 1 / 3, height: 0.42 },
+      { id: 'bot-2',   label: 'Bottom 2', x: 1 / 3,   y: 0.58, width: 1 / 3, height: 0.42 },
+      { id: 'bot-3',   label: 'Bottom 3', x: 2 / 3,   y: 0.58, width: 1 / 3, height: 0.42 },
+    ],
+  },
+  {
+    // Center with top strip, left/right strips, and all 4 corners.
+    // Left/right cols: 22%. Center col: 56%. Left/right row splits: 35/30/35%. Center col row splits: 25/50/25%.
+    id:       'frame',
+    name:     'Frame',
+    category: 'asymmetric',
+    slots: [
+      { id: 'tl',     label: 'Top Left',     x: 0,    y: 0,    width: 0.22, height: 0.35 },
+      { id: 'top',    label: 'Top',          x: 0.22, y: 0,    width: 0.56, height: 0.25 },
+      { id: 'tr',     label: 'Top Right',    x: 0.78, y: 0,    width: 0.22, height: 0.35 },
+      { id: 'lt',     label: 'Left',         x: 0,    y: 0.35, width: 0.22, height: 0.30 },
+      { id: 'center', label: 'Center',       x: 0.22, y: 0.25, width: 0.56, height: 0.50 },
+      { id: 'rt',     label: 'Right',        x: 0.78, y: 0.35, width: 0.22, height: 0.30 },
+      { id: 'bl',     label: 'Bottom Left',  x: 0,    y: 0.65, width: 0.22, height: 0.35 },
+      { id: 'bot',    label: 'Bottom',       x: 0.22, y: 0.75, width: 0.56, height: 0.25 },
+      { id: 'br',     label: 'Bottom Right', x: 0.78, y: 0.65, width: 0.22, height: 0.35 },
+    ],
+  },
+  {
+    // Center + top strip + 4 corners. No bottom strip or side strips.
+    id:       'crown',
+    name:     'Crown',
+    category: 'asymmetric',
+    slots: [
+      { id: 'tl',     label: 'Top Left',     x: 0,    y: 0,    width: 0.25, height: 0.42 },
+      { id: 'top',    label: 'Top',          x: 0.25, y: 0,    width: 0.50, height: 0.22 },
+      { id: 'tr',     label: 'Top Right',    x: 0.75, y: 0,    width: 0.25, height: 0.42 },
+      { id: 'center', label: 'Center',       x: 0.25, y: 0.22, width: 0.50, height: 0.78 },
+      { id: 'bl',     label: 'Bottom Left',  x: 0,    y: 0.42, width: 0.25, height: 0.58 },
+      { id: 'br',     label: 'Bottom Right', x: 0.75, y: 0.42, width: 0.25, height: 0.58 },
+    ],
+  },
 ]
 
 export function getLayoutPreset(id: string): Layout {

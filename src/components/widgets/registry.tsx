@@ -35,13 +35,11 @@ import { PomodoroWidget, PomodoroSettings } from './PomodoroWidget'
 
 import { YouTubeWidget, YouTubeSettings } from './YouTubeWidget'
 import { SpotifyWidget, SpotifySettings } from './SpotifyWidget'
-import { WorldcupWidget } from './WorldcupWidget'
 import { NotionViewWidget, NotionViewSettingsPanel } from './notion-view'
 import { UrlWidget, UrlSettings } from './UrlWidget'
 import { RoutinesWidget, RoutinesSettings } from './RoutinesWidget'
 import { TimersWidget } from './TimersWidget'
 import { CalendarWidget } from './CalendarWidget'
-import { DatabaseWidget } from './DatabaseWidget'
 // import { SplitWidget } from './SplitWidget'
 // import { SplitSettings } from './SplitSettings'
 import { GooglePhotosWidget } from './GooglePhotosWidget'
@@ -50,8 +48,6 @@ import { RSSWidget } from './RSSWidget'
 import { RSSSettings } from './RSSSettings'
 import { StockTickerWidget } from './StockTickerWidget'
 import { StockTickerSettings } from './StockTickerSettings'
-import { ICalWidget } from './ICalWidget'
-import { ICalSettings } from './ICalSettings'
 import { TaskListWidget, TaskListSettings } from './TaskListWidget'
 import { GoalsWidget, GoalsSettings } from './GoalsWidget'
 import { GifWidget, GifSettings } from './GifWidget'
@@ -567,21 +563,6 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
     }],
   },
   {
-    typeId:      '@whiteboard/worldcup',
-    label:       'World Cup 2026',
-    Icon:        'SoccerBall',
-    iconColor:   '#ca8a04',
-    keywords:    ['world cup', 'fifa', 'soccer', 'football', 'scores', 'espn', '2026'],
-    description: 'FIFA World Cup 2026 scores',
-    variants: [{
-      variantId:   'default',
-      label:       'World Cup 2026',
-      description: 'FIFA World Cup 2026 scores',
-      shape:       WIDGET_SHAPES['tall-rect'],
-      component:   WorldcupWidget,
-    }],
-  },
-  {
     typeId:      '@whiteboard/calendar',
     label:       'Calendar',
     Icon:        'CalendarDots',
@@ -594,21 +575,6 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       description: 'View your calendar events',
       shape:       WIDGET_SHAPES['medium-wide'],
       component:   CalendarWidget,
-    }],
-  },
-  {
-    typeId:      '@whiteboard/database',
-    label:       'Database',
-    Icon:        'Database',
-    iconColor:   '#ea580c',
-    keywords:    ['notion', 'database', 'table', 'data'],
-    description: 'Display a database table',
-    variants: [{
-      variantId:   'default',
-      label:       'Database',
-      description: 'Display a database table',
-      shape:       WIDGET_SHAPES['large-wide'],
-      component:   DatabaseWidget,
     }],
   },
   {
@@ -645,24 +611,6 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       constraints:       { minWidth: 240, minHeight: 260, maxWidth: 600, maxHeight: 800 },
       component:         RSSWidget,
       settingsComponent: RSSSettings,
-    }],
-  },
-  {
-    typeId:      '@whiteboard/ical',
-    label:       'Calendar Feed',
-    Icon:        'CalendarBlank',
-    iconColor:   '#0078d4',
-    keywords:    ['ical', 'calendar', 'outlook', 'apple', 'ics', 'feed', 'events', 'schedule'],
-    description: 'Display events from any iCal/ICS calendar feed',
-    variants: [{
-      variantId:         'default',
-      label:             'Agenda',
-      description:       'Upcoming events from an iCal feed',
-      shape:             WIDGET_SHAPES['tall-rect'],
-      scalable:          true,
-      constraints:       { minWidth: 240, minHeight: 260, maxWidth: 500, maxHeight: 800 },
-      component:         ICalWidget,
-      settingsComponent: ICalSettings,
     }],
   },
   {

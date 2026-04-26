@@ -3,18 +3,16 @@ import { BuiltinTaskProvider } from './tasks/builtin'
 import { GTasksProvider } from './tasks/gtasks'
 import { BuiltinEventProvider } from './events/builtin'
 import { GCalProvider } from './events/gcal'
-import { ICalProvider } from './events/ical'
 
 export type { TaskProvider, EventProvider } from './types'
 export { BuiltinTaskProvider } from './tasks/builtin'
 export { GTasksProvider } from './tasks/gtasks'
 export { BuiltinEventProvider } from './events/builtin'
 export { GCalProvider } from './events/gcal'
-export { ICalProvider } from './events/ical'
 
 // Singleton instances so async status checks persist across calls
 const taskProviders: TaskProvider[] = [new BuiltinTaskProvider(), new GTasksProvider()]
-const eventProviders: EventProvider[] = [new BuiltinEventProvider(), new GCalProvider(), new ICalProvider()]
+const eventProviders: EventProvider[] = [new BuiltinEventProvider(), new GCalProvider()]
 
 export function getTaskProviders(): TaskProvider[] {
   return taskProviders

@@ -101,7 +101,15 @@
       "Bash(netstat -ano)",
       "Bash(findstr \":808\")",
       "Bash(git remote *)",
-      "WebFetch(domain:docs.magicmirror.builders)"
+      "WebFetch(domain:docs.magicmirror.builders)",
+      "Bash(curl -s -X POST http://localhost:3001/api/notion/doc -H 'Content-Type: application/json' -d '{\"title\": \"Widget PRD: Interior Visual Redesign\", \"content\": __CMDSUB_OUTPUT__')",
+      "Bash(python3 -c \"import sys,json; f=open\\('C:/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/.claude/board-prds/layout-system-improvements.md'\\); print\\(json.dumps\\(f.read\\(\\)\\)\\)\")",
+      "Bash(curl -s -X POST http://localhost:3001/api/doc -H 'Content-Type: application/json' -d '{\"title\": \"Board PRD: layout-system-improvements\", \"content\": __TRACKED_VAR__, \"parentPageId\": \"339b3daa-10f0-80ff-9112-c02030c698e2\"}')",
+      "Bash(git -C C:/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/.claude/worktrees/agent-ac9dcac7ecf5d5966 branch)",
+      "Bash(git -C C:/Users/dylan/Documents/projects/wiigit-whiteboard/smart-whiteboard/.claude/worktrees/agent-ac9dcac7ecf5d5966 status --short)",
+      "Bash(curl -s http://localhost:3001/health)",
+      "Bash(git *)",
+      "Bash(npm test *)"
     ]
   },
   "enableAllProjectMcpServers": true,

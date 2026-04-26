@@ -140,3 +140,32 @@ body {
   0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
   40%           { transform: scale(1);   opacity: 1;   }
 }
+
+
+/* ── Modal animations ────────────────────────────────────────────────────────── */
+@keyframes modal-overlay-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes modal-card-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+@keyframes modal-card-out {
+  from { opacity: 1; transform: scale(1)    translateY(0); }
+  to   { opacity: 0; transform: scale(0.96) translateY(6px); }
+}
+@keyframes modal-card-in {
+  from { opacity: 0; transform: scale(0.96) translateY(6px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────────────────── */
+.no-scrollbar                    { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+.thin-scrollbar                              { scrollbar-width: thin; scrollbar-color: var(--wt-border) transparent; }
+.thin-scrollbar::-webkit-scrollbar           { width: 4px; }
+.thin-scrollbar::-webkit-scrollbar-track     { background: transparent; }
+.thin-scrollbar::-webkit-scrollbar-thumb     { background: var(--wt-border); border-radius: 9999px; }
+.thin-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--wt-text-muted); }
