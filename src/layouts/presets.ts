@@ -63,6 +63,16 @@ export const LAYOUT_PRESETS: Layout[] = [
       { id: 'row-3', label: 'Row 3', x: 0, y: 2 / 3,   width: 1, height: 1 / 3 },
     ],
   },
+  {
+    id:       'wing',
+    name:     'Wing',
+    category: 'simple',
+    slots: [
+      { id: 'left',   label: 'Left',   x: 0,    y: 0, width: 0.22, height: 1 },
+      { id: 'center', label: 'Center', x: 0.22, y: 0, width: 0.56, height: 1 },
+      { id: 'right',  label: 'Right',  x: 0.78, y: 0, width: 0.22, height: 1 },
+    ],
+  },
 
   // ── Grid ───────────────────────────────────────────────────────────────────
 
@@ -88,6 +98,17 @@ export const LAYOUT_PRESETS: Layout[] = [
       { id: 'r2c1', label: 'Row 2 Col 1', x: 0,       y: 0.5, width: 1 / 3, height: 0.5 },
       { id: 'r2c2', label: 'Row 2 Col 2', x: 1 / 3,   y: 0.5, width: 1 / 3, height: 0.5 },
       { id: 'r2c3', label: 'Row 2 Col 3', x: 2 / 3,   y: 0.5, width: 1 / 3, height: 0.5 },
+    ],
+  },
+  {
+    id:       'quad',
+    name:     '4 Columns',
+    category: 'grid',
+    slots: [
+      { id: 'col-1', label: 'Col 1', x: 0,    y: 0, width: 0.25, height: 1 },
+      { id: 'col-2', label: 'Col 2', x: 0.25, y: 0, width: 0.25, height: 1 },
+      { id: 'col-3', label: 'Col 3', x: 0.5,  y: 0, width: 0.25, height: 1 },
+      { id: 'col-4', label: 'Col 4', x: 0.75, y: 0, width: 0.25, height: 1 },
     ],
   },
   {
@@ -172,6 +193,18 @@ export const LAYOUT_PRESETS: Layout[] = [
       { id: 'col-1',  label: 'Col 1',  x: 0,       y: 0.38, width: 1 / 3, height: 0.62 },
       { id: 'col-2',  label: 'Col 2',  x: 1 / 3,   y: 0.38, width: 1 / 3, height: 0.62 },
       { id: 'col-3',  label: 'Col 3',  x: 2 / 3,   y: 0.38, width: 1 / 3, height: 0.62 },
+    ],
+  },
+  {
+    id:       'spotlight',
+    name:     'Spotlight',
+    category: 'asymmetric',
+    slots: [
+      { id: 'tl',     label: 'Top Left',     x: 0,    y: 0,   width: 0.28, height: 0.5 },
+      { id: 'center', label: 'Center',       x: 0.28, y: 0,   width: 0.44, height: 1   },
+      { id: 'tr',     label: 'Top Right',    x: 0.72, y: 0,   width: 0.28, height: 0.5 },
+      { id: 'bl',     label: 'Bottom Left',  x: 0,    y: 0.5, width: 0.28, height: 0.5 },
+      { id: 'br',     label: 'Bottom Right', x: 0.72, y: 0.5, width: 0.28, height: 0.5 },
     ],
   },
   {

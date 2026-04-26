@@ -62,17 +62,21 @@ function matchWidgetsToSlots(
 // ── Step 1: layout grid ───────────────────────────────────────────────────────
 
 function SlotPreview({ slots }: { slots: LayoutSlot[] }) {
+  const maxArea = Math.max(...slots.map((s) => s.width * s.height))
   return (
     <div className="relative w-full h-full">
-      {slots.map((slot) => (
-        <div
-          key={slot.id}
-          className="absolute"
-          style={{ left: `${slot.x * 100}%`, top: `${slot.y * 100}%`, width: `${slot.width * 100}%`, height: `${slot.height * 100}%`, padding: 2 }}
-        >
-          <div className="w-full h-full rounded-sm" style={{ background: 'var(--wt-accent)', opacity: 0.5 }} />
-        </div>
-      ))}
+      {slots.map((slot) => {
+        const opacity = maxArea > 0 ? 0.2 + 0.8 * ((slot.width * slot.height) / maxArea) : 0.5
+        return (
+          <div
+            key={slot.id}
+            className="absolute"
+            style={{ left: `${slot.x * 100}%`, top: `${slot.y * 100}%`, width: `${slot.width * 100}%`, height: `${slot.height * 100}%`, padding: 2 }}
+          >
+            <div className="w-full h-full rounded-sm" style={{ background: 'var(--wt-accent)', opacity }} />
+          </div>
+        )
+      })}
     </div>
   )
 }

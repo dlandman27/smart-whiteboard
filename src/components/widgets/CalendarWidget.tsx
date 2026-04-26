@@ -57,6 +57,36 @@ function addMonths(d: Date, n: number) {
   return new Date(d.getFullYear(), d.getMonth() + n, 1)
 }
 
+// ── Loading skeleton ──────────────────────────────────────────────────────────
+
+function CalendarSkeleton() {
+  return (
+    <div style={{ padding: '4px 0', display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {[1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="animate-pulse"
+          style={{
+            display: 'flex', alignItems: 'stretch', gap: 10,
+            paddingTop: 12, paddingBottom: 12,
+            paddingLeft: 14, paddingRight: 14,
+          }}
+        >
+          <div style={{
+            width: 4, borderRadius: 2,
+            background: 'var(--wt-surface-hover)', flexShrink: 0,
+            minHeight: 36,
+          }} />
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ height: 15, borderRadius: 6, background: 'var(--wt-surface-hover)', width: '72%' }} />
+            <div style={{ height: 13, borderRadius: 6, background: 'var(--wt-surface-hover)', width: '42%' }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ── Sub-views ─────────────────────────────────────────────────────────────────
 
 function EventRow({ event }: { event: GCalEvent }) {
@@ -65,13 +95,32 @@ function EventRow({ event }: { event: GCalEvent }) {
   const start    = isAllDay ? null : formatTime(event.start.dateTime!)
   const end      = isAllDay ? null : formatTime(event.end.dateTime!)
   return (
-    <FlexRow align="start" gap="sm" className="py-1.5 px-3 wt-row-btn">
-      <Box className="w-0.5 rounded-full self-stretch flex-shrink-0 mt-0.5" style={{ background: color, minHeight: 16 }} />
+    <FlexRow
+      align="start"
+      gap="sm"
+      className="wt-row-btn"
+      style={{ paddingTop: 12, paddingBottom: 12, paddingLeft: 14, paddingRight: 14 }}
+    >
+      {/* 4px wide color bar */}
+      <div style={{
+        width: 4, borderRadius: 2, alignSelf: 'stretch', flexShrink: 0,
+        background: color, minHeight: 16, marginTop: 2,
+      }} />
       <Box flex1 className="min-w-0">
-        <Text variant="label" size="small" className="truncate" style={{ lineHeight: '1.3' }}>
+        <Text
+          variant="label"
+          size="small"
+          className="truncate"
+          style={{ lineHeight: '1.3', fontSize: 15 }}
+        >
           {event.summary || '(No title)'}
         </Text>
-        <Text variant="caption" size="small" color="muted" style={{ lineHeight: '1.3' }}>
+        <Text
+          variant="caption"
+          size="small"
+          color="muted"
+          style={{ lineHeight: '1.3', fontSize: 13 }}
+        >
           {isAllDay ? 'All day' : `${start} – ${end}`}
         </Text>
       </Box>
@@ -119,13 +168,25 @@ function WeekView({ events, weekStart }: { events: GCalEvent[]; weekStart: Date 
             key={day.toISOString()}
             gap="sm"
             className="px-3 py-2"
-            style={isToday ? { background: 'var(--wt-surface)' } : undefined}
+            style={isToday ? { background: 'var(--wt-surface-hover)' } : undefined}
           >
             <Box className="w-9 flex-shrink-0 text-right pt-0.5">
-              <Text variant="label" size="small" color={isToday ? 'accent' : 'muted'} align="right" style={{ fontWeight: '700' }}>
+              <Text
+                variant="label"
+                size="small"
+                color={isToday ? 'accent' : 'muted'}
+                align="right"
+                style={{ fontWeight: '700', fontSize: 14 }}
+              >
                 {day.toLocaleDateString('en-US', { weekday: 'short' })}
               </Text>
-              <Text variant="body" size="small" color={isToday ? 'accent' : 'muted'} align="right" style={{ fontWeight: '600', lineHeight: '1' }}>
+              <Text
+                variant="body"
+                size="small"
+                color={isToday ? 'accent' : 'muted'}
+                align="right"
+                style={{ fontWeight: '600', lineHeight: '1', fontSize: 16 }}
+              >
                 {day.getDate()}
               </Text>
             </Box>
@@ -135,12 +196,15 @@ function WeekView({ events, weekStart }: { events: GCalEvent[]; weekStart: Date 
               ) : (
                 dayEvents.map(ev => (
                   <FlexRow key={ev.id} align="center" className="gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: eventColor(ev) }} />
-                    <Text as="span" variant="caption" size="large" className="truncate flex-1">
+                    <span
+                      className="rounded-full flex-shrink-0"
+                      style={{ width: 6, height: 6, background: eventColor(ev) }}
+                    />
+                    <Text as="span" variant="caption" size="large" className="truncate flex-1" style={{ fontSize: 14 }}>
                       {ev.summary || '(No title)'}
                     </Text>
                     {ev.start.dateTime && (
-                      <Text as="span" variant="caption" size="small" color="muted" className="flex-shrink-0">
+                      <Text as="span" variant="caption" size="small" color="muted" className="flex-shrink-0" style={{ fontSize: 12 }}>
                         {formatTime(ev.start.dateTime)}
                       </Text>
                     )}
@@ -194,7 +258,7 @@ function MonthView({ events, date }: { events: GCalEvent[]; date: Date }) {
             <Box
               key={i}
               className={`rounded p-0.5 text-center min-h-0 ${isToday ? '' : 'hover:bg-[var(--wt-surface-hover)]'}`}
-              style={isToday ? { background: 'var(--wt-surface)' } : undefined}
+              style={isToday ? { background: 'var(--wt-surface-hover)' } : undefined}
             >
               <Text
                 variant="label"
@@ -202,15 +266,21 @@ function MonthView({ events, date }: { events: GCalEvent[]; date: Date }) {
                 color={isToday ? 'accent' : 'muted'}
                 align="center"
                 className="leading-none mb-0.5"
+                style={{ fontSize: 14 }}
               >
                 {day}
               </Text>
               <FlexRow wrap justify="center" className="gap-px">
                 {evs.slice(0, 3).map(e => (
-                  <span key={e.id} className="w-1 h-1 rounded-full" style={{ background: eventColor(e) }} title={e.summary} />
+                  <span
+                    key={e.id}
+                    className="rounded-full"
+                    style={{ width: 6, height: 6, background: eventColor(e), display: 'inline-block' }}
+                    title={e.summary}
+                  />
                 ))}
                 {evs.length > 3 && (
-                  <Text as="span" variant="caption" size="small" color="muted" style={{ fontSize: '8px', lineHeight: '1' }}>
+                  <Text as="span" variant="caption" size="small" color="muted" style={{ fontSize: 11, lineHeight: '1' }}>
                     +{evs.length - 3}
                   </Text>
                 )}
@@ -272,7 +342,7 @@ export function CalendarWidget({ widgetId }: WidgetProps) {
   if (statusLoading) {
     return (
       <Center fullHeight>
-        <Text variant="body" size="small" color="muted" className="animate-pulse">Loading calendar…</Text>
+        <CalendarSkeleton />
       </Center>
     )
   }
@@ -281,8 +351,8 @@ export function CalendarWidget({ widgetId }: WidgetProps) {
     return (
       <Center fullHeight className="px-6">
         <div className="text-center">
-          <Icon icon="CalendarDots" size={28} style={{ marginBottom: 8, color: 'var(--wt-text-muted)' }} />
-          <Text variant="body" size="small" color="muted" align="center">
+          <Icon icon="CalendarDots" size={36} style={{ marginBottom: 8, color: 'var(--wt-text-muted)' }} />
+          <Text variant="body" size="small" color="muted" align="center" style={{ fontSize: 15 }}>
             Connect Google Calendar in Connectors to view your events
           </Text>
         </div>
@@ -331,9 +401,7 @@ export function CalendarWidget({ widgetId }: WidgetProps) {
       {/* Content */}
       <ScrollArea>
         {isLoading ? (
-          <Center fullHeight>
-            <Text variant="body" size="small" color="muted" className="animate-pulse">Loading events…</Text>
-          </Center>
+          <CalendarSkeleton />
         ) : view === 'day' ? (
           <DayView events={events} />
         ) : view === 'week' ? (

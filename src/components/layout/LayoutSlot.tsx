@@ -30,7 +30,7 @@ export function LayoutSlot({ x, y, width, height, mode, isHovered, onClick }: Pr
     <div
       className="absolute"
       style={{ left: x, top: y, width, height, zIndex: 5 }}
-      onClick={onClick}
+      onClick={(e) => { e.stopPropagation(); onClick?.() }}
     >
       <div
         className={`w-full h-full rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-150 flex items-center justify-center ${!isHovered ? 'animate-pulse' : ''}`}

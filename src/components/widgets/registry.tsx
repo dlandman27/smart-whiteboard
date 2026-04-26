@@ -30,7 +30,7 @@ import {
   EPLSettings, LaLigaSettings, UCLSettings, BundesligaSettings,
   SerieASettings, Ligue1Settings, MLSSettings,
 } from './SportsSettings'
-import { NoteWidget } from './NoteWidget'
+import { NoteWidget, NoteSettings } from './NoteWidget'
 import { PomodoroWidget, PomodoroSettings } from './PomodoroWidget'
 
 import { YouTubeWidget, YouTubeSettings } from './YouTubeWidget'
@@ -54,7 +54,6 @@ import { TodoistWidget } from './TodoistWidget'
 import { TodoistSettings } from './TodoistSettings'
 import { ICalWidget } from './ICalWidget'
 import { ICalSettings } from './ICalSettings'
-import { WalliAgentWidget, WalliAgentSettings } from './WalliAgentWidget'
 import { TaskListWidget, TaskListSettings } from './TaskListWidget'
 import { AppleHealthWidget } from './AppleHealthWidget'
 import { GoalsWidget, GoalsSettings } from './GoalsWidget'
@@ -420,7 +419,8 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       description: 'Quick notes and text',
       shape:       WIDGET_SHAPES['small-wide'],
       constraints: { minWidth: 160, minHeight: 120, maxWidth: 800, maxHeight: 800 },
-      component:   NoteWidget,
+      component:          NoteWidget,
+      settingsComponent:  NoteSettings,
     }],
   },
   {
@@ -720,24 +720,6 @@ const BUILTIN_WIDGET_TYPES: WidgetTypeDef[] = [
       constraints:       { minWidth: 220, minHeight: 240, maxWidth: 600, maxHeight: 800 },
       component:         TaskListWidget,
       settingsComponent: TaskListSettings,
-    }],
-  },
-  {
-    typeId:      '@whiteboard/walli-agent',
-    label:       'Walli Agent',
-    Icon:        'Robot',
-    iconColor:   '#6366f1',
-    keywords:    ['walli', 'agent', 'health', 'tasks', 'habits', 'apollo', 'miles', 'harvey'],
-    description: 'Live data from a Walli agent',
-    variants: [{
-      variantId:         'default',
-      label:             'Walli Agent',
-      description:       'Live data from a Walli agent',
-      shape:             WIDGET_SHAPES['tall-rect'],
-      scalable:          true,
-      constraints:       { minWidth: 240, minHeight: 240, maxWidth: 600, maxHeight: 700 },
-      component:         WalliAgentWidget,
-      settingsComponent: WalliAgentSettings,
     }],
   },
   {

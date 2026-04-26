@@ -21,7 +21,8 @@ export function LayoutSlots({ pendingWidget, draggingWidgetId, hoveredSlotId, on
     widgets.filter((w) => w.slotId).map((w) => [w.slotId!, w.id])
   )
 
-  const isDragging = !!draggingWidgetId || !!pendingWidget
+  const isDragging  = !!draggingWidgetId
+  const isAddingNew = !!pendingWidget && !draggingWidgetId
 
   return (
     <>
@@ -34,6 +35,9 @@ export function LayoutSlots({ pendingWidget, draggingWidgetId, hoveredSlotId, on
         let mode: 'hidden' | 'place' | 'swap' = 'hidden'
         if (isDragging) {
           mode = isOccupiedByOther ? 'swap' : 'place'
+        } else if (isAddingNew) {
+          // Bento-only: when adding a new widget, only empty slots are valid drop targets.
+          mode = isOccupiedByOther ? 'hidden' : 'place'
         }
 
         return (

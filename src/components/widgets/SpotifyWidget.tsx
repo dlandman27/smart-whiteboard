@@ -133,8 +133,8 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
   if (!settings.clientId || !settings.clientSecret) {
     return (
       <Center fullHeight gap="sm">
-        <SpotifyIcon size={36} />
-        <Text variant="body" size="small" color="muted" align="center">
+        <SpotifyIcon size={48} />
+        <Text variant="body" size="small" color="muted" align="center" style={{ fontSize: 16 }}>
           Open settings to connect{'\n'}your Spotify account
         </Text>
       </Center>
@@ -145,7 +145,7 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
   if (!connected) {
     return (
       <Center fullHeight gap="sm">
-        <SpotifyIcon size={36} />
+        <SpotifyIcon size={48} />
         <Button variant="accent" size="sm" onClick={startAuth} style={{ borderRadius: 20 }}>
           Connect Spotify
         </Button>
@@ -157,8 +157,8 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
   if (!track) {
     return (
       <Center fullHeight gap="sm">
-        <SpotifyIcon size={32} />
-        <Text variant="body" size="small" color="muted">Nothing playing</Text>
+        <SpotifyIcon size={48} />
+        <Text variant="body" size="small" color="muted" style={{ fontSize: 16 }}>Nothing playing</Text>
       </Center>
     )
   }
@@ -209,7 +209,7 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
             size="small"
             align="center"
             numberOfLines={1}
-            style={{ color: textColor, width: '100%' }}
+            style={{ color: textColor, width: '100%', fontSize: 17 }}
           >
             {track.title}
           </Text>
@@ -218,36 +218,43 @@ function SpotifyContent({ widgetId }: { widgetId: string }) {
             size="small"
             align="center"
             numberOfLines={1}
-            style={{ color: textMutedColor, width: '100%' }}
+            style={{ color: textMutedColor, width: '100%', fontSize: 15 }}
           >
             {track.artist}
           </Text>
         </FlexCol>
 
-        {/* Progress bar */}
+        {/* Progress bar — 6px height */}
         <FlexCol className="w-full" gap="none">
-          <div style={{ width: '100%', height: 3, borderRadius: 2, background: progressTrackBg, overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: 2, background: 'var(--wt-accent)', width: `${pct}%`, transition: 'width 1s linear' }} />
+          <div style={{
+            width: '100%', height: 6, borderRadius: 3,
+            background: progressTrackBg, overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%', borderRadius: 3,
+              background: 'var(--wt-accent)',
+              width: `${pct}%`, transition: 'width 1s linear',
+            }} />
           </div>
           <FlexRow justify="between" className="mt-1">
-            <Text variant="caption" size="small" style={{ color: timeColor }}>{fmtTime(progress)}</Text>
-            <Text variant="caption" size="small" style={{ color: timeColor }}>{fmtTime(track.durationMs)}</Text>
+            <Text variant="caption" size="small" style={{ color: timeColor, fontSize: 13 }}>{fmtTime(progress)}</Text>
+            <Text variant="caption" size="small" style={{ color: timeColor, fontSize: 13 }}>{fmtTime(track.durationMs)}</Text>
           </FlexRow>
         </FlexCol>
 
-        {/* Playback controls */}
+        {/* Playback controls — play 52px, skip 38px */}
         <FlexRow align="center" className="gap-5">
           <CtrlBtn onClick={() => control('previous')} title="Previous" bg={ctrlSecondaryBg} color={ctrlSecondaryColor}>
-            <Icon icon="SkipBack" size={16} weight="fill" />
+            <Icon icon="SkipBack" size={18} weight="fill" />
           </CtrlBtn>
           <CtrlBtn onClick={() => control(track.isPlaying ? 'pause' : 'play')} large title={track.isPlaying ? 'Pause' : 'Play'} bg="var(--wt-accent)" color="var(--wt-accent-text)">
             {track.isPlaying
-              ? <Icon icon="Pause" size={18} weight="fill" />
-              : <Icon icon="Play"  size={18} weight="fill" style={{ marginLeft: 2 }} />
+              ? <Icon icon="Pause" size={22} weight="fill" />
+              : <Icon icon="Play"  size={22} weight="fill" style={{ marginLeft: 2 }} />
             }
           </CtrlBtn>
           <CtrlBtn onClick={() => control('next')} title="Next" bg={ctrlSecondaryBg} color={ctrlSecondaryColor}>
-            <Icon icon="SkipForward" size={16} weight="fill" />
+            <Icon icon="SkipForward" size={18} weight="fill" />
           </CtrlBtn>
         </FlexRow>
       </FlexCol>
@@ -347,8 +354,8 @@ export function SpotifySettings({ widgetId }: { widgetId: string }) {
 function Spinner() {
   return (
     <div style={{
-      width: 20, height: 20, borderRadius: '50%',
-      border: '2px solid var(--wt-border)',
+      width: 28, height: 28, borderRadius: '50%',
+      border: '3px solid var(--wt-border)',
       borderTopColor: 'var(--wt-accent)',
       animation: 'spin 0.8s linear infinite',
     }} />
@@ -371,7 +378,7 @@ function CtrlBtn({
       title={title}
       className="flex items-center justify-center rounded-full border-none cursor-pointer flex-shrink-0 transition-transform active:scale-90"
       style={{
-        width: large ? 44 : 32, height: large ? 44 : 32,
+        width: large ? 52 : 38, height: large ? 52 : 38,
         background: bg, color,
       }}
     >

@@ -67,11 +67,17 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
   const [quote, setQuote]     = useState<{ text: string; author: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+  const [visible, setVisible] = useState(true)
 
   async function load(force = false) {
     if (!force) {
       const cached = loadCache(widgetId)
       if (cached) { setQuote(cached); return }
+    }
+    // Fade out existing quote before fetching
+    if (force && quote) {
+      setVisible(false)
+      await new Promise((r) => setTimeout(r, 220))
     }
     setLoading(true)
     setError(null)
@@ -79,8 +85,10 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
       const q = await fetchQuote()
       saveCache(widgetId, { ...q, date: today() })
       setQuote(q)
+      setVisible(true)
     } catch {
       setError('Could not load quote')
+      setVisible(true)
     } finally {
       setLoading(false)
     }
@@ -93,56 +101,65 @@ export function QuoteWidget({ widgetId }: { widgetId: string }) {
 
   return (
     <Container className="relative">
+      <FlexCol justify="center" align={flexAlign} fullHeight noSelect gap="sm" className="px-6 py-5"
+        style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.2s ease' }}
+      >
+        {error && !loading && (
+          <Text variant="body" size="small" color="muted">{error}</Text>
+        )}
+
+        {(quote || loading) && (
+          <>
+            {loading ? (
+              <FlexCol style={{ width: '100%', gap: 8 }}>
+                {[90, 100, 68].map((w, i) => (
+                  <div key={i} className="animate-pulse" style={{
+                    height: 15, borderRadius: 6,
+                    background: 'var(--wt-surface-hover)',
+                    width: `${w}%`,
+                    alignSelf: align === 'center' ? 'center' : 'flex-start',
+                  }} />
+                ))}
+              </FlexCol>
+            ) : quote && (
+              <>
+                <Text
+                  as="span"
+                  color="accent"
+                  style={{ fontSize: 48, lineHeight: 0.8, fontFamily: 'Georgia, serif', opacity: 0.6, alignSelf: align === 'center' ? 'center' : 'flex-start' }}
+                >
+                  "
+                </Text>
+                <Text variant="body" size={SIZE_MAP[settings.fontSize]} align={align} style={{ fontWeight: '300', lineHeight: 1.6 }}>
+                  {quote.text}
+                </Text>
+                <Text
+                  variant="label"
+                  size="small"
+                  color="muted"
+                  align={align}
+                  style={{ letterSpacing: '0.06em', marginTop: 4 }}
+                >
+                  — {quote.author}
+                </Text>
+              </>
+            )}
+          </>
+        )}
+      </FlexCol>
+
+      {/* Refresh button — bottom right, out of the way */}
       {settings.showRefresh && (
         <IconButton
           icon="ArrowsClockwise"
           size="sm"
           variant="ghost"
-          className="absolute top-3 right-3 z-[1] opacity-25 hover:opacity-70 transition-opacity"
-          onMouseDown={(e) => e.stopPropagation()}
+          className={`absolute bottom-3 left-1/2 -translate-x-1/2 z-[1] transition-opacity ${loading ? 'animate-spin opacity-60' : 'opacity-50 hover:opacity-90'}`}
+          onPointerDown={(e) => e.stopPropagation()}
           onClick={() => load(true)}
           title="New quote"
         />
       )}
-
-      <FlexCol justify="center" align={flexAlign} fullHeight noSelect gap="md" className="px-6 py-5">
-        {loading && (
-          <Text variant="body" size="small" color="muted" className="animate-pulse">Loading…</Text>
-        )}
-
-        {error && !loading && (
-          <Text variant="body" size="small" color="muted">{error}</Text>
-        )}
-
-        {quote && !loading && (
-          <>
-            <Text
-              as="span"
-              variant="display"
-              size="large"
-              color="accent"
-              style={{ fontSize: '36px', lineHeight: '1', marginBottom: '-0.5rem', opacity: 0.5, fontFamily: 'serif' }}
-            >
-              "
-            </Text>
-
-            <Text variant="body" size={SIZE_MAP[settings.fontSize]} align={align} style={{ fontWeight: '300' }}>
-              {quote.text}
-            </Text>
-
-            <Text
-              variant="label"
-              size="small"
-              color="muted"
-              textTransform="uppercase"
-              align={align}
-              style={{ opacity: 0.6, letterSpacing: '0.1em' }}
-            >
-              — {quote.author}
-            </Text>
-          </>
-        )}
-      </FlexCol>
     </Container>
   )
 }

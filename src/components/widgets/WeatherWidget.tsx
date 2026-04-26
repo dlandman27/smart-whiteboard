@@ -124,7 +124,7 @@ function WeatherContent({ widgetId }: WidgetProps) {
 
       {/* Middle: temperature */}
       <FlexRow align="baseline" className="gap-0.5">
-        <Text as="span" style={{ fontSize: tempSize, lineHeight: 1, fontFamily: fontFamily.base, fontWeight: '300', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em' }}>
+        <Text as="span" style={{ fontSize: tempSize, lineHeight: 1, fontFamily: fontFamily.base, fontWeight: '300', fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.03em', color }}>
           {data.temperature}
         </Text>
         <Text as="span" color="muted" style={{ fontSize: unitSize, fontFamily: fontFamily.base, fontWeight: '400', marginBottom: Math.round(unitSize * 0.2) }}>

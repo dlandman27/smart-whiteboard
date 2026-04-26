@@ -53,19 +53,19 @@ function goalAccentColor(goal: GoalWithRelations): string {
 
 // ── Progress bar ──────────────────────────────────────────────────────────────
 
-function ProgressBar({ pct, color, height = 4 }: { pct: number; color: string; height?: number }) {
+function ProgressBar({ pct, color, height = 7 }: { pct: number; color: string; height?: number }) {
   return (
     <div style={{
       height,
       borderRadius: height,
-      background: 'var(--wt-border)',
+      background: 'var(--wt-surface-hover)',
       overflow: 'hidden',
       flexShrink: 0,
     }}>
       <div style={{
         height: '100%',
         borderRadius: height,
-        background: pct >= 1 ? 'var(--wt-success, #4ade80)' : color,
+        background: pct >= 1 ? 'var(--wt-success)' : color,
         width: `${Math.round(pct * 100)}%`,
         transition: 'width 0.4s ease',
       }} />
@@ -112,8 +112,8 @@ function LogEntry({ goalId, unit }: { goalId: string; unit: string | null }) {
         onKeyDown={(e) => { if (e.key === 'Enter') submit() }}
         onPointerDown={(e) => e.stopPropagation()}
         style={{
-          flex: 1, fontSize: 11, padding: '4px 8px',
-          borderRadius: 6, border: '1px solid var(--wt-border)',
+          flex: 1, fontSize: 13, padding: '6px 8px',
+          borderRadius: 8, border: '1px solid var(--wt-border)',
           background: 'var(--wt-surface)', color: 'var(--wt-text)',
           outline: 'none', minWidth: 0,
         }}
@@ -123,7 +123,7 @@ function LogEntry({ goalId, unit }: { goalId: string; unit: string | null }) {
         onClick={submit}
         disabled={log.isPending}
         style={{
-          padding: '4px 10px', fontSize: 11, borderRadius: 6, border: 'none',
+          padding: '6px 12px', fontSize: 13, borderRadius: 8, border: 'none',
           background: 'var(--wt-accent)', color: 'var(--wt-accent-text)',
           cursor: 'pointer', flexShrink: 0, fontWeight: 600,
         }}
@@ -140,10 +140,12 @@ function GoalCard({
   goal,
   compact,
   showLog,
+  done: isDone,
 }: {
   goal: GoalWithRelations
   compact: boolean
   showLog: boolean
+  done: boolean
 }) {
   const pct    = calcProgress(goal)
   const color  = goalAccentColor(goal)
@@ -152,44 +154,46 @@ function GoalCard({
 
   return (
     <div style={{
-      background: 'var(--wt-surface)',
-      border:     '1px solid var(--wt-border)',
-      borderRadius: 10,
-      padding:    compact ? '8px 10px' : '10px 12px',
-      display:    'flex',
+      background:    'var(--wt-surface)',
+      border:        '1px solid var(--wt-border)',
+      borderRadius:  16,
+      padding:       compact ? '10px 12px' : '14px',
+      display:       'flex',
       flexDirection: 'column',
-      gap:        compact ? 5 : 7,
+      gap:           compact ? 5 : 8,
+      opacity:       isDone ? 0.4 : 1,
+      transition:    'opacity 0.15s',
     }}>
       {/* Title row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
         {goal.emoji && (
-          <span style={{ fontSize: compact ? 14 : 16, lineHeight: 1, flexShrink: 0 }}>{goal.emoji}</span>
+          <span style={{ fontSize: compact ? 14 : 18, lineHeight: 1, flexShrink: 0 }}>{goal.emoji}</span>
         )}
         <span style={{
-          flex: 1, fontSize: compact ? 12 : 13, fontWeight: 600,
+          flex: 1, fontSize: compact ? 13 : 17, fontWeight: 600,
           color: 'var(--wt-text)', overflow: 'hidden',
           textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {goal.title}
         </span>
         {target && (
-          <span style={{ fontSize: 10, color: 'var(--wt-text-muted)', flexShrink: 0 }}>
+          <span style={{ fontSize: compact ? 10 : 12, color: 'var(--wt-text-muted)', flexShrink: 0 }}>
             by {target}
           </span>
         )}
       </div>
 
       {/* Progress bar */}
-      <ProgressBar pct={pct} color={color} height={compact ? 3 : 4} />
+      <ProgressBar pct={pct} color={color} height={compact ? 4 : 7} />
 
       {/* Progress label */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ fontSize: 10, color: 'var(--wt-text-muted)' }}>
+        <span style={{ fontSize: compact ? 11 : 14, color: 'var(--wt-text-muted)' }}>
           <ProgressLabel goal={goal} />
         </span>
         <span style={{
-          fontSize: 10, fontWeight: 600,
-          color: pct >= 1 ? 'var(--wt-success, #4ade80)' : color,
+          fontSize: compact ? 11 : 14, fontWeight: 600,
+          color: pct >= 1 ? 'var(--wt-success)' : color,
         }}>
           {Math.round(pct * 100)}%
         </span>
@@ -198,7 +202,7 @@ function GoalCard({
       {/* Next milestone */}
       {!compact && next && (
         <div style={{
-          fontSize: 10, color: 'var(--wt-text-muted)',
+          fontSize: 13, color: 'var(--wt-text-muted)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           Next: {next.title}
@@ -234,14 +238,14 @@ function GoalFocus({ goal, showLog }: { goal: GoalWithRelations; showLog: boolea
         )}
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{
-            fontSize: 15, fontWeight: 700, color: 'var(--wt-text)',
+            fontSize: 20, fontWeight: 700, color: 'var(--wt-text)',
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }}>
             {goal.title}
           </div>
           {goal.description && (
             <div style={{
-              fontSize: 11, color: 'var(--wt-text-muted)', marginTop: 2,
+              fontSize: 13, color: 'var(--wt-text-muted)', marginTop: 2,
               overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
             }}>
               {goal.description}
@@ -254,7 +258,7 @@ function GoalFocus({ goal, showLog }: { goal: GoalWithRelations; showLog: boolea
       <div style={{ textAlign: 'center', flexShrink: 0 }}>
         <span style={{
           fontSize: 42, fontWeight: 700, lineHeight: 1,
-          color: pct >= 1 ? 'var(--wt-success, #4ade80)' : color,
+          color: pct >= 1 ? 'var(--wt-success)' : color,
           fontVariantNumeric: 'tabular-nums',
         }}>
           {Math.round(pct * 100)}%
@@ -262,10 +266,13 @@ function GoalFocus({ goal, showLog }: { goal: GoalWithRelations; showLog: boolea
       </div>
 
       {/* Progress bar */}
-      <ProgressBar pct={pct} color={color} height={6} />
+      <ProgressBar pct={pct} color={color} height={7} />
 
       {/* Detail row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--wt-text-muted)', flexShrink: 0 }}>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        fontSize: 14, color: 'var(--wt-text-muted)', flexShrink: 0,
+      }}>
         <ProgressLabel goal={goal} />
         {target && <span>by {target}</span>}
       </div>
@@ -273,7 +280,10 @@ function GoalFocus({ goal, showLog }: { goal: GoalWithRelations; showLog: boolea
       {/* Milestones list */}
       {goal.milestones.length > 0 && (
         <div style={{ flex: 1, overflow: 'hidden', minHeight: 0 }}>
-          <div style={{ fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--wt-text-muted)', marginBottom: 6 }}>
+          <div style={{
+            fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
+            letterSpacing: '0.07em', color: 'var(--wt-text-muted)', marginBottom: 6,
+          }}>
             Milestones
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, overflowY: 'auto', maxHeight: '100%' }}>
@@ -287,9 +297,8 @@ function GoalFocus({ goal, showLog }: { goal: GoalWithRelations; showLog: boolea
                     border: `1.5px solid ${m.completed_at ? color : 'var(--wt-border)'}`,
                   }} />
                   <span style={{
-                    fontSize: 11, color: 'var(--wt-text)',
-                    textDecoration: m.completed_at ? 'line-through' : 'none',
-                    opacity: m.completed_at ? 0.45 : 1,
+                    fontSize: 13, color: 'var(--wt-text)',
+                    opacity: m.completed_at ? 0.4 : 1,
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                   }}>
                     {m.title}
@@ -306,6 +315,30 @@ function GoalFocus({ goal, showLog }: { goal: GoalWithRelations; showLog: boolea
           <LogEntry goalId={goal.id} unit={goal.unit} />
         </div>
       )}
+    </div>
+  )
+}
+
+// ── Loading skeleton ──────────────────────────────────────────────────────────
+
+function GoalsSkeleton() {
+  return (
+    <div style={{ flex: 1, padding: '0 10px 10px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {[1, 2].map((i) => (
+        <div
+          key={i}
+          className="animate-pulse"
+          style={{
+            borderRadius: 16, background: 'var(--wt-surface)',
+            border: '1px solid var(--wt-border)', padding: 14,
+            display: 'flex', flexDirection: 'column', gap: 8,
+          }}
+        >
+          <div style={{ height: 17, borderRadius: 6, background: 'var(--wt-surface-hover)', width: '70%' }} />
+          <div style={{ height: 7,  borderRadius: 4, background: 'var(--wt-surface-hover)' }} />
+          <div style={{ height: 14, borderRadius: 6, background: 'var(--wt-surface-hover)', width: '45%' }} />
+        </div>
+      ))}
     </div>
   )
 }
@@ -333,9 +366,9 @@ export function GoalsWidget({ widgetId }: WidgetProps) {
       {/* Header */}
       <div style={{ padding: '12px 14px 8px', flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--wt-text)' }}>Goals</span>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--wt-text)' }}>Goals</span>
           {goals.length > 0 && (
-            <span style={{ fontSize: 10, color: 'var(--wt-text-muted)' }}>
+            <span style={{ fontSize: 13, color: 'var(--wt-text-muted)' }}>
               {goals.filter((g) => calcProgress(g) >= 1).length}/{goals.length} complete
             </span>
           )}
@@ -344,18 +377,16 @@ export function GoalsWidget({ widgetId }: WidgetProps) {
 
       {/* Body */}
       {isLoading ? (
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: 12, color: 'var(--wt-text-muted)' }}>Loading goals…</span>
-        </div>
+        <GoalsSkeleton />
       ) : isError ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
-          <span style={{ fontSize: 12, color: 'var(--wt-text-muted)', textAlign: 'center' }}>
+          <span style={{ fontSize: 13, color: 'var(--wt-text-muted)', textAlign: 'center' }}>
             Could not load goals
           </span>
         </div>
       ) : goals.length === 0 ? (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 16px' }}>
-          <span style={{ fontSize: 12, color: 'var(--wt-text-muted)', textAlign: 'center' }}>
+          <span style={{ fontSize: 13, color: 'var(--wt-text-muted)', textAlign: 'center' }}>
             No active goals.<br />Add goals from the Goals board.
           </span>
         </div>
@@ -371,6 +402,7 @@ export function GoalsWidget({ widgetId }: WidgetProps) {
               goal={goal}
               compact={goals.length > 3}
               showLog={settings.showLogEntry}
+              done={calcProgress(goal) >= 1}
             />
           ))}
         </div>

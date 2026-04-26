@@ -47,7 +47,7 @@ export function CountdownWidget({ widgetId }: { widgetId: string }) {
 }
 
 function CountdownContent({ widgetId }: { widgetId: string }) {
-  const [settings] = useWidgetSettings<CountdownSettings>(widgetId, DEFAULT_COUNTDOWN_SETTINGS)
+  const [settings, set] = useWidgetSettings<CountdownSettings>(widgetId, DEFAULT_COUNTDOWN_SETTINGS)
   const [, tick]   = useState(0)
   const { containerWidth: containerW, containerHeight: containerH } = useWidgetSizeContext()
 
@@ -70,7 +70,19 @@ function CountdownContent({ widgetId }: { widgetId: string }) {
   const dateSize = Math.max(10, Math.round(isWide ? containerH * 0.075 : containerW * 0.048))
 
   const numberBlock = !settings.targetDate ? (
-    <Text variant="body" size="small" color="muted">Set a date in settings</Text>
+    <FlexCol align="center" gap="sm" style={{ width: '100%', paddingLeft: 8, paddingRight: 8 }}>
+      <input
+        type="date"
+        onPointerDown={(e) => e.stopPropagation()}
+        onChange={(e) => set({ targetDate: e.target.value })}
+        style={{
+          fontSize: 15, padding: '8px 12px', borderRadius: 10,
+          border: '1px solid var(--wt-border)', background: 'var(--wt-surface)',
+          color: 'var(--wt-text)', outline: 'none', cursor: 'pointer', width: '100%',
+        }}
+      />
+      <Text variant="caption" size="small" color="muted" style={{ opacity: 0.5 }}>Pick a date to start counting</Text>
+    </FlexCol>
   ) : isToday ? (
     <FlexCol align="center" gap="xs">
       <Text as="span" style={{ fontSize: Math.round(daysSize * 0.5) }}>🎉</Text>
@@ -80,7 +92,7 @@ function CountdownContent({ widgetId }: { widgetId: string }) {
     <FlexRow align="baseline" justify="center" className="gap-1.5">
       <Text
         as="span"
-        style={{ fontSize: daysSize, fontWeight: '100', lineHeight: '1', fontVariantNumeric: 'tabular-nums' }}
+        style={{ fontSize: daysSize, fontWeight: '200', lineHeight: '1', fontVariantNumeric: 'tabular-nums', color: 'var(--wt-accent)' }}
       >
         {delta!.days}
       </Text>

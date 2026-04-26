@@ -45,9 +45,13 @@ describe('LAYOUT_PRESETS', () => {
   it('includes expected preset IDs', () => {
     const ids = LAYOUT_PRESETS.map((p) => p.id)
     expect(ids).toContain('dashboard')
-    expect(ids).toContain('freeform')
     expect(ids).toContain('focus')
     expect(ids).toContain('grid-2x2')
+  })
+
+  it('does not include the legacy freeform preset (bento-only)', () => {
+    const ids = LAYOUT_PRESETS.map((p) => p.id)
+    expect(ids).not.toContain('freeform')
   })
 })
 
@@ -70,7 +74,7 @@ describe('getLayoutPreset', () => {
     expect(preset.slots).toHaveLength(1)
   })
 
-  it('returns the first preset (freeform) for an unknown id', () => {
+  it('returns the first preset for an unknown id', () => {
     const preset = getLayoutPreset('nonexistent-id')
     expect(preset).toBe(LAYOUT_PRESETS[0])
   })

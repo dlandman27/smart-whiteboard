@@ -39,49 +39,74 @@ export function RoutinesWidget({ widgetId }: { widgetId: string }) {
   const category = settings.category === 'auto' ? currentCategory() : settings.category
   const color    = CATEGORY_COLORS[category]
 
-  const { data: routines = [] }      = useRoutines()
-  const { data: completedIds = [] }  = useRoutineCompletions(today)
+  const { data: routines = [], isLoading } = useRoutines()
+  const { data: completedIds = [] }        = useRoutineCompletions(today)
   const toggle = useToggleRoutine()
 
-  const filtered = routines.filter((r: Routine) => r.category === category)
-  const done     = filtered.filter((r: Routine) => completedIds.includes(r.id)).length
-  const total    = filtered.length
-  const pct      = total > 0 ? (done / total) * 100 : 0
+  const filtered   = routines.filter((r: Routine) => r.category === category)
+  const incomplete = filtered.filter((r: Routine) => !completedIds.includes(r.id))
+  const complete   = filtered.filter((r: Routine) =>  completedIds.includes(r.id))
+  const sorted     = [...incomplete, ...complete]
+
+  const done  = complete.length
+  const total = filtered.length
+  const pct   = total > 0 ? (done / total) * 100 : 0
 
   return (
     <div style={{
       width: '100%', height: '100%',
       display: 'flex', flexDirection: 'column',
       background: 'var(--wt-bg)', overflow: 'hidden',
+      boxSizing: 'border-box',
     }}>
-      {/* Header */}
-      <div style={{ padding: '14px 16px 10px', flexShrink: 0 }}>
+      {/* Header — accented with category color left-border + tint */}
+      <div style={{
+        padding: '14px 16px 10px',
+        borderLeft: `4px solid ${color}`,
+        background: `${color}15`,
+        flexShrink: 0,
+      }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--wt-text)' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--wt-text)' }}>
             {CATEGORY_LABELS[category]}
           </span>
-          <span style={{ fontSize: 11, color: 'var(--wt-text-muted)' }}>{done}/{total}</span>
+          <span style={{ fontSize: 13, color: 'var(--wt-text-muted)' }}>{done}/{total}</span>
         </div>
         <div style={{
-          marginTop: 8, height: 3, borderRadius: 2,
-          background: 'var(--wt-border)', overflow: 'hidden',
+          marginTop: 8, height: 7, borderRadius: 4,
+          background: 'var(--wt-surface-hover)', overflow: 'hidden',
         }}>
           <div style={{
-            height: '100%', borderRadius: 2,
-            background: pct === 100 ? 'var(--wt-success, #4ade80)' : color,
+            height: '100%', borderRadius: 4,
+            background: pct === 100 ? 'var(--wt-success)' : color,
             width: `${pct}%`, transition: 'width 0.4s ease',
           }} />
         </div>
       </div>
 
       {/* List */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 12px 12px' }}>
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: 'center', paddingTop: 24, color: 'var(--wt-text-muted)', fontSize: 12 }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 12px 12px' }}>
+        {isLoading ? (
+          // Skeleton loading state
+          <>
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="animate-pulse"
+                style={{
+                  height: 44, borderRadius: 14,
+                  background: 'var(--wt-surface-hover)',
+                  marginBottom: 4,
+                }}
+              />
+            ))}
+          </>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: 'center', paddingTop: 24, color: 'var(--wt-text-muted)', fontSize: 13 }}>
             No {CATEGORY_LABELS[category].toLowerCase()} routines
           </div>
         ) : (
-          filtered.map((r: Routine) => {
+          sorted.map((r: Routine) => {
             const completed = completedIds.includes(r.id)
             return (
               <button
@@ -90,31 +115,32 @@ export function RoutinesWidget({ widgetId }: { widgetId: string }) {
                 onClick={() => toggle.mutate({ id: r.id, completed, date: today })}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '9px 10px', marginBottom: 4,
-                  borderRadius: 10, border: '1px solid var(--wt-border)',
+                  padding: '10px 14px', marginBottom: 4,
+                  borderRadius: 14, border: '1px solid var(--wt-border)',
                   background: completed ? `${color}15` : 'var(--wt-surface)',
                   cursor: 'pointer', textAlign: 'left',
+                  opacity: completed ? 0.35 : 1,
                   transition: 'background 0.15s, opacity 0.15s',
                 }}
               >
+                {/* Checkbox — 22px */}
                 <div style={{
-                  width: 18, height: 18, borderRadius: 5, flexShrink: 0,
+                  width: 22, height: 22, borderRadius: 6, flexShrink: 0,
                   border: completed ? 'none' : `1.5px solid ${color}`,
                   background: completed ? color : 'transparent',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   transition: 'background 0.15s',
                 }}>
                   {completed && (
-                    <svg width={11} height={11} viewBox="0 0 12 12" fill="none">
+                    <svg width={13} height={13} viewBox="0 0 12 12" fill="none">
                       <path d="M2 6l3 3 5-5" stroke="#fff" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
                   )}
                 </div>
-                <span style={{ fontSize: 14, marginRight: 4 }}>{r.emoji}</span>
+                <span style={{ fontSize: 15, marginRight: 4 }}>{r.emoji}</span>
                 <span style={{
-                  fontSize: 13, fontWeight: 450, color: 'var(--wt-text)',
-                  textDecoration: completed ? 'line-through' : 'none',
-                  opacity: completed ? 0.5 : 1, flex: 1,
+                  fontSize: 15, fontWeight: 450, color: 'var(--wt-text)',
+                  flex: 1,
                   overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                 }}>
                   {r.title}
@@ -124,8 +150,8 @@ export function RoutinesWidget({ widgetId }: { widgetId: string }) {
           })
         )}
         {pct === 100 && total > 0 && (
-          <div style={{ textAlign: 'center', padding: '10px 0 4px', fontSize: 12, color: color, fontWeight: 500 }}>
-            All done! 🎉
+          <div style={{ textAlign: 'center', padding: '10px 0 4px', fontSize: 13, color: color, fontWeight: 500 }}>
+            All done!
           </div>
         )}
       </div>

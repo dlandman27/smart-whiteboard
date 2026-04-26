@@ -78,9 +78,9 @@ export const BOARD_TEMPLATES: BoardTemplate[] = [
   {
     id:          'blank',
     name:        'Blank Canvas',
-    description: 'Start from scratch with an empty freeform board',
+    description: 'Start from scratch with an empty dashboard',
     icon:        'FrameCorners',
-    layoutId:    'freeform',
+    layoutId:    'dashboard',
     widgets:     [],
   },
 ]
