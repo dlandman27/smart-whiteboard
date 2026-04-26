@@ -4,7 +4,6 @@ import type { WidgetTypeDef, WidgetVariantDef } from './widgets/types'
 import { Icon, Panel, PanelHeader, MenuItem, Text, Button, WidgetSizeContext } from '@whiteboard/ui-kit'
 import { useNotionDatabases, useNotionHealth } from '../hooks/useNotion'
 import { useGCalStatus, useGCalCalendars } from '../hooks/useGCal'
-import { useSpotifyStatus } from '../hooks/useSpotify'
 import { useWhiteboardStore } from '../store/whiteboard'
 import type { PendingWidget } from '../types'
 
@@ -254,16 +253,13 @@ export function WidgetPicker({ onClose, onWidgetSelected }: Props) {
 
   const health        = useNotionHealth()
   const gcalStatus    = useGCalStatus()
-  const spotifyStatus = useSpotifyStatus()
-
   const { data: notionData } = useNotionDatabases()
   const { data: calData }    = useGCalCalendars()
 
   const { boards, activeBoardId, addWidget } = useWhiteboardStore()
   const widgets = boards.find((b) => b.id === activeBoardId)?.widgets ?? []
 
-  const gcalConnected    = gcalStatus.data?.connected
-  const spotifyConnected = spotifyStatus.data?.connected
+  const gcalConnected = gcalStatus.data?.connected
 
   function addOff() { return widgets.length * 24 }
 
@@ -364,24 +360,8 @@ export function WidgetPicker({ onClose, onWidgetSelected }: Props) {
       }
     }
 
-    // Spotify
-    if (!q || ['spotify','music','playing','song','track'].some((k) => k.includes(q) || q.includes(k))) {
-      if (spotifyConnected) {
-        const added = widgets.some((w) => w.type === 'spotify-now-playing')
-        if (!q) list.push({ kind: 'header', id: 'h-spotify', label: 'Spotify' })
-        list.push({
-          kind: 'widget', id: 'spotify-npl',
-          icon: <Icon icon="MusicNote" size={15} className="text-green-500" />,
-          iconBg: 'bg-green-500/10', name: 'Now Playing', source: 'Spotify', added,
-          onAdd: () => selectWidget({ type: 'spotify-now-playing', databaseTitle: 'Now Playing', width: 320, height: 180 }),
-        })
-      } else if (!q) {
-        list.push({ kind: 'notice', id: 'spotify-notice', label: 'Connect Spotify in Settings to add music Wiigits.' })
-      }
-    }
-
     return list
-  }, [query, notionData, calData, gcalConnected, spotifyConnected, widgets, sportsOpen])
+  }, [query, notionData, calData, gcalConnected, widgets, sportsOpen])
 
   const selectableItems = items.filter((i): i is Extract<ListItem, { kind: 'widget' }> => i.kind === 'widget')
 

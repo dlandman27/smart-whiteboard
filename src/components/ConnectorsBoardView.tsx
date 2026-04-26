@@ -4,8 +4,6 @@ import { Icon, ScrollArea, Text, Button, Input } from '@whiteboard/ui-kit'
 import { useHashFragment } from '../hooks/useHashRouter'
 import { useGCalStatus, startGCalAuth, disconnectGCal } from '../hooks/useGCal'
 import { useTasksStatus } from '../hooks/useTasks'
-import { useSpotifyStatus, startSpotifyAuth } from '../hooks/useSpotify'
-import { useSpotifyCredentials } from '../store/spotify'
 import { apiFetch } from '../lib/apiFetch'
 import { ProviderIcon } from './ProviderIcon'
 
@@ -221,43 +219,6 @@ function GTasksCard({ googleOauth }: { googleOauth: boolean }) {
       actionLabel={connected ? undefined : 'Connect'}
       onAction={connected ? undefined : openPopup}
     />
-  )
-}
-
-// ── Spotify ──────────────────────────────────────────────────────────────────
-
-function SpotifyCard() {
-  const creds = useSpotifyCredentials()
-  const status = useSpotifyStatus()
-  const [expanded, setExpanded] = useState(false)
-  const connected = !!status.data?.connected
-  const configured = !!(creds.clientId && creds.clientSecret)
-
-  async function connect() {
-    const url = await startSpotifyAuth(creds.clientId, creds.clientSecret, creds.redirectUri)
-    window.open(url, '_blank', 'width=500,height=700')
-  }
-
-  return (
-    <AppCard
-      icon="MusicNote" name="Spotify"
-      description="Control playback and see what's currently playing."
-      connected={connected}
-      actionLabel={connected ? 'Connected' : expanded ? undefined : 'Set up'}
-      onAction={connected ? undefined : () => setExpanded(true)}
-    >
-      {expanded && !connected && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <Input label="Client ID" value={creds.clientId} onChange={(e) => creds.set({ clientId: e.target.value })} placeholder="Your Spotify app client ID" />
-          <Input label="Client Secret" value={creds.clientSecret} onChange={(e) => creds.set({ clientSecret: e.target.value })} type="password" />
-          <Input label="Redirect URI" value={creds.redirectUri} onChange={(e) => creds.set({ redirectUri: e.target.value })} />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Button variant="accent" size="sm" disabled={!configured} onClick={connect} fullWidth>Connect Spotify</Button>
-            <Button variant="ghost" size="sm" onClick={() => setExpanded(false)}>Cancel</Button>
-          </div>
-        </div>
-      )}
-    </AppCard>
   )
 }
 
@@ -484,7 +445,6 @@ export function ConnectorsBoardView() {
   }
   const gcalStatus = useGCalStatus()
   const tasksStatus = useTasksStatus()
-  const spotifyStatus = useSpotifyStatus()
   const todoistStatus = useTodoistStatus()
 
   const hashFragment = useHashFragment()
@@ -505,7 +465,6 @@ export function ConnectorsBoardView() {
   const enabledMap: Record<string, boolean> = {
     gcal:       !!gcalStatus.data?.connected,
     gtasks:     !!tasksStatus.data?.connected,
-    spotify:    !!spotifyStatus.data?.connected,
     todoist:    todoistStatus.connected,
     notion:     s.notion,
     anthropic:  s.anthropic,
@@ -611,7 +570,6 @@ export function ConnectorsBoardView() {
               {filtered.map(c => {
                 if (c.id === 'gcal')    return <GCalCard key={c.id} googleOauth={s.googleOauth} />
                 if (c.id === 'gtasks')  return <GTasksCard key={c.id} googleOauth={s.googleOauth} />
-                if (c.id === 'spotify') return <SpotifyCard key={c.id} />
                 if (c.id === 'todoist') return <TodoistCard key={c.id} />
                 if (c.id === 'notion')  return <NotionCard key={c.id} notionOauth={s.notionOauth} />
                 return (
