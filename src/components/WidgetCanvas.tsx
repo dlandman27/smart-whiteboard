@@ -229,14 +229,7 @@ export function WidgetCanvas({ activeTool, pendingWidget, onClearPending, onDoub
   return (
     <div
       key={activeBoardId}
-      className="widget-canvas-root absolute board-slide-right select-none"
-      style={{
-        // Safe-area insets: keep widgets clear of floating chrome elements.
-        // top-left: sidebar logo button (32px + 20px margin)
-        // bottom: toolbar (~64px) + clearance
-        // right: nav button (44px + 24px margin)
-        inset: '64px 80px 80px 8px',
-      }}
+      className="widget-canvas-root absolute inset-0 board-slide-right select-none"
       onClick={handleCanvasClick}
       onMouseDown={(e) => { if (e.detail >= 2) e.preventDefault() }}
     >
