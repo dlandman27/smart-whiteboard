@@ -28,17 +28,17 @@ describe('Logo', () => {
   })
 
   it('scales height proportionally to size', () => {
-    const size = 163
+    const size = 2906
     const { container } = render(<Logo size={size} />)
     const svg = container.querySelector('svg')!
-    const expectedHeight = Math.round((size * 151) / 163)
+    const expectedHeight = Math.round((size * 2607) / 2906)
     expect(Number(svg.getAttribute('height'))).toBe(expectedHeight)
   })
 
   it('has the correct viewBox', () => {
     const { container } = render(<Logo />)
     const svg = container.querySelector('svg')!
-    expect(svg.getAttribute('viewBox')).toBe('0 0 163 151')
+    expect(svg.getAttribute('viewBox')).toBe('0 0 2906 2607')
   })
 
   it('renders two path elements', () => {
@@ -47,11 +47,11 @@ describe('Logo', () => {
     expect(paths.length).toBe(2)
   })
 
-  it('has currentColor fill on paths', () => {
+  it('has brand color fill on paths', () => {
     const { container } = render(<Logo />)
     const paths = container.querySelectorAll('path')
     for (const path of paths) {
-      expect(path.getAttribute('fill')).toBe('currentColor')
+      expect(path.getAttribute('fill')).toBe('#E25822')
     }
   })
 })
