@@ -32,18 +32,16 @@ export interface GoalMilestone {
 
 export function useGoals(status: GoalStatus = 'active') {
   return useQuery<Goal[]>({
-    queryKey:  ['goals', status],
-    queryFn:   () => apiFetch(`/api/goals?status=${status}`),
-    staleTime: 60_000,
+    queryKey: ['goals', status],
+    queryFn:  () => apiFetch(`/api/goals?status=${status}`),
   })
 }
 
 export function useGoalMilestones(goalId: string | null) {
   return useQuery<GoalMilestone[]>({
-    queryKey:  ['goal-milestones', goalId],
-    queryFn:   () => apiFetch(`/api/goals/${goalId}/milestones`),
-    enabled:   !!goalId,
-    staleTime: 60_000,
+    queryKey: ['goal-milestones', goalId],
+    queryFn:  () => apiFetch(`/api/goals/${goalId}/milestones`),
+    enabled:  !!goalId,
   })
 }
 

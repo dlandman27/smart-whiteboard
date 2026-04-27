@@ -18,7 +18,6 @@ export function useWiigitTasks(listName?: string) {
   return useQuery<WiigitTask[]>({
     queryKey: ['wiigit-tasks', listName ?? 'all'],
     queryFn:  () => apiFetch(`/api/tasks${params}`),
-    staleTime: 30_000,
   })
 }
 

@@ -15,18 +15,16 @@ const TODAY = () => new Date().toISOString().slice(0, 10)
 
 export function useRoutines() {
   return useQuery<Routine[]>({
-    queryKey:  ['routines'],
-    queryFn:   () => apiFetch('/api/routines'),
-    staleTime: 60_000,
+    queryKey: ['routines'],
+    queryFn:  () => apiFetch('/api/routines'),
   })
 }
 
 export function useRoutineCompletions(date?: string) {
   const d = date ?? TODAY()
   return useQuery<string[]>({
-    queryKey:  ['routine-completions', d],
-    queryFn:   () => apiFetch(`/api/routines/completions?date=${d}`),
-    staleTime: 30_000,
+    queryKey: ['routine-completions', d],
+    queryFn:  () => apiFetch(`/api/routines/completions?date=${d}`),
   })
 }
 
