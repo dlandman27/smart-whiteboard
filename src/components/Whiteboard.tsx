@@ -18,6 +18,7 @@ import { UndoToast } from './UndoToast'
 import { VoiceListener } from './VoiceListener'
 import { Sidebar } from './Sidebar'
 import { BoardContextMenu } from './BoardContextMenu'
+import { WidgetPicker } from './WidgetPicker'
 import { LayoutPicker } from './LayoutPicker'
 import { BoardSettingsPanel } from './BoardSettingsPanel'
 import { useCanvasSocket } from '../hooks/useCanvasSocket'
@@ -27,6 +28,57 @@ import { useHashRouter } from '../hooks/useHashRouter'
 import { Screensaver } from './Screensaver'
 import { Icon } from '@whiteboard/ui-kit'
 import type { PendingWidget } from '../types'
+
+// ── Empty board state ──────────────────────────────────────────────────────────
+
+function EmptyBoardState({ onAdd }: { onAdd: () => void }) {
+  return (
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none select-none"
+      style={{ zIndex: 5 }}
+    >
+      <div className="flex flex-col items-center gap-4" style={{ opacity: 0.35 }}>
+        {/* Grid of faint placeholder squares */}
+        <div className="grid grid-cols-3 gap-2.5">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div
+              key={i}
+              style={{
+                width:        52,
+                height:       52,
+                borderRadius: 12,
+                border:       '1.5px dashed var(--wt-text)',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center gap-3 mt-8" style={{ opacity: 0.55 }}>
+        <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--wt-text)', margin: 0 }}>
+          Nothing here yet
+        </p>
+        <p style={{ fontSize: 13, color: 'var(--wt-text-muted)', margin: 0 }}>
+          Double-tap anywhere or use the menu to add wiigits
+        </p>
+        <button
+          className="pointer-events-auto mt-1 flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-opacity hover:opacity-70"
+          style={{
+            background: 'var(--wt-accent)',
+            border:     'none',
+            color:      'var(--wt-accent-text)',
+            cursor:     'pointer',
+            boxShadow:  'var(--wt-shadow-md)',
+          }}
+          onClick={onAdd}
+        >
+          <Icon icon="Plus" size={14} />
+          Add wiigit
+        </button>
+      </div>
+    </div>
+  )
+}
 
 // System board labels + icons for the nav sheet
 const SYSTEM_BOARDS = [
@@ -231,6 +283,10 @@ export function Whiteboard() {
                   }}
                 />
 
+                {activeBoard?.widgets.length === 0 && !pendingWidget && (
+                  <EmptyBoardState onAdd={() => setPickerOpen(true)} />
+                )}
+
                 {boardMenu && (
                   <BoardContextMenu
                     x={boardMenu.x}
@@ -259,6 +315,14 @@ export function Whiteboard() {
                     onWidgetSelected={(w) => { setPendingWidget(w); setActiveTool('pointer') }}
                     externalPickerOpen={pickerOpen}
                     onExternalPickerClose={() => setPickerOpen(false)}
+                  />
+                )}
+
+                {/* Picker fallback when toolbar isn't mounted (sidebar visible) */}
+                {!sidebarHidden && pickerOpen && (
+                  <WidgetPicker
+                    onClose={() => setPickerOpen(false)}
+                    onWidgetSelected={(w) => { setPendingWidget(w); setActiveTool('pointer'); setPickerOpen(false) }}
                   />
                 )}
               </>

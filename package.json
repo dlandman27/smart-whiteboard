@@ -15,6 +15,7 @@
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006 --config-dir packages/ui-kit/.storybook",
     "build-storybook": "storybook build --config-dir packages/ui-kit/.storybook",
+    "lint:naming": "node scripts/check-naming.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --config vitest.coverage.config.ts --coverage",

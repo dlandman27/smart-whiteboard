@@ -64,9 +64,9 @@ export const boardTools: VoiceTool[] = [
         required: ['id'],
       },
     },
-    execute: async (input) => {
+    execute: async (input, ctx) => {
       const { id, ...rest } = input
-      canvas.updateWidget(id, rest)
+      canvas.updateWidget(id, rest, ctx.userId)
       return `Updated widget ${id}`
     },
   },
@@ -254,7 +254,7 @@ export const boardTools: VoiceTool[] = [
       }
 
       if (noteWidget) {
-        canvas.updateWidget(noteWidget.id, { settings: { content: newContent } })
+        canvas.updateWidget(noteWidget.id, { settings: { content: newContent } }, ctx.userId)
       } else {
         canvas.createWidget({
           widgetType: '@whiteboard/note',
@@ -342,7 +342,7 @@ export const boardTools: VoiceTool[] = [
       const { url, title, widgetId } = input as { url: string; title?: string; widgetId?: string }
       const settings = { url, title: title ?? '' }
       if (widgetId) {
-        canvas.updateWidget(widgetId, { settings })
+        canvas.updateWidget(widgetId, { settings }, ctx.userId)
         return `Updated website widget to ${url}`
       }
       const { id } = canvas.createWidget({

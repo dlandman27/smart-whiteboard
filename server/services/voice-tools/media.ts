@@ -59,7 +59,7 @@ export const mediaTools: VoiceTool[] = [
         required: ['query'],
       },
     },
-    execute: async (input) => {
+    execute: async (input, ctx) => {
       const port   = Number(process.env.PORT) || 3001
       const result = await fetch(`http://localhost:${port}/api/youtube/search?q=${encodeURIComponent(input.query)}`)
         .then((r) => r.json()) as { videoId?: string; title?: string; error?: string }
@@ -68,7 +68,7 @@ export const mediaTools: VoiceTool[] = [
 
       const settings = { videoId: result.videoId, title: result.title ?? '' }
       if (input.widgetId) {
-        canvas.updateWidget(input.widgetId, { settings })
+        canvas.updateWidget(input.widgetId, { settings }, ctx.userId)
         return `Now playing: ${result.title}`
       }
       const { id } = canvas.createWidget({
@@ -76,7 +76,7 @@ export const mediaTools: VoiceTool[] = [
         width: 560, height: 360,
         label: 'YouTube',
         settings,
-      })
+      }, ctx.userId)
       return `Created YouTube widget playing: ${result.title} (id: ${id})`
     },
   },

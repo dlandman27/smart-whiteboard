@@ -62,14 +62,22 @@ export const canvas = {
     return { id }
   },
 
-  updateWidget: (id: string, body: Record<string, unknown>): void => {
+  updateWidget: async (id: string, body: Record<string, unknown>, userId?: string): Promise<void> => {
     broadcast({ type: 'update_widget', id, ...body })
     const patch: Record<string, unknown> = {}
-    if (body.settings)       patch['settings']  = body.settings
-    if (body.x      != null) patch['x']         = body.x
-    if (body.y      != null) patch['y']         = body.y
-    if (body.width  != null) patch['width']      = body.width
-    if (body.height != null) patch['height']     = body.height
+    if (body.x      != null) patch['x']      = body.x
+    if (body.y      != null) patch['y']      = body.y
+    if (body.width  != null) patch['width']  = body.width
+    if (body.height != null) patch['height'] = body.height
+    if (body.settings) {
+      if (userId) {
+        const { data: existing } = await supabaseAdmin
+          .from('widgets').select('settings').eq('id', id).eq('user_id', userId).maybeSingle()
+        patch['settings'] = { ...(existing?.settings ?? {}), ...(body.settings as Record<string, unknown>) }
+      } else {
+        patch['settings'] = body.settings
+      }
+    }
     if (Object.keys(patch).length) {
       supabaseAdmin.from('widgets').update(patch).eq('id', id).then()
     }
@@ -110,7 +118,7 @@ export async function autoSaveDatabases(userId: string): Promise<void> {
     for (const w of board.widgets) {
       const dbId = w.settings?.databaseId as string | undefined
       if (!dbId || knownIds.has(dbId)) continue
-      const label: string = w.databaseTitle ?? w.settings?.title ?? w.settings?.label ?? w.type ?? dbId
+      const label: string = w.databaseTitle || w.settings?.title || w.settings?.label || w.type || dbId
       mem.databases[label] = dbId
       knownIds.add(dbId)
       changed = true

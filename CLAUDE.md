@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+## Naming convention
+
+Widgets are called **wiigits** in this project (the brand name). Use "wiigit" / "wiigits" in all UI copy, comments, and variable names — never "widget" / "widgets". This applies everywhere: component names, MCP tool descriptions, user-facing strings, and code comments.
+
 ## What this is
 
 A **personal life OS** displayed as an ambient smart whiteboard. It runs on a wall-mounted display (Chrome kiosk mode) and is controlled via voice, the Walli AI assistant, or Claude via MCP tools. It is a personal project — not a SaaS product, not multi-tenant.

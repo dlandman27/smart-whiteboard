@@ -35,13 +35,14 @@ export const imageTools: VoiceTool[] = [
       const [w, h] = size.split('x').map(Number)
       const widgetW = 420
       const widgetH = Math.round(widgetW / (w / h))
+      const userId = ctx.userId
 
       const { id } = canvas.createWidget({
         widgetType: '@whiteboard/image',
         width: widgetW,
         height: widgetH,
         settings: { url: '', prompt: input.prompt as string, loading: true },
-      }, ctx.userId)
+      }, userId)
 
       const openai = new OpenAI({ apiKey })
       openai.images.generate({
@@ -52,16 +53,16 @@ export const imageTools: VoiceTool[] = [
       }).then((res) => {
         const b64 = res.data[0].b64_json
         if (!b64) {
-          canvas.updateWidget(id, { settings: { url: '', prompt: input.prompt as string, loading: false, error: true } })
+          canvas.updateWidget(id, { settings: { url: '', prompt: input.prompt as string, loading: false, error: true } }, userId)
           return
         }
         const filename = `${crypto.randomUUID()}.png`
         fs.writeFileSync(path.join(IMAGES_DIR, filename), Buffer.from(b64, 'base64'))
         canvas.updateWidget(id, {
           settings: { url: `/images/${filename}`, prompt: input.prompt as string, loading: false, error: false },
-        })
+        }, userId)
       }).catch(() => {
-        canvas.updateWidget(id, { settings: { url: '', prompt: input.prompt as string, loading: false, error: true } })
+        canvas.updateWidget(id, { settings: { url: '', prompt: input.prompt as string, loading: false, error: true } }, userId)
       })
 
       return 'Generating your image — it will appear on the board in a moment!'
