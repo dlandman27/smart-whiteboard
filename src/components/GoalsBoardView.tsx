@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
 import {
   useGoals, useGoalMilestones,
@@ -7,6 +7,17 @@ import {
   useCreateMilestone, useUpdateMilestone, useDeleteMilestone,
   type Goal, type GoalStatus, type GoalType, type GoalMilestone, type CreateGoalInput,
 } from '../hooks/useGoals'
+import { WhiteboardBackground } from './WhiteboardBackground'
+import { useThemeStore } from '../store/theme'
+import { useWhiteboardStore } from '../store/whiteboard'
+
+const WIDGET_FRAME: React.CSSProperties = {
+  background:   'var(--wt-bg)',
+  borderRadius: '3rem',
+  border:       '1px solid var(--wt-widget-rest-border)',
+  boxShadow:    '0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm), inset 0 1px 0 var(--wt-widget-highlight)',
+  overflow:     'hidden',
+}
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -732,40 +743,69 @@ function LogProgressModal({
   )
 }
 
-// ── Empty state ────────────────────────────────────────────────────────────────
+// ── Empty states ───────────────────────────────────────────────────────────────
 
-function EmptyState({ status, onNew }: { status: GoalStatus; onNew: () => void }) {
-  const messages: Record<GoalStatus, { emoji: string; title: string; body: string }> = {
-    active:    { emoji: '🎯', title: 'No active goals',    body: 'Set a goal to track your progress toward something meaningful.' },
-    completed: { emoji: '🏆', title: 'No completed goals', body: 'Goals you complete will appear here.' },
-    archived:  { emoji: '📦', title: 'No archived goals',  body: 'Goals you archive will appear here.' },
-  }
-  const msg = messages[status]
-
+// Full-screen empty state for the active tab — fills the whole widget frame
+function GoalsEmptyState({ onNew }: { onNew: () => void }) {
   return (
     <div style={{
+      position: 'absolute', inset: 0,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      flex: 1, gap: 10, padding: '40px 20px',
-      color: 'var(--wt-text-muted)',
     }}>
-      <span style={{ fontSize: 36 }}>{msg.emoji}</span>
-      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--wt-text)' }}>{msg.title}</div>
-      <div style={{ fontSize: 13, textAlign: 'center', maxWidth: 280 }}>{msg.body}</div>
-      {status === 'active' && (
+      {/* Faint dashed goal card placeholders */}
+      <div style={{ display: 'flex', gap: 14, opacity: 0.18 }}>
+        {[150, 180, 150].map((h, i) => (
+          <div key={i} style={{
+            width: 220, height: h, borderRadius: 16,
+            border: '1.5px dashed var(--wt-text)',
+          }} />
+        ))}
+      </div>
+
+      <div style={{
+        marginTop: 36,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
+      }}>
+        <div style={{ fontSize: 16, fontWeight: 650, color: 'var(--wt-text)', opacity: 0.8 }}>
+          No goals yet
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--wt-text-muted)', textAlign: 'center', maxWidth: 300, lineHeight: 1.5, opacity: 0.7 }}>
+          Set a goal to start tracking progress toward something that matters.
+        </div>
         <button
           onClick={onNew}
           style={{
-            marginTop: 6,
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '7px 16px', borderRadius: 9, fontSize: 12, fontWeight: 550,
+            marginTop: 10,
+            display: 'flex', alignItems: 'center', gap: 7,
+            padding: '9px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600,
             background: 'var(--wt-accent)', color: 'var(--wt-accent-text)',
             border: 'none', cursor: 'pointer',
           }}
         >
-          <Icon icon="Plus" size={13} />
-          New goal
+          <Icon icon="Plus" size={14} />
+          Set a goal
         </button>
-      )}
+      </div>
+    </div>
+  )
+}
+
+// Inline empty state for completed / archived tabs
+function InlineEmptyState({ status }: { status: GoalStatus }) {
+  const messages: Record<GoalStatus, { emoji: string; title: string; body: string }> = {
+    active:    { emoji: '🎯', title: 'No active goals',    body: '' },
+    completed: { emoji: '🏆', title: 'No completed goals', body: 'Goals you complete will appear here.' },
+    archived:  { emoji: '📦', title: 'No archived goals',  body: 'Goals you archive will appear here.' },
+  }
+  const msg = messages[status]
+  return (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+      gap: 8, padding: '40px 20px', color: 'var(--wt-text-muted)',
+    }}>
+      <span style={{ fontSize: 32 }}>{msg.emoji}</span>
+      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--wt-text)' }}>{msg.title}</div>
+      <div style={{ fontSize: 13, textAlign: 'center', maxWidth: 260 }}>{msg.body}</div>
     </div>
   )
 }
@@ -808,95 +848,107 @@ export function GoalsBoardView() {
     })
   }
 
+  const { background: themeBackground } = useThemeStore()
+  const activeBoard     = useWhiteboardStore((s) => s.boards.find((b) => b.id === s.activeBoardId))
+  const boardBackground = activeBoard?.background ?? themeBackground
+
+  const showFullEmptyState = !isLoading && activeStatus === 'active' && goals.length === 0
+
   return (
-    <div style={{
-      position: 'absolute', inset: 0,
-      background: 'var(--wt-bg)',
-      display: 'flex', flexDirection: 'column',
-      overflow: 'hidden',
-    }}>
-      {/* ── Header ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '20px 24px 14px',
-        borderBottom: '1px solid var(--wt-border)',
-        flexShrink: 0,
-        gap: 12,
-      }}>
-        {/* Left: title + tabs */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--wt-text)', letterSpacing: '-0.02em', flexShrink: 0 }}>
-            Goals
-          </h1>
+    <WhiteboardBackground background={boardBackground}>
+      <div className="absolute inset-0 flex" style={{ padding: 16 }}>
+        <div className="flex-1 flex flex-col min-w-0" style={{ ...WIDGET_FRAME, position: 'relative' }}>
 
-          {/* Status tabs */}
-          <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
-            {STATUS_TABS.map(tab => (
-              <button
-                key={tab.key}
-                onClick={() => setActiveStatus(tab.key)}
-                style={{
-                  padding: '4px 10px', borderRadius: 7, fontSize: 12, fontWeight: 550,
-                  border: `1.5px solid ${activeStatus === tab.key ? 'var(--wt-accent)' : 'transparent'}`,
-                  background: activeStatus === tab.key
-                    ? 'color-mix(in srgb, var(--wt-accent) 12%, transparent)'
-                    : 'transparent',
-                  color: activeStatus === tab.key ? 'var(--wt-accent)' : 'var(--wt-text-muted)',
-                  cursor: 'pointer', transition: 'all 0.15s',
-                }}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </div>
+          {/* ── Full-screen empty state (active tab, no goals) ── */}
+          {showFullEmptyState && (
+            <GoalsEmptyState onNew={() => setCreating(true)} />
+          )}
+
+          {/* ── Normal layout ── */}
+          {!showFullEmptyState && (
+            <>
+              {/* Header */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '20px 24px 14px',
+                borderBottom: '1px solid var(--wt-border)',
+                flexShrink: 0,
+                gap: 12,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, minWidth: 0 }}>
+                  <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--wt-text)', letterSpacing: '-0.02em', flexShrink: 0 }}>
+                    Goals
+                  </h1>
+                  <div style={{ display: 'flex', gap: 2, flexShrink: 0 }}>
+                    {STATUS_TABS.map(tab => (
+                      <button
+                        key={tab.key}
+                        onClick={() => setActiveStatus(tab.key)}
+                        style={{
+                          padding: '4px 10px', borderRadius: 7, fontSize: 12, fontWeight: 550,
+                          border: `1.5px solid ${activeStatus === tab.key ? 'var(--wt-accent)' : 'transparent'}`,
+                          background: activeStatus === tab.key
+                            ? 'color-mix(in srgb, var(--wt-accent) 12%, transparent)'
+                            : 'transparent',
+                          color: activeStatus === tab.key ? 'var(--wt-accent)' : 'var(--wt-text-muted)',
+                          cursor: 'pointer', transition: 'all 0.15s',
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setCreating(true)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    padding: '6px 14px', borderRadius: 9, fontSize: 12, fontWeight: 550,
+                    background: 'var(--wt-accent)', color: 'var(--wt-accent-text)',
+                    border: 'none', cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  <Icon icon="Plus" size={13} />
+                  New goal
+                </button>
+              </div>
+
+              {/* Body */}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column' }}>
+                {isLoading ? (
+                  <div style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--wt-text-muted)', fontSize: 13,
+                  }}>
+                    Loading goals…
+                  </div>
+                ) : goals.length === 0 ? (
+                  <InlineEmptyState status={activeStatus} />
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                    gap: 14,
+                    alignItems: 'start',
+                  }}>
+                    {goals.map(goal => (
+                      <GoalCard
+                        key={goal.id}
+                        goal={goal}
+                        onEdit={g => setEditing(g)}
+                        onDelete={id => deleteGoal.mutate(id)}
+                        onLogProgress={g => setLogging(g)}
+                        onComplete={handleComplete}
+                        onArchive={handleArchive}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
-
-        {/* Right: new goal button */}
-        <button
-          onClick={() => setCreating(true)}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 14px', borderRadius: 9, fontSize: 12, fontWeight: 550,
-            background: 'var(--wt-accent)', color: 'var(--wt-accent-text)',
-            border: 'none', cursor: 'pointer', flexShrink: 0,
-          }}
-        >
-          <Icon icon="Plus" size={13} />
-          New goal
-        </button>
-      </div>
-
-      {/* ── Body ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column' }}>
-        {isLoading ? (
-          <div style={{
-            flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--wt-text-muted)', fontSize: 13,
-          }}>
-            Loading goals…
-          </div>
-        ) : goals.length === 0 ? (
-          <EmptyState status={activeStatus} onNew={() => setCreating(true)} />
-        ) : (
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-            gap: 14,
-            alignItems: 'start',
-          }}>
-            {goals.map(goal => (
-              <GoalCard
-                key={goal.id}
-                goal={goal}
-                onEdit={g => setEditing(g)}
-                onDelete={id => deleteGoal.mutate(id)}
-                onLogProgress={g => setLogging(g)}
-                onComplete={handleComplete}
-                onArchive={handleArchive}
-              />
-            ))}
-          </div>
-        )}
       </div>
 
       {/* ── Modals ── */}
@@ -906,7 +958,6 @@ export function GoalsBoardView() {
           onCancel={() => setCreating(false)}
         />
       )}
-
       {editing && (
         <GoalModal
           initial={editing}
@@ -914,7 +965,6 @@ export function GoalsBoardView() {
           onCancel={() => setEditing(null)}
         />
       )}
-
       {logging && (
         <LogProgressModal
           goal={logging}
@@ -922,6 +972,6 @@ export function GoalsBoardView() {
           onCancel={() => setLogging(null)}
         />
       )}
-    </div>
+    </WhiteboardBackground>
   )
 }

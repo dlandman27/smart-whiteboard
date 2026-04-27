@@ -1,10 +1,21 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { Icon } from '@whiteboard/ui-kit'
 import {
   useRoutines, useRoutineCompletions, useToggleRoutine,
   useCreateRoutine, useUpdateRoutine, useDeleteRoutine,
   type Routine,
 } from '../hooks/useRoutines'
+import { WhiteboardBackground } from './WhiteboardBackground'
+import { useThemeStore } from '../store/theme'
+import { useWhiteboardStore } from '../store/whiteboard'
+
+const WIDGET_FRAME: React.CSSProperties = {
+  background:   'var(--wt-bg)',
+  borderRadius: '3rem',
+  border:       '1px solid var(--wt-widget-rest-border)',
+  boxShadow:    '0 4px 0 rgba(0,0,0,0.10), var(--wt-shadow-sm), inset 0 1px 0 var(--wt-widget-highlight)',
+  overflow:     'hidden',
+}
 
 // ── Types & constants ─────────────────────────────────────────────────────────
 
@@ -420,80 +431,83 @@ export function RoutinesBoardView() {
   const [adding,   setAdding]   = useState<Category | null>(null)
   const [editing,  setEditing]  = useState<Routine | null>(null)
 
+  const { background: themeBackground } = useThemeStore()
+  const activeBoard     = useWhiteboardStore((s) => s.boards.find((b) => b.id === s.activeBoardId))
+  const boardBackground = activeBoard?.background ?? themeBackground
+
   const current    = currentCategory()
   const byCategory = (cat: Category) => routines.filter(r => r.category === cat)
 
   const dateStr = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
   return (
-    <div style={{
-      position: 'absolute', inset: 0,
-      background: 'var(--wt-bg)',
-      display: 'flex', flexDirection: 'column',
-      overflow: 'hidden',
-    }}>
-      {/* ── Header ── */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '20px 24px 14px',
-        borderBottom: '1px solid var(--wt-border)',
-        flexShrink: 0,
-      }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--wt-text)', letterSpacing: '-0.02em' }}>
-            Routines
-          </h1>
-          <div style={{ fontSize: 12, color: 'var(--wt-text-muted)', marginTop: 2 }}>{dateStr}</div>
+    <WhiteboardBackground background={boardBackground}>
+      <div className="absolute inset-0 flex" style={{ padding: 16 }}>
+        <div className="flex-1 flex flex-col min-w-0" style={{ ...WIDGET_FRAME }}>
+          {/* ── Header ── */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '20px 24px 14px',
+            borderBottom: '1px solid var(--wt-border)',
+            flexShrink: 0,
+          }}>
+            <div>
+              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--wt-text)', letterSpacing: '-0.02em' }}>
+                Routines
+              </h1>
+              <div style={{ fontSize: 12, color: 'var(--wt-text-muted)', marginTop: 2 }}>{dateStr}</div>
+            </div>
+
+            <button
+              onClick={() => { setManaging(m => !m); setAdding(null); setEditing(null) }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 14px', borderRadius: 9, fontSize: 12, fontWeight: 550,
+                border: `1.5px solid ${managing ? 'var(--wt-accent)' : 'var(--wt-border)'}`,
+                background: managing ? 'var(--wt-accent)' : 'transparent',
+                color: managing ? 'var(--wt-accent-text)' : 'var(--wt-text)',
+                cursor: 'pointer',
+              }}
+            >
+              <Icon icon={managing ? 'Check' : 'Sliders'} size={13} />
+              {managing ? 'Done' : 'Manage'}
+            </button>
+          </div>
+
+          {/* ── Body ── */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <SummaryStrip routines={routines} completedIds={completedIds} />
+
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 14,
+              alignItems: 'start',
+            }}>
+              {CATEGORIES.map(cat => (
+                <CategoryCard
+                  key={cat.key}
+                  cat={cat}
+                  routines={byCategory(cat.key)}
+                  completedIds={completedIds}
+                  managing={managing}
+                  isCurrent={cat.key === current}
+                  onToggle={(id, completed) => toggle.mutate({ id, completed, date: today })}
+                  onEdit={r => { setEditing(r); setAdding(null) }}
+                  onDelete={id => deleteMut.mutate(id)}
+                  onAdd={() => { setAdding(cat.key); setEditing(null) }}
+                  adding={adding === cat.key}
+                  editing={editing?.category === cat.key ? editing : null}
+                  onSaveNew={data => { createMut.mutate(data); setAdding(null) }}
+                  onCancelNew={() => setAdding(null)}
+                  onSaveEdit={data => { if (editing) { updateMut.mutate({ id: editing.id, ...data }); setEditing(null) } }}
+                  onCancelEdit={() => setEditing(null)}
+                />
+              ))}
+            </div>
+          </div>
         </div>
-
-        <button
-          onClick={() => { setManaging(m => !m); setAdding(null); setEditing(null) }}
-          style={{
-            display: 'flex', alignItems: 'center', gap: 6,
-            padding: '6px 14px', borderRadius: 9, fontSize: 12, fontWeight: 550,
-            border: `1.5px solid ${managing ? 'var(--wt-accent)' : 'var(--wt-border)'}`,
-            background: managing ? 'var(--wt-accent)' : 'transparent',
-            color: managing ? 'var(--wt-accent-text)' : 'var(--wt-text)',
-            cursor: 'pointer',
-          }}
-        >
-          <Icon icon={managing ? 'Check' : 'Sliders'} size={13} />
-          {managing ? 'Done' : 'Manage'}
-        </button>
       </div>
-
-      {/* ── Body ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <SummaryStrip routines={routines} completedIds={completedIds} />
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: 14,
-          alignItems: 'start',
-        }}>
-          {CATEGORIES.map(cat => (
-            <CategoryCard
-              key={cat.key}
-              cat={cat}
-              routines={byCategory(cat.key)}
-              completedIds={completedIds}
-              managing={managing}
-              isCurrent={cat.key === current}
-              onToggle={(id, completed) => toggle.mutate({ id, completed, date: today })}
-              onEdit={r => { setEditing(r); setAdding(null) }}
-              onDelete={id => deleteMut.mutate(id)}
-              onAdd={() => { setAdding(cat.key); setEditing(null) }}
-              adding={adding === cat.key}
-              editing={editing?.category === cat.key ? editing : null}
-              onSaveNew={data => { createMut.mutate(data); setAdding(null) }}
-              onCancelNew={() => setAdding(null)}
-              onSaveEdit={data => { if (editing) { updateMut.mutate({ id: editing.id, ...data }); setEditing(null) } }}
-              onCancelEdit={() => setEditing(null)}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
+    </WhiteboardBackground>
   )
 }
