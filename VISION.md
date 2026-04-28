@@ -1,64 +1,56 @@
-# wiigit — Vision & Goals
+# wiigit — Vision
 
 ## What it is
 
-wiigit is a smart wall display app. You put it on a screen — a TV, a monitor, a tablet on your desk — and it shows you what matters. Not a dashboard cobbled together from browser tabs. A real, designed product that lives on your wall.
+A **personal life OS**. Walli is the brain. The whiteboard is the body.
 
-## The positioning
+You wake up, Walli greets you. He knows what kind of day it is, what you've been working toward, where you've been slipping. He decides what to surface on the board — not because you configured it, but because he knows you. The board is his canvas, not your dashboard.
 
-**"Notion for your wall display."**
+This is not a smart display app. It's not a dashboard. It's a proactive, ambient life companion that lives on your wall and grows with you.
 
-Skylight picked a lane: families, simple, cute. That's a ceiling. wiigit is built for anyone — professionals, creators, households, teams — and it grows with you. Start with a clock and a calendar. Add widgets as you need them. Build out multiple boards for different contexts. Let Walli handle the intelligence layer. The app never forces complexity on you, but it's there when you want it.
+## The core loop
 
-Clean by default. Powerful on demand.
+Morning → Walli greets you, surfaces today's routines and what's on the calendar.
+Throughout the day → nudges when you haven't done something, celebrates when you have, surfaces what's relevant right now.
+Evening → reflects on the day, notes what was skipped, prepares tomorrow.
+Over time → builds a real model of who you are, what works, what doesn't.
 
-## Who it's for
+## Who Walli is
 
-Anyone who wants an ambient display that respects their intelligence. Not a product that assumes you need big friendly buttons and pastel colors. A product that looks good in a home office, a kitchen, a studio, or a meeting room — and that you can make your own.
+Warm and encouraging like a coach. Direct and capable like a secretary. Part life coach, part therapist.
 
-## Core principles
+He acts when asked — no friction, just does it. He nudges when needed — never preachy, always constructive. He has opinions backed by real data about what works. And he understands you're a person, not a machine to be optimized. The goal is *you* succeeding, not you depending on Walli.
 
-**1. Design first.**
-Every screen, every interaction should feel considered. The bar is Notion, Linear, Craft — apps where the design *is* part of the value. Never ship something that looks unfinished.
+He remembers. He notices patterns you don't. He builds a mental model of you over time — from onboarding, from your behavior, from what you do and don't do. Week 1 he barely knows you. Month 3 he's finishing your sentences.
 
-**2. Simple but as deep as you want.**
-The default experience should be immediately understandable. No onboarding required. But the depth is there: multiple boards, custom layouts, integrations, AI assistance. You find it when you need it.
+## The board
 
-**3. Boards as workspaces.**
-A board is a context. Work board. Home board. Gym board. Travel board. Each one is its own thing — different widgets, different layout, different data. Switching boards is switching your mental context.
+The board is where Walli makes things visible. It's ambient — always there, always current, never requiring interaction. You glance at it like a whiteboard on your wall, not like an app you open.
 
-**4. Widgets as blocks.**
-Widgets are the building blocks. Like Notion blocks, they should be composable, flexible, and expressive. A text widget. A calendar widget. A habit tracker. A weather card. A live sports score. The library grows over time and each widget should feel native to the design system.
+Walli decides what's on it. He shows your routines because it's morning. He shows your calendar because a meeting is in 20 minutes. He shows a goal update because you've been slipping. He shows a quote because he thinks you need one. You can always interact, reconfigure, tell him what you want — but the default state is Walli curating your context for you.
 
-**5. Walli acts, not just chats.**
-Walli is not a chatbot you go to separately. Walli understands your boards and acts on them. "Add a weather widget to my work board." "What's on my calendar today?" "Clear my afternoon board and set it up for focus mode." The AI layer is ambient and useful, not a feature you have to seek out.
+## What makes this different
 
-**6. Integrations are first-class.**
-Your display is only as useful as the data it shows. Google Calendar, Notion, Spotify, weather, sports, news — integrations are not an afterthought. The Connectors page is a first-class part of the product.
+Every other smart display tool is a dashboard you build. You pick the widgets. You configure the layout. You manage the data. The intelligence, if any, is reactive — it answers when asked.
 
-## What makes it better than Skylight
+Walli is proactive. The board is alive. The system knows you and acts on that knowledge. That's the thing nobody else is doing.
 
-| | Skylight | wiigit |
-|---|---|---|
-| Target user | Families | Everyone |
-| Design language | Cute / friendly | Polished / minimal |
-| Flexibility | Low — fixed UI | High — boards, layouts, widgets |
-| AI layer | None | Walli — acts on your board |
-| Integrations | Basic | Extensible via Connectors |
-| Depth | What you see is what you get | Grows with the user |
+## Principles
 
-Skylight's strength is simplicity. Our strength is that simplicity doesn't have to mean shallow.
+**1. Walli acts, not just chats.**
+Walli doesn't wait to be asked. He shows up. He nudges. He notices. If you ask him to do something, he does it without ceremony. The AI layer is ambient and present, not a feature you seek out.
 
-## Near-term goals
+**2. The board is Walli's canvas.**
+Users don't configure the board — Walli curates it. You can always override, but the default is intelligent curation based on who you are and what time it is.
 
-- **Today board** — the hero ambient view. Your day at a glance: current event, up next, weather, tasks. This is what makes someone want to put the app on their wall.
-- **Widget library depth** — more expressive, more useful widgets. Text/notes, image, embed, habit tracker, weather, sports.
-- **Walli with board awareness** — Walli should be able to read and modify the active board, not just answer questions.
-- **Mobile companion** — a phone app to control and configure your board remotely. Skylight can only be touched at the screen. This is a real differentiator.
-- **Templates** — shareable board setups, like Notion templates. Let people publish their configurations and let others start from them.
+**3. Know the user deeply.**
+Walli has a mental model of you that starts at onboarding and grows with every interaction. Your goals, your patterns, your tendencies, how you respond to being pushed. This model is what separates Walli from a generic assistant.
 
-## Long-term vision
+**4. Accountability without pressure.**
+Walli holds you to your goals, but he understands you're human. He pushes you toward self-sufficiency, not dependency. The relationship should feel like a coach who genuinely wants you to not need them.
 
-wiigit becomes the default ambient display platform for people who care about design. The way Notion became the default workspace for people who care about flexibility — not by being the most powerful, but by being the most thoughtful.
+**5. Design is part of the value.**
+The board should be beautiful. Every interaction should feel considered. If it looks unfinished, it undermines the trust the whole thing depends on.
 
-The wall is an underused surface. wiigit makes it yours.
+**6. Personal, not multi-tenant.**
+This is built for one person. Every decision optimizes for depth of personalization over breadth of users.
