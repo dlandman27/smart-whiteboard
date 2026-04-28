@@ -1,7 +1,11 @@
 import { Router } from 'express'
 import { broadcast } from '../ws.js'
-import { asyncRoute } from '../middleware/error.js'
+import { asyncRoute, AppError } from '../middleware/error.js'
 import db from '../services/db.js'
+import {
+  getWalliProfile, upsertWalliProfile,
+  logObservation, buildWalliContext,
+} from '../services/walli-context.js'
 
 interface AgentWidgetState {
   widget_id:  string
@@ -68,6 +72,46 @@ export function walliRouter(): Router {
   router.get('/walli/widgets', (_req, res) => {
     res.json(loadWidgets())
   })
+
+  // ── Profile ───────────────────────────────────────────────────────────────
+
+  router.get('/walli/profile', asyncRoute(async (req, res) => {
+    const profile = await getWalliProfile(req.userId!)
+    res.json(profile ?? {})
+  }))
+
+  router.patch('/walli/profile', asyncRoute(async (req, res) => {
+    const allowed = [
+      'preferred_name', 'life_focus', 'tendencies', 'motivation_style',
+      'about', 'coaching_style', 'checkin_frequency',
+      'synthesized_context', 'context_updated_at',
+      'onboarding_completed', 'onboarding_completed_at',
+    ]
+    const patch: Record<string, unknown> = {}
+    for (const key of allowed) {
+      if (key in req.body) patch[key] = req.body[key]
+    }
+    if (Object.keys(patch).length === 0) throw new AppError(400, 'No valid fields to update')
+    const profile = await upsertWalliProfile(req.userId!, patch)
+    res.json(profile)
+  }))
+
+  // ── Observations ──────────────────────────────────────────────────────────
+
+  router.post('/walli/observations', asyncRoute(async (req, res) => {
+    const { type, content, source, confidence = 0.5 } = req.body
+    if (!type || !content || !source) throw new AppError(400, 'type, content, and source are required')
+    await logObservation(req.userId!, { type, content, source, confidence })
+    res.json({ ok: true })
+  }))
+
+  // ── Context ───────────────────────────────────────────────────────────────
+  // Returns the full assembled context document Walli reads before interacting.
+
+  router.get('/walli/context', asyncRoute(async (req, res) => {
+    const context = await buildWalliContext(req.userId!)
+    res.json({ context })
+  }))
 
   return router
 }

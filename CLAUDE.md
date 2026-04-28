@@ -6,9 +6,15 @@ Widgets are called **wiigits** in this project (the brand name). Use "wiigit" / 
 
 ## What this is
 
-A **personal life OS** displayed as an ambient smart whiteboard. It runs on a wall-mounted display (Chrome kiosk mode) and is controlled via voice, the Walli AI assistant, or Claude via MCP tools. It is a personal project — not a SaaS product, not multi-tenant.
+A **personal life OS** — Walli is the brain, the whiteboard is the body. Together they act as a proactive life coach / secretary that knows the user, shows up without being asked, and uses the ambient display as its canvas.
 
-The core daily loop: check routines, track goals, manage tasks, glance at the calendar. The whiteboard is the ambient display layer on top of that data.
+It runs on a wall-mounted display (Chrome kiosk mode) and is controlled via voice, the Walli AI assistant, or Claude via MCP tools. It is a personal project — not a SaaS product, not multi-tenant.
+
+**The vision:** you wake up, Walli greets you, knows what you need to see today, and surfaces it — routines because it's morning, calendar because a meeting is coming, a goal update because you've been slipping. The board is not something you configure; it's something Walli curates. He pushes you toward your goals, holds you accountable, but understands you're a person — not a machine to be optimized.
+
+**Walli's character:** warm and encouraging like a coach, direct and capable like a secretary. He acts when asked, nudges when needed, has opinions backed by data, and wants you to succeed without becoming dependent on him. Part life coach, part therapist — he builds a mental model of you over time and uses it.
+
+**The core daily loop:** Walli greets you → routines → goals → tasks → calendar → proactive nudges throughout the day → evening wrap-up. The whiteboard is the ambient layer that makes all of this visible without requiring interaction.
 
 ## Commands
 
