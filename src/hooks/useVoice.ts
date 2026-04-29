@@ -14,7 +14,6 @@ export interface VoiceStatus {
 
 // ── Audio helpers ─────────────────────────────────────────────────────────────
 
-
 let _audio: HTMLAudioElement | null = null
 
 function cancelSpeak() {
@@ -36,7 +35,6 @@ async function speak(text: string, onEnd?: () => void) {
     })
     if (!res.ok || !res.body) throw new Error(`TTS ${res.status}`)
 
-    // Stream audio via MediaSource so playback starts with first chunk
     const mediaSource = new MediaSource()
     const url         = URL.createObjectURL(mediaSource)
     const audio       = new Audio(url)
@@ -72,7 +70,6 @@ async function speak(text: string, onEnd?: () => void) {
 
     await audio.play()
   } catch {
-    // fallback to Web Speech API
     if (!('speechSynthesis' in window)) { onEnd?.(); return }
     const utt   = new SpeechSynthesisUtterance(text)
     utt.rate    = 1.08
@@ -85,17 +82,14 @@ async function speak(text: string, onEnd?: () => void) {
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
-const SR = typeof window !== 'undefined'
-  ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null)
-  : null
+const hasMic = typeof navigator !== 'undefined' && !!navigator.mediaDevices?.getUserMedia
 
-// How long of silence before submitting a command (ms)
 const COMMAND_SILENCE_MS = 2500
 
 type ConvMessage = { role: 'user' | 'assistant'; content: string }
 
 export function useVoice(): VoiceStatus {
-  const [state, _setState] = useState<VoiceState>(SR ? 'idle' : 'unsupported')
+  const [state, _setState] = useState<VoiceState>(hasMic ? 'idle' : 'unsupported')
   function setState(s: VoiceState) {
     _setState(s)
     useVoiceStore.getState().setVoiceState(s)
@@ -108,9 +102,9 @@ export function useVoice(): VoiceStatus {
   const commandBufRef   = useRef('')
   const interimBufRef   = useRef('')
   const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const speakingRef     = useRef(false)          // true while TTS is playing
-  const inConvoRef      = useRef(false)          // true during a conversation session
-  const historyRef      = useRef<ConvMessage[]>([]) // conversation history
+  const speakingRef     = useRef(false)
+  const inConvoRef      = useRef(false)
+  const historyRef      = useRef<ConvMessage[]>([])
 
   stateRef.current = state
 
@@ -122,8 +116,8 @@ export function useVoice(): VoiceStatus {
   }
 
   function endConversation() {
-    inConvoRef.current  = false
-    historyRef.current  = []
+    inConvoRef.current    = false
+    historyRef.current    = []
     commandBufRef.current = ''
     setTranscript('')
     setResponse('')
@@ -141,7 +135,6 @@ export function useVoice(): VoiceStatus {
           console.log(`[voice] 🚀 "${cmd}"`)
           submit()
         } else {
-          // No speech — if in convo, end it; otherwise go idle
           endConversation()
         }
       }
@@ -149,14 +142,16 @@ export function useVoice(): VoiceStatus {
   }, [])
 
   useEffect(() => {
-    if (!SR) return
+    if (!hasMic) return
 
-    const recognition         = new SR()
-    recognition.continuous     = true
-    recognition.interimResults = true
-    recognition.lang           = 'en-US'
+    let stopped      = false
+    let wsRef: WebSocket | null = null
+    let streamRef: MediaStream | null = null
+    let audioCtxRef: AudioContext | null = null
+    let processorRef: ScriptProcessorNode | null = null
+    let reconnectDelay = 1000
 
-    // ── Submit to server ────────────────────────────────────────────────────
+    // ── Submit to server ──────────────────────────────────────────────────────
     async function submitCommand(text: string) {
       setState('processing')
       setTranscript(text)
@@ -172,7 +167,7 @@ export function useVoice(): VoiceStatus {
             'Content-Type':  'application/json',
             ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
           },
-          body:    JSON.stringify({ text, history: historyRef.current.slice(0, -1) }),
+          body: JSON.stringify({ text, history: historyRef.current.slice(0, -1) }),
         })
         const data  = await res.json() as { response?: string }
         const reply = data.response || 'Done.'
@@ -181,18 +176,14 @@ export function useVoice(): VoiceStatus {
         soundSuccess()
 
         historyRef.current.push({ role: 'assistant', content: reply })
-
         setResponse(reply)
         setState('responding')
 
-        // Suppress recognition while speaking so mic doesn't hear TTS
         speakingRef.current = true
         const isQuestion = reply.trimEnd().endsWith('?')
         speak(reply, () => {
           speakingRef.current = false
-
           if (isQuestion) {
-            // Stay listening for the user's answer
             commandBufRef.current = ''
             setTranscript('')
             setState('listening')
@@ -211,18 +202,14 @@ export function useVoice(): VoiceStatus {
       }
     }
 
-    // ── Process results ─────────────────────────────────────────────────────
-    recognition.onresult = (event: any) => {
-      // Ignore everything while TTS is playing
-      if (speakingRef.current) return
+    // ── Handle Deepgram transcript ────────────────────────────────────────────
+    function handleTranscript(text: string, isFinal: boolean) {
+      if (speakingRef.current || !text) return
 
-      const result = event.results[event.resultIndex]
-      const text   = result[0].transcript.trim()
-      const final  = result.isFinal
-      const lower  = text.toLowerCase()
-      const cur    = stateRef.current
+      const lower = text.toLowerCase()
+      const cur   = stateRef.current
 
-      console.log(`[voice] ${final ? '✓' : '…'} "${text}"  state=${cur}`)
+      console.log(`[voice] ${isFinal ? '✓' : '…'} "${text}"  state=${cur}`)
 
       if (cur === 'idle') {
         const hasWake = /\b(hey|okay|ok|hello)\s+bo(a?r[de]|red|rd)\b/.test(lower)
@@ -243,62 +230,112 @@ export function useVoice(): VoiceStatus {
         resetSilenceTimer(() => submitCommand(commandBufRef.current), COMMAND_SILENCE_MS)
 
       } else if (cur === 'listening') {
-        // Check for conversation-exit phrases
-        if (final && /\b(thanks|thank you|goodbye|bye|stop|never ?mind|cancel)\b/.test(lower)) {
+        if (isFinal && /\b(thanks|thank you|goodbye|bye|stop|never ?mind|cancel)\b/.test(lower)) {
           clearSilenceTimer()
           speak('Got it, see you later.')
           setTimeout(() => endConversation(), 1200)
           return
         }
 
-        if (final) {
+        if (isFinal) {
           commandBufRef.current = (commandBufRef.current + ' ' + text).trim()
           interimBufRef.current = ''
         } else {
           interimBufRef.current = text
         }
-        setTranscript((commandBufRef.current + ' ' + (final ? '' : text)).trim())
+        setTranscript((commandBufRef.current + ' ' + (isFinal ? '' : text)).trim())
         resetSilenceTimer(() => submitCommand(commandBufRef.current), COMMAND_SILENCE_MS)
       }
     }
 
-    recognition.onerror = (event: any) => {
-      console.log('[voice] ⚠ error:', event.error)
-      if (event.error === 'no-speech')   return
-      if (event.error === 'aborted')     return
-      if (event.error === 'not-allowed') setState('unsupported')
-    }
-
-    recognition.onstart = () => console.log('[voice] ▶ started')
-
-    let stopped = false
-    let restartDelay = 300
-    let lastStartTime = 0
-    recognition.onend = () => {
-      console.log('[voice] ■ ended, state=', stateRef.current)
+    // ── Deepgram WebSocket ────────────────────────────────────────────────────
+    async function connect() {
       if (stopped) return
-      const s = stateRef.current
-      if (s === 'idle' || s === 'listening') {
-        const sessionDuration = Date.now() - lastStartTime
-        if (sessionDuration < 1000) {
-          restartDelay = Math.min(restartDelay * 2, 10000)
-        } else {
-          restartDelay = 300
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        const tokenRes = await fetch('/api/deepgram/token', {
+          headers: session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {},
+        })
+        if (!tokenRes.ok) throw new Error('No Deepgram token')
+        const { key } = await tokenRes.json() as { key: string }
+
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+        if (stopped) { stream.getTracks().forEach(t => t.stop()); return }
+        streamRef = stream
+
+        const audioCtx = new AudioContext({ sampleRate: 16000 })
+        audioCtxRef = audioCtx
+        const source    = audioCtx.createMediaStreamSource(stream)
+        const processor = audioCtx.createScriptProcessor(4096, 1, 1)
+        processorRef    = processor
+        source.connect(processor)
+        processor.connect(audioCtx.destination)
+
+        const ws = new WebSocket(
+          'wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&language=en-US&interim_results=true',
+          ['token', key]
+        )
+        wsRef = ws
+
+        processor.onaudioprocess = (e) => {
+          if (ws.readyState !== WebSocket.OPEN) return
+          const float32 = e.inputBuffer.getChannelData(0)
+          const int16   = new Int16Array(float32.length)
+          for (let i = 0; i < float32.length; i++) {
+            int16[i] = Math.max(-32768, Math.min(32767, float32[i] * 32768))
+          }
+          ws.send(int16.buffer)
         }
-        setTimeout(() => {
-          if (stopped) return
-          lastStartTime = Date.now()
-          try { recognition.start() } catch { /* already running */ }
-        }, restartDelay)
+
+        ws.onopen    = () => { console.log('[voice] ▶ deepgram connected'); reconnectDelay = 1000 }
+        ws.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data as string)
+            if (msg.type !== 'Results') return
+            const text    = (msg.channel?.alternatives?.[0]?.transcript ?? '').trim()
+            const isFinal = !!msg.is_final
+            handleTranscript(text, isFinal)
+          } catch { /* ignore parse errors */ }
+        }
+        ws.onerror = () => console.log('[voice] ⚠ deepgram error')
+        ws.onclose = () => {
+          console.log('[voice] ■ deepgram closed')
+          cleanup(false)
+          if (!stopped) {
+            setTimeout(() => connect(), reconnectDelay)
+            reconnectDelay = Math.min(reconnectDelay * 2, 15000)
+          }
+        }
+      } catch (err) {
+        console.log('[voice] ⚠ connect failed:', err)
+        if ((err as any)?.name === 'NotAllowedError') {
+          setState('unsupported')
+        } else if (!stopped) {
+          setTimeout(() => connect(), reconnectDelay)
+          reconnectDelay = Math.min(reconnectDelay * 2, 15000)
+        }
       }
     }
 
-    lastStartTime = Date.now()
-    try { recognition.start() } catch { /* ignore */ }
+    function cleanup(full = true) {
+      processorRef?.disconnect()
+      processorRef = null
+      audioCtxRef?.close()
+      audioCtxRef = null
+      if (full) {
+        streamRef?.getTracks().forEach(t => t.stop())
+        streamRef = null
+        wsRef?.close()
+        wsRef = null
+      }
+    }
+
+    connect()
 
     return () => {
       stopped = true
-      try { recognition.stop() } catch { /* ignore */ }
+      cleanup(true)
       clearSilenceTimer()
       cancelSpeak()
     }

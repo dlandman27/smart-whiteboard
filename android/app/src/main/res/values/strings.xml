@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Walli</string>
+    <string name="title_activity_main">Walli</string>
+    <string name="package_name">com.wiigit.whiteboard</string>
+    <string name="custom_url_scheme">com.wiigit.whiteboard</string>
+</resources>
