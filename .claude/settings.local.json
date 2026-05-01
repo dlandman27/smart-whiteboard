@@ -110,7 +110,13 @@
       "Bash(curl -s http://localhost:3001/health)",
       "Bash(git *)",
       "Bash(npm test *)",
-      "Bash(npm uninstall *)"
+      "Bash(npm uninstall *)",
+      "Bash(xxd \"src/components/Whiteboard.tsx\")",
+      "Bash(./gradlew assembleDebug)",
+      "Bash(/c/Users/dylan/platform-tools-latest-windows/platform-tools/adb.exe shell *)",
+      "Bash(\"/c/Users/dylan/platform-tools-latest-windows/platform-tools/adb.exe\" shell *)",
+      "Bash(\"/c/Users/dylan/platform-tools-latest-windows/platform-tools/adb.exe\" install *)",
+      "Bash(echo \"JSX files: $\\(find /c/Users/dylan/Downloads/react -name \"*.jsx\")"
     ]
   },
   "enableAllProjectMcpServers": true,

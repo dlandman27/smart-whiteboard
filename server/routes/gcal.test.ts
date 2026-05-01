@@ -14,8 +14,9 @@ vi.mock('../services/gcal.js', () => ({
 }))
 
 vi.mock('../services/credentials.js', () => ({
-  saveOAuthTokens: vi.fn(),
-  deleteOAuthTokens: vi.fn(),
+  saveOAuthTokens:      vi.fn(),
+  deleteOAuthTokens:    vi.fn(),
+  loadAllOAuthTokens:   vi.fn(),
 }))
 
 vi.mock('googleapis', () => {
@@ -57,16 +58,16 @@ describe('gcal router', () => {
   // ── Status ──────────────────────────────────────────────────────────────────
 
   describe('GET /api/gcal/status', () => {
-    it('returns connected:true when client exists', async () => {
-      vi.mocked(gcalService.getGCalClient).mockResolvedValue({ credentials: {} } as any)
+    it('returns connected:true when accounts exist', async () => {
+      vi.mocked(credentials.loadAllOAuthTokens as any).mockResolvedValue([{ account_id: 'primary', account_email: 'test@example.com', access_token: 'tok' }])
       const res = await request(createApp()).get('/api/gcal/status')
       expect(res.status).toBe(200)
       expect(res.body.connected).toBe(true)
       expect(res.body.configured).toBe(true)
     })
 
-    it('returns connected:false when no client', async () => {
-      vi.mocked(gcalService.getGCalClient).mockResolvedValue(null)
+    it('returns connected:false when no accounts', async () => {
+      vi.mocked(credentials.loadAllOAuthTokens as any).mockResolvedValue([])
       const res = await request(createApp()).get('/api/gcal/status')
       expect(res.status).toBe(200)
       expect(res.body.connected).toBe(false)
@@ -123,12 +124,19 @@ describe('gcal router', () => {
   // ── Disconnect ───────────────────────────────────────────────────────────────
 
   describe('POST /api/gcal/disconnect', () => {
-    it('deletes tokens and returns ok:true', async () => {
+    it('deletes tokens and returns ok:true (no accountId = all)', async () => {
       vi.mocked(credentials.deleteOAuthTokens).mockResolvedValue(undefined)
       const res = await request(createApp()).post('/api/gcal/disconnect')
       expect(res.status).toBe(200)
       expect(res.body.ok).toBe(true)
-      expect(credentials.deleteOAuthTokens).toHaveBeenCalledWith('test-user-id', 'gcal')
+      expect(credentials.deleteOAuthTokens).toHaveBeenCalledWith('test-user-id', 'gcal', undefined)
+    })
+
+    it('deletes a specific account when accountId provided', async () => {
+      vi.mocked(credentials.deleteOAuthTokens).mockResolvedValue(undefined)
+      const res = await request(createApp()).post('/api/gcal/disconnect').send({ accountId: 'work@example.com' })
+      expect(res.status).toBe(200)
+      expect(credentials.deleteOAuthTokens).toHaveBeenCalledWith('test-user-id', 'gcal', 'work@example.com')
     })
   })
 
@@ -136,6 +144,7 @@ describe('gcal router', () => {
 
   describe('GET /api/gcal/calendars', () => {
     it('returns calendar list', async () => {
+      vi.mocked(credentials.loadAllOAuthTokens as any).mockResolvedValue([{ account_id: 'primary', account_email: 'test@example.com', access_token: 'tok' }])
       vi.mocked(gcalService.getGCalClient).mockResolvedValue({ credentials: {} } as any)
       mockCalendar.calendarList.list.mockResolvedValue({ data: { items: [{ id: 'primary', summary: 'My Cal' }] } })
 
@@ -144,8 +153,8 @@ describe('gcal router', () => {
       expect(res.body.items).toHaveLength(1)
     })
 
-    it('returns 401 when not authenticated', async () => {
-      vi.mocked(gcalService.getGCalClient).mockResolvedValue(null)
+    it('returns 401 when no accounts connected', async () => {
+      vi.mocked(credentials.loadAllOAuthTokens as any).mockResolvedValue([])
       const res = await request(createApp()).get('/api/gcal/calendars')
       expect(res.status).toBe(401)
     })

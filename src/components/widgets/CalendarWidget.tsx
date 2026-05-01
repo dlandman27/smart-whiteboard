@@ -304,7 +304,7 @@ const VIEW_OPTIONS = [
 ]
 
 export function CalendarWidget({ widgetId }: WidgetProps) {
-  const [{ calendarId }] = useWidgetSettings(widgetId, { calendarId: '' })
+  const [{ calendarId, accountId = 'primary' }] = useWidgetSettings(widgetId, { calendarId: '', accountId: 'primary' })
   const { data: statusData, isLoading: statusLoading } = useGCalStatus()
   const [view, setView]       = useState<View>('day')
   const [current, setCurrent] = useState(new Date())
@@ -315,7 +315,7 @@ export function CalendarWidget({ widgetId }: WidgetProps) {
     const r = monthRange(current); return { ...r, weekStart: undefined }
   })()
 
-  const { data, isLoading, error, refetch, isFetching } = useGCalEvents(timeMin, timeMax, calendarId)
+  const { data, isLoading, error, refetch, isFetching } = useGCalEvents(timeMin, timeMax, calendarId, accountId)
   const events: GCalEvent[] = data?.items ?? []
 
   function navigate(dir: 1 | -1) {

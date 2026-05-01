@@ -2,7 +2,11 @@ import { useEffect, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { Icon, ScrollArea, Text, Button, Input } from '@whiteboard/ui-kit'
 import { useHashFragment } from '../hooks/useHashRouter'
-import { useGCalStatus, startGCalAuth, disconnectGCal } from '../hooks/useGCal'
+import {
+  useGCalStatus, useGCalAccounts, startGCalAuth, disconnectGCal,
+  useICalFeeds, useAddICalFeed, useDeleteICalFeed,
+  type GCalAccount,
+} from '../hooks/useGCal'
 import { useTasksStatus } from '../hooks/useTasks'
 import { apiFetch } from '../lib/apiFetch'
 import { ProviderIcon } from './ProviderIcon'
@@ -40,6 +44,7 @@ const CONNECTORS: ConnectorDef[] = [
   { id: 'gtasks',     name: 'Google Tasks',    description: 'Sync your task lists and manage todos.',                     icon: 'CheckSquare',      category: 'tasks' },
   { id: 'todoist',    name: 'Todoist',         description: 'View and manage your Todoist tasks on the whiteboard.',      icon: 'CheckCircle',      category: 'tasks' },
   { id: 'gcal',       name: 'Google Calendar', description: 'View and manage your calendar events on the whiteboard.',    icon: 'CalendarBlank',    category: 'calendar' },
+  { id: 'ical',       name: 'iCal / Apple Calendar', description: 'Add any iCal feed URL, including Apple Calendar.',    icon: 'CalendarBlank',    category: 'calendar' },
   { id: 'spotify',    name: 'Spotify',         description: 'Control playback and see what\'s currently playing.',        icon: 'MusicNote',        category: 'media' },
   { id: 'youtube',    name: 'YouTube',         description: 'Search and embed YouTube videos in widgets.',                icon: 'YoutubeLogo',      category: 'media' },
   { id: 'notion',     name: 'Notion',          description: 'Read and write to your Notion databases.',                   icon: 'BookOpen',         category: 'productivity' },
@@ -150,12 +155,14 @@ function AppCard({
   )
 }
 
-// ── Google Calendar ──────────────────────────────────────────────────────────
+// ── Google Calendar (multi-account) ──────────────────────────────────────────
 
 function GCalCard({ googleOauth }: { googleOauth: boolean }) {
   const qc = useQueryClient()
-  const { data } = useGCalStatus()
-  const connected = !!data?.connected
+  const { data: statusData } = useGCalStatus()
+  const { data: accountsData, refetch: refetchAccounts } = useGCalAccounts()
+  const accounts = accountsData?.accounts ?? []
+  const connected = accounts.length > 0
 
   function openPopup() {
     startGCalAuth().then((url) => {
@@ -163,7 +170,10 @@ function GCalCard({ googleOauth }: { googleOauth: boolean }) {
       const onMessage = (e: MessageEvent) => {
         if (e.data?.type === 'gcal-connected') {
           qc.invalidateQueries({ queryKey: ['gcal-status'] })
-          qc.invalidateQueries({ queryKey: ['gcal-events'] })
+          qc.invalidateQueries({ queryKey: ['gcal-accounts'] })
+          qc.invalidateQueries({ queryKey: ['gcal-calendars'] })
+          qc.invalidateQueries({ queryKey: ['unified-events'] })
+          refetchAccounts()
           window.removeEventListener('message', onMessage)
           popup?.close()
         }
@@ -172,20 +182,176 @@ function GCalCard({ googleOauth }: { googleOauth: boolean }) {
     })
   }
 
-  async function disconnect() {
-    await disconnectGCal()
+  async function disconnect(accountId: string) {
+    await disconnectGCal(accountId)
     qc.invalidateQueries({ queryKey: ['gcal-status'] })
-    qc.invalidateQueries({ queryKey: ['gcal-events'] })
+    qc.invalidateQueries({ queryKey: ['gcal-accounts'] })
+    qc.invalidateQueries({ queryKey: ['gcal-calendars'] })
+    qc.invalidateQueries({ queryKey: ['unified-events'] })
+    refetchAccounts()
   }
+
+  const statusLabel = connected
+    ? `${accounts.length} account${accounts.length > 1 ? 's' : ''} connected`
+    : 'Not connected'
 
   return (
     <AppCard
       icon="CalendarBlank" name="Google Calendar" providerId="gcal"
-      description="View and manage your calendar events on the whiteboard."
+      description="Connect one or more Google accounts to show all their calendars."
       connected={connected}
-      actionLabel={connected ? 'Disconnect' : 'Connect'}
-      onAction={connected ? disconnect : openPopup}
-    />
+      statusLabel={statusLabel}
+    >
+      {/* Connected accounts list */}
+      {accounts.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {accounts.map((acct) => (
+            <div key={acct.accountId} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'var(--wt-surface-hover)', borderRadius: 8, padding: '8px 10px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <div style={{
+                  width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                  background: 'color-mix(in srgb, var(--wt-success) 15%, transparent)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon icon="GoogleLogo" size={13} style={{ color: 'var(--wt-success)' }} />
+                </div>
+                <span style={{
+                  fontSize: 12, color: 'var(--wt-text)', overflow: 'hidden',
+                  textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {acct.email}
+                </span>
+              </div>
+              <button
+                onClick={() => disconnect(acct.accountId)}
+                title="Disconnect this account"
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--wt-text-muted)', padding: '2px 4px', borderRadius: 4,
+                  fontSize: 11, flexShrink: 0,
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Button variant={connected ? 'ghost' : 'accent'} size="sm" onClick={openPopup} fullWidth>
+        {connected ? 'Add another account' : 'Connect Google Calendar'}
+      </Button>
+    </AppCard>
+  )
+}
+
+// ── iCal / Apple Calendar ────────────────────────────────────────────────────
+
+function ICalCard() {
+  const { data, isLoading } = useICalFeeds()
+  const addFeed = useAddICalFeed()
+  const deleteFeed = useDeleteICalFeed()
+  const feeds = data?.feeds ?? []
+  const connected = feeds.length > 0
+
+  const [showForm, setShowForm] = useState(false)
+  const [name, setName]  = useState('')
+  const [url,  setUrl]   = useState('')
+  const [err,  setErr]   = useState('')
+
+  async function handleAdd() {
+    setErr('')
+    if (!name.trim()) { setErr('Name is required'); return }
+    if (!url.trim())  { setErr('URL is required');  return }
+    try {
+      await addFeed.mutateAsync({ name: name.trim(), url: url.trim() })
+      setName(''); setUrl(''); setShowForm(false)
+    } catch (e: any) {
+      setErr(e?.message ?? 'Failed to add feed')
+    }
+  }
+
+  return (
+    <AppCard
+      icon="CalendarBlank" name="iCal / Apple Calendar"
+      description="Subscribe to any iCal feed URL. Works with Apple Calendar, Outlook, and more."
+      connected={connected}
+      statusLabel={connected ? `${feeds.length} feed${feeds.length > 1 ? 's' : ''} active` : 'No feeds'}
+    >
+      {/* Existing feeds */}
+      {feeds.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {feeds.map((feed) => (
+            <div key={feed.id} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'var(--wt-surface-hover)', borderRadius: 8, padding: '8px 10px',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                {feed.color && (
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', background: feed.color, flexShrink: 0 }} />
+                )}
+                <span style={{ fontSize: 12, color: 'var(--wt-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {feed.name}
+                </span>
+              </div>
+              <button
+                onClick={() => deleteFeed.mutate(feed.id)}
+                title="Remove this feed"
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  color: 'var(--wt-text-muted)', padding: '2px 4px', borderRadius: 4,
+                  fontSize: 11, flexShrink: 0,
+                }}
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add feed form */}
+      {showForm ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 12, color: 'var(--wt-text-muted)', lineHeight: 1.5 }}>
+            In Apple Calendar: right-click a calendar → Share → copy the link.
+            Paste the <code style={{ fontSize: 11 }}>webcal://</code> or <code style={{ fontSize: 11 }}>https://</code> URL below.
+          </div>
+          <Input
+            label="Calendar name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Work Calendar"
+          />
+          <Input
+            label="Feed URL"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="webcal:// or https://..."
+          />
+          {err && <div style={{ fontSize: 12, color: 'var(--wt-danger)' }}>{err}</div>}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button
+              variant="accent" size="sm" fullWidth
+              disabled={!name.trim() || !url.trim() || addFeed.isPending}
+              onClick={handleAdd}
+            >
+              {addFeed.isPending ? 'Adding…' : 'Add feed'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => { setShowForm(false); setName(''); setUrl(''); setErr('') }}>
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <Button variant={connected ? 'ghost' : 'accent'} size="sm" onClick={() => setShowForm(true)} fullWidth>
+          {connected ? 'Add another feed' : 'Add iCal feed'}
+        </Button>
+      )}
+    </AppCard>
   )
 }
 
@@ -300,7 +466,6 @@ function NotionCard({ notionOauth }: { notionOauth: boolean }) {
   const notionStatus = useNotionStatus()
   const connected = notionStatus.connected
 
-  // OAuth connect
   function openOAuthPopup() {
     apiFetch<{ url: string }>('/api/notion/connect', { method: 'POST' }).then(({ url }) => {
       const popup = window.open(url, 'notion-auth', 'width=500,height=700,left=200,top=100')
@@ -316,14 +481,12 @@ function NotionCard({ notionOauth }: { notionOauth: boolean }) {
     })
   }
 
-  // OAuth disconnect
   async function disconnect() {
     await apiFetch('/api/notion/disconnect', { method: 'POST' })
     notionStatus.refresh()
     qc.invalidateQueries({ queryKey: ['health'] })
   }
 
-  // API key save (fallback method)
   async function save() {
     if (!apiKey.trim()) return
     setSaving(true)
@@ -342,7 +505,6 @@ function NotionCard({ notionOauth }: { notionOauth: boolean }) {
     }
   }
 
-  // Determine action label and handler
   const isOAuthConnected = notionStatus.method === 'oauth'
 
   let actionLabel: string | undefined
@@ -352,7 +514,6 @@ function NotionCard({ notionOauth }: { notionOauth: boolean }) {
     actionLabel = 'Disconnect'
     onAction = disconnect
   } else if (connected) {
-    // Connected via API key — offer to reconfigure or connect via OAuth
     actionLabel = notionOauth ? 'Upgrade to OAuth' : 'Reconfigure'
     onAction = notionOauth ? openOAuthPopup : () => setExpanded(true)
   } else if (notionOauth) {
@@ -443,9 +604,11 @@ export function ConnectorsBoardView() {
     notion: false, notionOauth: false, anthropic: false, elevenlabs: false,
     youtube: false, bing: false, googleOauth: false,
   }
-  const gcalStatus = useGCalStatus()
+  const gcalStatus  = useGCalStatus()
+  const gcalAccts   = useGCalAccounts()
   const tasksStatus = useTasksStatus()
   const todoistStatus = useTodoistStatus()
+  const icalFeeds = useICalFeeds()
 
   const hashFragment = useHashFragment()
   const [search, setSearch] = useState('')
@@ -454,16 +617,15 @@ export function ConnectorsBoardView() {
     return valid.includes(hashFragment as Category) ? (hashFragment as Category) : 'all'
   })
 
-  // Update category when navigating via deep link
   useEffect(() => {
     if (!hashFragment) return
     const valid: Category[] = ['tasks', 'calendar', 'media', 'productivity', 'ai']
     if (valid.includes(hashFragment as Category)) setCategory(hashFragment as Category)
   }, [hashFragment])
 
-  // Build enabled list
   const enabledMap: Record<string, boolean> = {
-    gcal:       !!gcalStatus.data?.connected,
+    gcal:       (gcalAccts.data?.accounts?.length ?? 0) > 0,
+    ical:       (icalFeeds.data?.feeds?.length ?? 0) > 0,
     gtasks:     !!tasksStatus.data?.connected,
     todoist:    todoistStatus.connected,
     notion:     s.notion,
@@ -474,7 +636,6 @@ export function ConnectorsBoardView() {
   }
   const enabledConnectors = CONNECTORS.filter(c => enabledMap[c.id])
 
-  // Filter
   const query = search.toLowerCase().trim()
   const filtered = CONNECTORS
     .filter(c => category === 'all' || c.category === category)
@@ -569,6 +730,7 @@ export function ConnectorsBoardView() {
             }}>
               {filtered.map(c => {
                 if (c.id === 'gcal')    return <GCalCard key={c.id} googleOauth={s.googleOauth} />
+                if (c.id === 'ical')    return <ICalCard key={c.id} />
                 if (c.id === 'gtasks')  return <GTasksCard key={c.id} googleOauth={s.googleOauth} />
                 if (c.id === 'todoist') return <TodoistCard key={c.id} />
                 if (c.id === 'notion')  return <NotionCard key={c.id} notionOauth={s.notionOauth} />

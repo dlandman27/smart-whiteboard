@@ -9,9 +9,9 @@ export function getGCalOAuth2Client() {
   return new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI)
 }
 
-export async function getGCalClient(userId: string) {
+export async function getGCalClient(userId: string, accountId = 'primary') {
   if (!CLIENT_ID || !CLIENT_SECRET) return null
-  const tokens = await loadOAuthTokens(userId, 'gcal')
+  const tokens = await loadOAuthTokens(userId, 'gcal', accountId)
   if (!tokens?.access_token && !tokens?.refresh_token) return null
 
   const client = getGCalOAuth2Client()
@@ -22,10 +22,12 @@ export async function getGCalClient(userId: string) {
   })
   client.on('tokens', (newTokens: any) => {
     saveOAuthTokens(userId, 'gcal', {
-      access_token:  newTokens.access_token ?? tokens.access_token,
+      access_token:  newTokens.access_token  ?? tokens.access_token,
       refresh_token: newTokens.refresh_token ?? tokens.refresh_token,
       expires_at:    newTokens.expiry_date ? new Date(newTokens.expiry_date).toISOString() : undefined,
-    })
+      account_id:    accountId,
+      account_email: tokens.account_email,
+    }, accountId)
   })
   return client
 }

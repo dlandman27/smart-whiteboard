@@ -52,7 +52,7 @@ async function requireUserId(userId: string | undefined): Promise<string> {
   if (!userId) {
     throw new AppError(
       401,
-      'No user_id available. Set DEV_USER_ID in .env (your Supabase auth.users id) or send a Bearer token.',
+      'Unauthorized',
       'NO_USER',
     )
   }

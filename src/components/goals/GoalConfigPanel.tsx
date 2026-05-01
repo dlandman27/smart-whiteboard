@@ -6,7 +6,7 @@
  *   <GoalConfigPanel widgetId={widgetId} onClose={() => setOpen(false)} />
  */
 import { useWidgetSettings } from '@whiteboard/sdk'
-import { useGoals, type GoalWithRelations } from '../../hooks/useGoals'
+import { useGoals, type Goal } from '../../hooks/useGoals'
 import type { GoalsWidgetSettings } from '../widgets/GoalsWidget'
 
 const DEFAULTS: GoalsWidgetSettings = {
@@ -88,7 +88,7 @@ export function GoalConfigPanel({ widgetId, onClose }: GoalConfigPanelProps) {
                 selected={settings.selectedGoalId === 'all'}
                 onSelect={() => update({ selectedGoalId: 'all' })}
               />
-              {goals.map((g: GoalWithRelations) => (
+              {goals.map((g: Goal) => (
                 <GoalOption
                   key={g.id}
                   id={g.id}

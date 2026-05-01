@@ -33,7 +33,7 @@ npm run test       # Run all tests
 - **Frontend**: React 18, Zustand, TanStack Query, Tailwind CSS, react-rnd
 - **Backend**: Express + TypeScript (tsx watch in dev), WebSocket (ws)
 - **Database**: Supabase (Postgres) — all persistence goes here
-- **Auth**: Supabase JWT in production; `DEV_USER_ID` env var bypasses auth in development
+- **Auth**: Supabase JWT — `requireAuth` middleware verifies tokens in all environments
 - **Deploy**: Railway (backend + static) at `smart-whiteboard-production.up.railway.app`
 - **AI**: Anthropic Claude (claude-sonnet-4-6) via `@anthropic-ai/sdk`
 - **MCP**: Single server at `mcp/server.ts` — all Claude tool access goes through here
@@ -72,7 +72,7 @@ server/
     scheduler.ts        Cron-based agent runner
     dynamic-runner.ts   User-defined agents stored in Supabase
   middleware/
-    auth.ts             requireAuth — bypassed in dev via DEV_USER_ID
+    auth.ts             requireAuth — Supabase JWT verification
     error.ts            AppError + asyncRoute helpers
   services/             Thin wrappers: gcal, spotify, notify, voice-tools, ...
 
@@ -152,7 +152,6 @@ Key env vars (see `.env.example` for full list):
 ```
 SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY   — server-side DB access
 VITE_PUBLIC_SUPABASE_URL / VITE_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY  — client-side
-DEV_USER_ID          — your Supabase user UUID, used instead of JWT in dev
 ANTHROPIC_API_KEY    — required for Walli AI and voice commands
 NOTION_API_KEY       — global fallback if user hasn't done OAuth
 GOOGLE_CLIENT_ID/SECRET  — Google Calendar + Photos OAuth

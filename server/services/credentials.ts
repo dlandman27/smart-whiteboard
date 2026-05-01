@@ -7,48 +7,102 @@ export interface OAuthTokens {
   access_token: string
   refresh_token?: string
   expires_at?: string
+  account_id?: string
+  account_email?: string
 }
 
-export async function loadOAuthTokens(userId: string, service: string): Promise<OAuthTokens | null> {
+export async function loadOAuthTokens(
+  userId: string,
+  service: string,
+  accountId = 'primary',
+): Promise<OAuthTokens | null> {
   const { data, error } = await supabaseAdmin
     .from('oauth_tokens')
     .select('*')
     .eq('user_id', userId)
     .eq('service', service)
+    .eq('account_id', accountId)
     .single()
 
   if (error || !data) return null
 
   try {
     return {
-      access_token:  data.access_token ? decrypt(data.access_token) : '',
+      access_token:  data.access_token  ? decrypt(data.access_token)  : '',
       refresh_token: data.refresh_token ? decrypt(data.refresh_token) : undefined,
-      expires_at:    data.expires_at ?? undefined,
+      expires_at:    data.expires_at    ?? undefined,
+      account_id:    data.account_id,
+      account_email: data.account_email ?? undefined,
     }
   } catch {
     // Decryption failed — token was encrypted with a different key (e.g. key rotation).
-    // Treat as not connected so the user can reconnect and re-encrypt with the current key.
     return null
   }
 }
 
-export async function saveOAuthTokens(userId: string, service: string, tokens: OAuthTokens): Promise<void> {
+/** Returns all connected accounts for a given service. */
+export async function loadAllOAuthTokens(
+  userId: string,
+  service: string,
+): Promise<OAuthTokens[]> {
+  const { data, error } = await supabaseAdmin
+    .from('oauth_tokens')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('service', service)
+
+  if (error || !data) return []
+
+  const results: OAuthTokens[] = []
+  for (const row of data) {
+    try {
+      results.push({
+        access_token:  row.access_token  ? decrypt(row.access_token)  : '',
+        refresh_token: row.refresh_token ? decrypt(row.refresh_token) : undefined,
+        expires_at:    row.expires_at    ?? undefined,
+        account_id:    row.account_id,
+        account_email: row.account_email ?? undefined,
+      })
+    } catch {
+      // skip tokens that can't be decrypted
+    }
+  }
+  return results
+}
+
+export async function saveOAuthTokens(
+  userId: string,
+  service: string,
+  tokens: OAuthTokens,
+  accountId = 'primary',
+): Promise<void> {
   const { error } = await supabaseAdmin.from('oauth_tokens').upsert({
     user_id:       userId,
     service,
+    account_id:    tokens.account_id    ?? accountId,
+    account_email: tokens.account_email ?? null,
     access_token:  encrypt(tokens.access_token),
     refresh_token: tokens.refresh_token ? encrypt(tokens.refresh_token) : null,
-    expires_at:    tokens.expires_at ?? null,
+    expires_at:    tokens.expires_at    ?? null,
   })
   if (error) console.error('saveOAuthTokens:', error)
 }
 
-export async function deleteOAuthTokens(userId: string, service: string): Promise<void> {
-  const { error } = await supabaseAdmin
+/** Delete a specific account, or all accounts for the service if accountId is omitted. */
+export async function deleteOAuthTokens(
+  userId: string,
+  service: string,
+  accountId?: string,
+): Promise<void> {
+  let q = supabaseAdmin
     .from('oauth_tokens')
     .delete()
     .eq('user_id', userId)
     .eq('service', service)
+
+  if (accountId) q = q.eq('account_id', accountId) as typeof q
+
+  const { error } = await q
   if (error) console.error('deleteOAuthTokens:', error)
 }
 
@@ -73,10 +127,10 @@ export async function loadCredential(userId: string, service: string): Promise<C
 
   try {
     return {
-      api_key:       data.api_key ? decrypt(data.api_key) : undefined,
-      client_id:     data.client_id ?? undefined,
+      api_key:       data.api_key       ? decrypt(data.api_key)       : undefined,
+      client_id:     data.client_id     ?? undefined,
       client_secret: data.client_secret ? decrypt(data.client_secret) : undefined,
-      redirect_uri:  data.redirect_uri ?? undefined,
+      redirect_uri:  data.redirect_uri  ?? undefined,
     }
   } catch {
     return null
@@ -87,10 +141,10 @@ export async function saveCredential(userId: string, service: string, cred: Cred
   const { error } = await supabaseAdmin.from('user_credentials').upsert({
     user_id:       userId,
     service,
-    api_key:       cred.api_key ? encrypt(cred.api_key) : null,
-    client_id:     cred.client_id ?? null,
+    api_key:       cred.api_key       ? encrypt(cred.api_key)       : null,
+    client_id:     cred.client_id     ?? null,
     client_secret: cred.client_secret ? encrypt(cred.client_secret) : null,
-    redirect_uri:  cred.redirect_uri ?? null,
+    redirect_uri:  cred.redirect_uri  ?? null,
   })
   if (error) console.error('saveCredential:', error)
 }

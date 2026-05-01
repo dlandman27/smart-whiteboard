@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
+    "@capacitor/android": "^8.3.1",
     "@modelcontextprotocol/sdk": "^1.28.0",
     "@notionhq/client": "^2.2.15",
     "@phosphor-icons/react": "^2.1.10",

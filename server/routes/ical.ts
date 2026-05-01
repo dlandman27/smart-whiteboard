@@ -255,9 +255,11 @@ export function icalRouter(): Router {
   const router = Router()
 
   router.get('/ical/events', asyncRoute(async (req, res) => {
-    const url = req.query.url as string
-    if (!url) throw new AppError(400, 'Missing required query parameter: url')
+    const rawUrl = req.query.url as string
+    if (!rawUrl) throw new AppError(400, 'Missing required query parameter: url')
 
+    // Accept webcal:// URLs (Apple Calendar uses this scheme)
+    const url = rawUrl.replace(/^webcal:\/\//i, 'https://')
     try { new URL(url) } catch { throw new AppError(400, 'Invalid URL') }
 
     const days = Math.min(Math.max(Number(req.query.days) || 7, 1), 30)

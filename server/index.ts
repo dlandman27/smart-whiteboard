@@ -34,6 +34,7 @@ import { rssRouter }           from './routes/rss.js'
 import { stocksRouter }        from './routes/stocks.js'
 import { todoistRouter }       from './routes/todoist.js'
 import { icalRouter }          from './routes/ical.js'
+import { icalFeedsRouter }     from './routes/ical-feeds.js'
 import { feedbackRouter }      from './routes/feedback.js'
 import { tasksRouter }         from './routes/tasks.js'
 import { routinesRouter }      from './routes/routines.js'
@@ -122,6 +123,7 @@ app.use('/api', rssRouter())
 app.use('/api', stocksRouter())
 app.use('/api', todoistRouter())
 app.use('/api', icalRouter())
+app.use('/api', icalFeedsRouter())
 app.use('/api', feedbackRouter())
 app.use('/api', tasksRouter())
 app.use('/api', routinesRouter())

@@ -53,348 +53,252 @@ export function LoginScreen() {
     }
   }
 
-  const heading = mode === 'sign-in' ? 'Welcome back' : mode === 'sign-up' ? 'Create your account' : 'Reset password'
-  const subtitle = mode === 'sign-in'
-    ? 'Sign in to your whiteboard'
-    : mode === 'sign-up'
-      ? 'Get started with your smart display'
-      : 'We\'ll send you a reset link'
+  async function handleGoogleSignIn() {
+    await supabase.auth.signInWithOAuth({ provider: 'google' })
+  }
+
+  const heading =
+    mode === 'sign-in' ? 'Sign in to your account'
+    : mode === 'sign-up' ? 'Create your account'
+    : 'Reset your password'
 
   return (
-    <div className="login-screen">
+    <div className="login-root">
       <style>{`
-        .login-screen {
-          position: fixed;
-          inset: 0;
+        .login-root {
+          min-height: 100dvh;
+          background: #111827;
           display: flex;
-          align-items: center;
+          flex-direction: column;
           justify-content: center;
-          background: var(--wt-bg);
-          overflow: hidden;
+          padding: 48px 0;
         }
-
-        /* Subtle gradient orbs in background */
-        .login-screen::before,
-        .login-screen::after {
-          content: '';
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(120px);
-          opacity: 0.08;
-          pointer-events: none;
-        }
-        .login-screen::before {
-          width: 600px;
-          height: 600px;
-          top: -200px;
-          right: -100px;
-          background: var(--wt-accent);
-        }
-        .login-screen::after {
-          width: 500px;
-          height: 500px;
-          bottom: -150px;
-          left: -100px;
-          background: #8b5cf6;
-        }
-
-        .login-card {
-          position: relative;
-          z-index: 1;
-          width: 100%;
-          max-width: 400px;
-          padding: 48px 40px 40px;
-          border-radius: 20px;
-          background: var(--wt-surface);
-          border: 1px solid var(--wt-border);
-          box-shadow: 0 24px 64px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.15);
-          animation: cardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
-        }
-
-        @keyframes cardIn {
-          from {
-            opacity: 0;
-            transform: translateY(16px) scale(0.97);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        .login-logo-area {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          margin-bottom: 32px;
-        }
-
-        .login-brand {
-          margin-top: 16px;
-          font-size: 13px;
-          font-weight: 600;
-          letter-spacing: 0.12em;
-          text-transform: uppercase;
-          color: var(--wt-text);
-          opacity: 0.4;
-        }
-
-        .login-heading {
-          font-size: 22px;
-          font-weight: 600;
-          color: var(--wt-text);
-          margin: 0 0 4px;
-          letter-spacing: -0.01em;
-        }
-
-        .login-subtitle {
-          font-size: 14px;
-          color: var(--wt-text);
-          opacity: 0.45;
-          margin: 0 0 28px;
-        }
-
-        .login-form {
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .login-field {
-          position: relative;
-        }
-
-        .login-label {
-          display: block;
-          font-size: 12px;
-          font-weight: 500;
-          color: var(--wt-text);
-          opacity: 0.55;
-          margin-bottom: 6px;
-          letter-spacing: 0.02em;
-        }
-
         .login-input {
+          display: block;
           width: 100%;
-          padding: 11px 14px;
-          border-radius: 10px;
-          border: 1px solid var(--wt-border);
-          background: var(--wt-bg);
-          color: var(--wt-text);
+          border-radius: 6px;
+          background: rgba(255,255,255,0.05);
+          padding: 6px 12px;
           font-size: 14px;
-          outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s;
+          color: #fff;
+          outline: 1px solid rgba(255,255,255,0.1);
+          outline-offset: -1px;
+          transition: outline-color 0.15s, box-shadow 0.15s;
           box-sizing: border-box;
         }
-
-        .login-input::placeholder {
-          color: var(--wt-text);
-          opacity: 0.25;
-        }
-
+        .login-input::placeholder { color: rgba(255,255,255,0.25); }
         .login-input:focus {
-          border-color: var(--wt-accent);
-          box-shadow: 0 0 0 3px color-mix(in srgb, var(--wt-accent) 15%, transparent);
+          outline: 2px solid #e25822;
+          outline-offset: -2px;
+          box-shadow: none;
         }
-
-        .login-btn {
-          margin-top: 6px;
-          padding: 12px 0;
-          border-radius: 10px;
-          border: none;
-          background: var(--wt-accent);
-          color: #fff;
+        .login-btn-primary {
+          display: flex;
+          width: 100%;
+          justify-content: center;
+          align-items: center;
+          gap: 8px;
+          border-radius: 6px;
+          background: #e25822;
+          padding: 6px 12px;
           font-size: 14px;
           font-weight: 600;
-          cursor: pointer;
-          transition: opacity 0.2s, transform 0.1s;
-          letter-spacing: 0.01em;
-        }
-
-        .login-btn:hover:not(:disabled) {
-          opacity: 0.9;
-        }
-
-        .login-btn:active:not(:disabled) {
-          transform: scale(0.98);
-        }
-
-        .login-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .login-error {
-          padding: 10px 14px;
-          border-radius: 10px;
-          background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.2);
-          color: #f87171;
-          font-size: 13px;
-          animation: shakeIn 0.3s ease;
-        }
-
-        .login-message {
-          padding: 10px 14px;
-          border-radius: 10px;
-          background: rgba(34, 197, 94, 0.1);
-          border: 1px solid rgba(34, 197, 94, 0.2);
-          color: #4ade80;
-          font-size: 13px;
-        }
-
-        @keyframes shakeIn {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-4px); }
-          75% { transform: translateX(4px); }
-        }
-
-        .login-footer {
-          margin-top: 24px;
-          text-align: center;
-          font-size: 13px;
-          color: var(--wt-text);
-          opacity: 0.45;
-        }
-
-        .login-link {
-          color: var(--wt-accent);
-          cursor: pointer;
-          font-weight: 500;
+          color: #fff;
           border: none;
-          background: none;
-          padding: 0;
-          font-size: inherit;
-          text-decoration: none;
-          opacity: 1;
-        }
-
-        .login-link:hover {
-          text-decoration: underline;
-        }
-
-        .login-forgot {
-          display: inline-block;
-          margin-top: 2px;
-          font-size: 12px;
-          color: var(--wt-text);
-          opacity: 0.35;
           cursor: pointer;
-          background: none;
-          border: none;
-          padding: 0;
+          transition: opacity 0.15s;
         }
-
-        .login-forgot:hover {
-          opacity: 0.6;
+        .login-btn-primary:hover:not(:disabled) { opacity: 0.9; }
+        .login-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        .login-btn-google {
+          display: flex;
+          width: 100%;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          border-radius: 6px;
+          background: rgba(255,255,255,0.1);
+          padding: 8px 12px;
+          font-size: 14px;
+          font-weight: 600;
+          color: #fff;
+          border: 1px solid rgba(255,255,255,0.05);
+          cursor: pointer;
+          transition: background 0.15s;
         }
-
+        .login-btn-google:hover { background: rgba(255,255,255,0.18); }
         .login-spinner {
-          display: inline-block;
           width: 16px;
           height: 16px;
           border: 2px solid rgba(255,255,255,0.3);
           border-top-color: #fff;
           border-radius: 50%;
           animation: spin 0.6s linear infinite;
-          vertical-align: middle;
-          margin-right: 8px;
+          flex-shrink: 0;
         }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
 
-      <div className="login-card">
-        <div className="login-logo-area">
-          <Logo size={48} />
-          <span className="login-brand">Walli</span>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md px-4">
+        <div className="flex justify-center">
+          <Logo size={40} />
         </div>
+        <h2 className="mt-6 text-center text-2xl font-bold tracking-tight text-white">
+          {heading}
+        </h2>
+      </div>
 
-        <h1 className="login-heading">{heading}</h1>
-        <p className="login-subtitle">{subtitle}</p>
+      <div className="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px] px-4">
+        <div
+          className="px-6 py-12 sm:rounded-lg sm:px-12"
+          style={{
+            background: 'rgba(255,255,255,0.05)',
+            outline: '1px solid rgba(255,255,255,0.1)',
+            outlineOffset: '-1px',
+          }}
+        >
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {error && (
+              <div
+                className="rounded-md p-3 text-sm"
+                style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171' }}
+              >
+                {error}
+              </div>
+            )}
+            {message && (
+              <div
+                className="rounded-md p-3 text-sm"
+                style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80' }}
+              >
+                {message}
+              </div>
+            )}
 
-        <form className="login-form" onSubmit={handleSubmit}>
-          {error && <div className="login-error">{error}</div>}
-          {message && <div className="login-message">{message}</div>}
-
-          <div className="login-field">
-            <label className="login-label">Email</label>
-            <input
-              ref={emailRef}
-              className="login-input"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
-
-          {mode !== 'forgot' && (
-            <div className="login-field">
-              <label className="login-label">Password</label>
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-white mb-2">
+                Email address
+              </label>
               <input
-                className="login-input"
-                type="password"
-                placeholder={mode === 'sign-up' ? 'At least 6 characters' : 'Enter your password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                ref={emailRef}
+                id="email"
+                type="email"
+                name="email"
                 required
-                autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
+                autoComplete="email"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                className="login-input"
               />
-              {mode === 'sign-in' && (
+            </div>
+
+            {mode !== 'forgot' && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-white mb-2">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  name="password"
+                  required
+                  autoComplete={mode === 'sign-in' ? 'current-password' : 'new-password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="login-input"
+                  placeholder={mode === 'sign-up' ? 'At least 6 characters' : ''}
+                />
+              </div>
+            )}
+
+            {mode === 'sign-up' && (
+              <div>
+                <label htmlFor="confirm-password" className="block text-sm font-medium text-white mb-2">
+                  Confirm password
+                </label>
+                <input
+                  id="confirm-password"
+                  type="password"
+                  name="confirm-password"
+                  required
+                  autoComplete="new-password"
+                  value={confirmPw}
+                  onChange={e => setConfirmPw(e.target.value)}
+                  className="login-input"
+                  placeholder="Repeat your password"
+                />
+              </div>
+            )}
+
+            {mode === 'sign-in' && (
+              <div className="flex justify-end">
                 <button
                   type="button"
-                  className="login-forgot"
                   onClick={() => { resetForm(); setMode('forgot') }}
+                  className="text-sm font-semibold"
+                  style={{ color: '#e25822', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
                 >
                   Forgot password?
                 </button>
-              )}
+              </div>
+            )}
+
+            <div>
+              <button type="submit" disabled={loading} className="login-btn-primary">
+                {loading && <span className="login-spinner" />}
+                {mode === 'sign-in' ? 'Sign in' : mode === 'sign-up' ? 'Create account' : 'Send reset link'}
+              </button>
+            </div>
+          </form>
+
+          {mode === 'sign-in' && (
+            <div>
+              <div className="mt-10 flex items-center gap-6">
+                <div className="flex-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+                <p className="text-sm font-medium text-white whitespace-nowrap">Or continue with</p>
+                <div className="flex-1 border-t" style={{ borderColor: 'rgba(255,255,255,0.1)' }} />
+              </div>
+
+              <div className="mt-6">
+                <button onClick={handleGoogleSignIn} className="login-btn-google">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 shrink-0">
+                    <path d="M12.0003 4.75C13.7703 4.75 15.3553 5.36002 16.6053 6.54998L20.0303 3.125C17.9502 1.19 15.2353 0 12.0003 0C7.31028 0 3.25527 2.69 1.28027 6.60998L5.27028 9.70498C6.21525 6.86002 8.87028 4.75 12.0003 4.75Z" fill="#EA4335" />
+                    <path d="M23.49 12.275C23.49 11.49 23.415 10.73 23.3 10H12V14.51H18.47C18.18 15.99 17.34 17.25 16.08 18.1L19.945 21.1C22.2 19.01 23.49 15.92 23.49 12.275Z" fill="#4285F4" />
+                    <path d="M5.26498 14.2949C5.02498 13.5699 4.88501 12.7999 4.88501 11.9999C4.88501 11.1999 5.01998 10.4299 5.26498 9.7049L1.275 6.60986C0.46 8.22986 0 10.0599 0 11.9999C0 13.9399 0.46 15.7699 1.28 17.3899L5.26498 14.2949Z" fill="#FBBC05" />
+                    <path d="M12.0004 24.0001C15.2404 24.0001 17.9654 22.935 19.9454 21.095L16.0804 18.095C15.0054 18.82 13.6204 19.245 12.0004 19.245C8.8704 19.245 6.21537 17.135 5.2654 14.29L1.27539 17.385C3.25539 21.31 7.3104 24.0001 12.0004 24.0001Z" fill="#34A853" />
+                  </svg>
+                  <span>Google</span>
+                </button>
+              </div>
             </div>
           )}
+        </div>
 
-          {mode === 'sign-up' && (
-            <div className="login-field">
-              <label className="login-label">Confirm password</label>
-              <input
-                className="login-input"
-                type="password"
-                placeholder="Repeat your password"
-                value={confirmPw}
-                onChange={(e) => setConfirmPw(e.target.value)}
-                required
-                autoComplete="new-password"
-              />
-            </div>
-          )}
-
-          <button className="login-btn" type="submit" disabled={loading}>
-            {loading && <span className="login-spinner" />}
-            {mode === 'sign-in' ? 'Sign in' : mode === 'sign-up' ? 'Create account' : 'Send reset link'}
-          </button>
-        </form>
-
-        <div className="login-footer">
+        <p className="mt-10 text-center text-sm" style={{ color: 'rgba(255,255,255,0.4)' }}>
           {mode === 'sign-in' ? (
             <>
               Don't have an account?{' '}
-              <button className="login-link" onClick={() => { resetForm(); setMode('sign-up') }}>
+              <button
+                onClick={() => { resetForm(); setMode('sign-up') }}
+                className="font-semibold"
+                style={{ color: '#e25822', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
                 Sign up
               </button>
             </>
           ) : (
             <>
               Already have an account?{' '}
-              <button className="login-link" onClick={() => { resetForm(); setMode('sign-in') }}>
+              <button
+                onClick={() => { resetForm(); setMode('sign-in') }}
+                className="font-semibold"
+                style={{ color: '#e25822', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+              >
                 Sign in
               </button>
             </>
           )}
-        </div>
+        </p>
       </div>
     </div>
   )
