@@ -75,3 +75,21 @@ export { SettingsSection }          from './SettingsSection'
 
 // ── Utilities ────────────────────────────────────────────────────────────────
 export { cn }                       from './utils/cn'
+
+// ── New components ───────────────────────────────────────────────────────────
+export { Badge }                    from './Badge'
+export type { BadgeColor, BadgeSize } from './Badge'
+export { Alert }                    from './Alert'
+export type { AlertVariant }        from './Alert'
+export { EmptyState }               from './EmptyState'
+export { Modal }                    from './Modal'
+export { Drawer }                   from './Drawer'
+export { Tabs }                     from './Tabs'
+export type { TabItem }             from './Tabs'
+export { Toaster }                  from './Toast'
+export { toast, useToastMessages }  from './useToast'
+export type { ToastVariant, ToastMessage } from './useToast'
+export { Select }                   from './Select'
+export { Textarea }                 from './Textarea'
+export { Table, Thead, Tbody, Tr, Th, Td } from './Table'
+export { StackedList, StackedListItem } from './StackedList'
